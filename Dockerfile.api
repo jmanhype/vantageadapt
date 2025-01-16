@@ -1,0 +1,23 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies (excluding vectorbtpro)
+RUN pip install --no-cache-dir fastapi uvicorn python-multipart sqlalchemy asyncpg pandas numpy plotly python-dotenv pydantic langchain langchain-openai jsonpointer langsmith
+
+# Copy application code
+COPY . .
+
+# Expose port
+EXPOSE 8000
+
+# Run FastAPI with uvicorn
+CMD ["uvicorn", "research.api.control_panel:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 

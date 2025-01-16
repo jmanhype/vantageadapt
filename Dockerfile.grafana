@@ -1,0 +1,13 @@
+FROM grafana/grafana:8.5.27
+
+USER root
+
+# Install plugins
+RUN grafana-cli plugins install grafana-json-datasource && \
+    grafana-cli plugins install grafana-simple-json-datasource
+
+# Set permissions
+RUN chown -R grafana:root /var/lib/grafana && \
+    chmod -R 777 /var/lib/grafana
+
+USER grafana 

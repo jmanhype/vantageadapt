@@ -1,0 +1,53 @@
+version: '3'
+services:
+  grafana:
+    image: grafana/grafana:8.5.27
+    ports:
+      - "3334:3000"
+    volumes:
+      - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_SERVER_ROOT_URL=http://localhost:3334
+      - GF_LOG_LEVEL=debug
+    networks:
+      - trading-network
+    depends_on:
+      - postgres
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=trading_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - trading-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  trading-network:
+    driver: bridge
+
+volumes:
+  grafana_data:
+    driver: local
+  postgres_data:
+    driver: local 

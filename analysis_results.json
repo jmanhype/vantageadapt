@@ -1,0 +1,70 @@
+{
+  "total_trades": 8395,
+  "win_rate": 0.3073257891602144,
+  "avg_profit": -0.0024803893610425352,
+  "max_drawdown": -0.021980000000000225,
+  "avg_trade_duration": 737.3693865396069,
+  "profit_factor": 0.5916925203590544,
+  "per_asset_stats": {
+    "$MICHI": {
+      "total_trades": 1729,
+      "win_rate": 0.2706766917293233,
+      "avg_profit": -0.002889883688811132,
+      "total_pnl": -0.0006324489831390299
+    },
+    "LOCKIN": {
+      "total_trades": 921,
+      "win_rate": 0.2779587404994571,
+      "avg_profit": -0.0050501797155409756,
+      "total_pnl": -0.00010158354944251437
+    },
+    "SELFIE": {
+      "total_trades": 634,
+      "win_rate": 0.3801261829652997,
+      "avg_profit": -0.00040650914086798546,
+      "total_pnl": -2.0512185913381594e-06
+    },
+    "T1500": {
+      "total_trades": 254,
+      "win_rate": 0.38188976377952755,
+      "avg_profit": 0.0014374328731066247,
+      "total_pnl": 2.233872717300963e-07
+    },
+    "AURA": {
+      "total_trades": 911,
+      "win_rate": 0.3446761800219539,
+      "avg_profit": -0.0016864635351274701,
+      "total_pnl": -2.983110885768068e-05
+    },
+    "MOTHER": {
+      "total_trades": 1282,
+      "win_rate": 0.2925117004680187,
+      "avg_profit": -0.0032646577187432245,
+      "total_pnl": -0.0001879700162616075
+    },
+    "RETARDIO": {
+      "total_trades": 1587,
+      "win_rate": 0.29363579080025204,
+      "avg_profit": -0.003017044346432368,
+      "total_pnl": -0.00027324356121437846
+    },
+    "NUB": {
+      "total_trades": 804,
+      "win_rate": 0.32338308457711445,
+      "avg_profit": -0.0021013120255616007,
+      "total_pnl": -1.7631692565508958e-05
+    },
+    "DOMO": {
+      "total_trades": 219,
+      "win_rate": 0.3789954337899543,
+      "avg_profit": 0.003986214263814831,
+      "total_pnl": -1.1860983509671116e-07
+    },
+    "DWOG": {
+      "total_trades": 54,
+      "win_rate": 0.37037037037037035,
+      "avg_profit": 0.0008103217416853601,
+      "total_pnl": 6.7445706069885e-09
+    }
+  }
+}

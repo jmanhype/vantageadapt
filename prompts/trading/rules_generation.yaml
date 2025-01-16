@@ -1,6 +1,6 @@
-Adaptive regime multiplier mechanism: Provide specific guidelines on how to calculate
-  the adaptive regime multiplier and examples of 'regime' data points to be used for
-  this calculation.
+Adaptive regime multiplier mechanism: Enhance stability by implementing a decay factor
+  to the exponential smoothing to prevent over-reactivity to short-term anomalies
+  specific to the RANGING_LOW_VOL regime.
 Current Rules Prompt - parameters: Develop a strategy for dynamic adjustment of strategy
   parameters, including beta weighting and moving averages, to respond effectively
   to rapid shifts in market conditions typical of the RANGING_LOW_VOL regime.
@@ -9,29 +9,24 @@ Current Rules Prompt - parameters - regime_mult: Explicitly describe the adaptiv
 Entry conditions: Refine entry conditions to specify how liquidity indicators and
   order flow imbalance should be quantified and incorporated into the entry mechanism,
   possibly using a predefined threshold.
-Entry conditions - regime-specific breakout thresholds: Design and train a machine
-  learning model specifically on historical data from ranging markets with low volatility,
-  to identify and predict successful breakout patterns, with validation to ensure
-  robustness against unexpected regime shifts.
-Entry conditions modification: Incorporate a conditional layer in the entry mechanics
-  to evaluate the impact of recent news or market events, allowing the strategy to
-  avoid entries that may be adversely affected by unscheduled high-impact news.
-Machine learning for analytics dashboard: Detail the machine learning ensemble approach,
-  including the specific algorithms used and how they complement each other's predictive
-  capabilities.
+Entry conditions - regime-specific breakout thresholds: Incorporate cross-validation
+  within the machine learning model development process to ensure robustness and generalizability
+  of breakout pattern recognitions.
+Entry conditions modification: "Utilize a Bayesian updating process to factor in the\
+  \ impact of real-time news or market events, enabling the strategy to probabilistically\
+  \ weigh the likelihood of an entry\u2019s success post-news event."
+Machine learning for analytics dashboard: Implement a decision-making tree visualization
+  for the feature selection and hyperparameter tuning process to better understand
+  model decisions and enhancements.
 Review system for performance-weighted moving average: Define specific performance
   metrics that will trigger updates to the weighting strategy for moving averages,
   with the goal of optimizing the strategy's responsiveness to RANGING_LOW_VOL conditions.
-Risk management enhancement: Develop a more sophisticated risk management strategy
-  for the RANGING_LOW_VOL market regime that uses machine learning to predict potential
-  economic impacts on volatility, refining rule-based responses accordingly.
-Risk management incorporating economic news: Develop a quantitative model that evaluates
-  the risk of economic news, scales the impact on stop losses and take profits, and
-  adjusts position sizes accordingly, aiming for minimal adverse effects from surprise
-  news events.
-Risk management parameters: Incorporate a real-time risk management system that adapts
-  trailing stops and position sizes using a GARCH (1,1) model to better estimate the
-  impact of 'volatility clustering' effects in RANGING_LOW_VOL environments.
+Risk management enhancement: Embed a Monte Carlo simulation approach to test various
+  risk scenarios and adjust risk management rules accordingly, ensuring strategies
+  are robust against the specific challenges posed by the RANGING_LOW_VOL regime.
+Risk management parameters: Optimize the GARCH model implementation to use rolling
+  windows that dynamically adjust in length based on predictive accuracy to better
+  estimate volatility clustering.
 Risk management rules for RANGING_LOW_VOL regime: Integrate a dynamic component into
   risk management rules that accounts for economic news impact, using sentiment analysis
   and news classification techniques to dynamically adjust risk parameters prior to
@@ -91,6 +86,5 @@ user_template: 'Generate trading rules and parameters based on the following str
   on a single line.
 
   '
-user_template clarity: Simplify the structure of the JSON template for trading rules
-  and parameters to ensure that users can clearly understand and implement the necessary
-  inputs required by the strategy insights and market context.
+user_template clarity: Include a metadata section within the JSON response, providing
+  data dictionary definitions inline for all parameters to assist with user comprehension.
