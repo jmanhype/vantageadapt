@@ -73,22 +73,30 @@ class LLMInterface:
         model: str = "gpt-4-1106-preview",
         temperature: float = 0.7,
         response_format: Dict = None,
+        functions: List[Dict] = None,
+        function_call: Dict = None
     ) -> Any:
         """Send chat completion request using OpenAI API."""
         try:
             client = openai.OpenAI()
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                response_format=response_format or {"type": "json_object"},
-            )
+            kwargs = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature
+            }
+            
+            if functions:
+                kwargs["functions"] = functions
+            if function_call:
+                kwargs["function_call"] = function_call
+            if response_format and not functions:
+                kwargs["response_format"] = response_format
 
+            response = client.chat.completions.create(**kwargs)
             if not response.choices:
                 return None
 
-            content = response.choices[0].message.content
-            return content
+            return response
 
         except Exception as e:
             logger.error(f"Error in chat completion: {str(e)}")
@@ -183,54 +191,172 @@ class LLMInterface:
     ) -> Optional[StrategyInsight]:
         """Generate strategic trading insights."""
         try:
-            system_prompt = """You are a trading strategy generator. Your task is to analyze market context and generate strategy insights.
-Please respond with a JSON object containing strategy recommendations. The response must be a valid JSON object with this exact structure:
-{
-    "regime_change_probability": number,
-    "suggested_position_size": number,
-    "volatility_adjustment": {
-        "entry_zone": number,
-        "exit_zone": number,
-        "stop_loss": number
-    },
-    "regime_specific_rules": {
-        "ranging_low_vol": {
-            "position_size_mult": number,
-            "stop_loss_mult": number,
-            "take_profit_mult": number
-        },
-        "ranging_high_vol": {
-            "position_size_mult": number,
-            "stop_loss_mult": number,
-            "take_profit_mult": number
-        },
-        "trending": {
-            "position_size_mult": number,
-            "stop_loss_mult": number,
-            "take_profit_mult": number
-        }
-    },
-    "key_indicators": {
-        "primary": [string],
-        "confirmation": [string],
-        "exit": [string]
-    },
-    "risk_management": {
-        "max_position_size": number,
-        "max_correlation": number,
-        "max_drawdown": number
-    }
-}"""
+            # Define the function schema
+            functions = [
+                {
+                    "name": "generate_strategy_parameters",
+                    "description": "Generate trading strategy parameters based on market context",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "regime_change_probability": {
+                                "type": "number",
+                                "description": "Probability of market regime change (0-1)",
+                                "minimum": 0,
+                                "maximum": 1
+                            },
+                            "suggested_position_size": {
+                                "type": "number",
+                                "description": "Suggested position size as a fraction (0-1)",
+                                "minimum": 0,
+                                "maximum": 1
+                            },
+                            "volatility_adjustment": {
+                                "type": "object",
+                                "properties": {
+                                    "entry_zone": {
+                                        "type": "number",
+                                        "description": "Entry zone multiplier",
+                                        "minimum": 0
+                                    },
+                                    "exit_zone": {
+                                        "type": "number",
+                                        "description": "Exit zone multiplier",
+                                        "minimum": 0
+                                    },
+                                    "stop_loss": {
+                                        "type": "number",
+                                        "description": "Stop loss multiplier",
+                                        "minimum": 0
+                                    }
+                                },
+                                "required": ["entry_zone", "exit_zone", "stop_loss"]
+                            },
+                            "regime_specific_rules": {
+                                "type": "object",
+                                "properties": {
+                                    "ranging_low_vol": {
+                                        "type": "object",
+                                        "properties": {
+                                            "position_size_mult": {
+                                                "type": "number",
+                                                "minimum": 0
+                                            },
+                                            "stop_loss_mult": {
+                                                "type": "number",
+                                                "minimum": 0
+                                            },
+                                            "take_profit_mult": {
+                                                "type": "number",
+                                                "minimum": 0
+                                            }
+                                        },
+                                        "required": ["position_size_mult", "stop_loss_mult", "take_profit_mult"]
+                                    },
+                                    "ranging_high_vol": {
+                                        "type": "object",
+                                        "properties": {
+                                            "position_size_mult": {
+                                                "type": "number",
+                                                "minimum": 0
+                                            },
+                                            "stop_loss_mult": {
+                                                "type": "number",
+                                                "minimum": 0
+                                            },
+                                            "take_profit_mult": {
+                                                "type": "number",
+                                                "minimum": 0
+                                            }
+                                        },
+                                        "required": ["position_size_mult", "stop_loss_mult", "take_profit_mult"]
+                                    },
+                                    "trending": {
+                                        "type": "object",
+                                        "properties": {
+                                            "position_size_mult": {
+                                                "type": "number",
+                                                "minimum": 0
+                                            },
+                                            "stop_loss_mult": {
+                                                "type": "number",
+                                                "minimum": 0
+                                            },
+                                            "take_profit_mult": {
+                                                "type": "number",
+                                                "minimum": 0
+                                            }
+                                        },
+                                        "required": ["position_size_mult", "stop_loss_mult", "take_profit_mult"]
+                                    }
+                                },
+                                "required": ["ranging_low_vol", "ranging_high_vol", "trending"]
+                            },
+                            "key_indicators": {
+                                "type": "object",
+                                "properties": {
+                                    "primary": {
+                                        "type": "array",
+                                        "items": {"type": "string"}
+                                    },
+                                    "confirmation": {
+                                        "type": "array",
+                                        "items": {"type": "string"}
+                                    },
+                                    "exit": {
+                                        "type": "array",
+                                        "items": {"type": "string"}
+                                    }
+                                },
+                                "required": ["primary", "confirmation", "exit"]
+                            },
+                            "risk_management": {
+                                "type": "object",
+                                "properties": {
+                                    "max_position_size": {
+                                        "type": "number",
+                                        "description": "Maximum position size (0-1)",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                    },
+                                    "max_correlation": {
+                                        "type": "number",
+                                        "description": "Maximum correlation between positions (0-1)",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                    },
+                                    "max_drawdown": {
+                                        "type": "number",
+                                        "description": "Maximum allowed drawdown (0-1)",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                    }
+                                },
+                                "required": ["max_position_size", "max_correlation", "max_drawdown"]
+                            }
+                        },
+                        "required": [
+                            "regime_change_probability",
+                            "suggested_position_size",
+                            "volatility_adjustment",
+                            "regime_specific_rules",
+                            "key_indicators",
+                            "risk_management"
+                        ]
+                    }
+                }
+            ]
 
-            user_prompt = f"""Generate a trading strategy for theme: {theme}
+            system_prompt = """You are a trading strategy generator that provides strategy parameters based on market context.
+Your task is to analyze the market context and generate appropriate numeric parameters for the trading strategy."""
+
+            user_prompt = f"""Generate trading strategy parameters for theme: {theme}
 Market Context:
 - Regime: {market_context.regime.value}
 - Volatility Level: {market_context.volatility_level}
 - Trend Strength: {market_context.trend_strength}
 - Volume Profile: {market_context.volume_profile}
-- Risk Level: {market_context.risk_level}
-
-Respond with a JSON object containing strategy recommendations."""
+- Risk Level: {market_context.risk_level}"""
 
             if not system_prompt or not user_prompt:
                 raise ValueError("Failed to load strategy generation prompts")
@@ -241,80 +367,35 @@ Respond with a JSON object containing strategy recommendations."""
                     {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.1,
-                response_format={"type": "json_object"}
+                functions=functions,
+                function_call={"name": "generate_strategy_parameters"}
             )
 
-            if not response:
+            if not response or not response.choices:
                 logger.error("No response from LLM")
                 return None
 
-            # Clean and parse JSON response
-            response = response.strip()
-            if '```' in response:
-                response = response.split('```')[1]
-                if response.startswith('json'):
-                    response = response[4:]
-                response = response.strip('`')
-            
-            strategy_data = json.loads(response)
-            if not strategy_data:
-                logger.error("Failed to parse strategy response")
+            function_call = response.choices[0].message.function_call
+            if not function_call or function_call.name != "generate_strategy_parameters":
+                logger.error("Invalid function call response")
                 return None
 
-            # Validate required fields
-            required_fields = [
-                "regime_change_probability",
-                "suggested_position_size",
-                "volatility_adjustment",
-                "regime_specific_rules",
-                "key_indicators",
-                "risk_management"
-            ]
-            for field in required_fields:
-                if field not in strategy_data:
-                    logger.error(f"Missing required field in strategy: {field}")
-                    return None
-
-            return StrategyInsight(
-                regime_change_probability=float(
-                    strategy_data.get("regime_change_probability", 0.0)
-                ),
-                suggested_position_size=float(
-                    strategy_data.get("suggested_position_size", 0.0)
-                ),
-                volatility_adjustment=strategy_data.get("volatility_adjustment", {
-                    "entry_zone": 1.0,
-                    "exit_zone": 1.0,
-                    "stop_loss": 1.0
-                }),
-                regime_specific_rules=strategy_data.get("regime_specific_rules", {
-                    "ranging_low_vol": {
-                        "position_size_mult": 0.8,
-                        "stop_loss_mult": 0.7,
-                        "take_profit_mult": 1.2
-                    },
-                    "ranging_high_vol": {
-                        "position_size_mult": 0.6,
-                        "stop_loss_mult": 1.3,
-                        "take_profit_mult": 1.5
-                    },
-                    "trending": {
-                        "position_size_mult": 1.0,
-                        "stop_loss_mult": 1.0,
-                        "take_profit_mult": 1.0
-                    }
-                }),
-                key_indicators=strategy_data.get("key_indicators", {
-                    "primary": ["MACD", "RSI"],
-                    "confirmation": ["Volume", "ATR"],
-                    "exit": ["Trailing stop", "Time-based"]
-                }),
-                risk_management=strategy_data.get("risk_management", {
-                    "max_position_size": 0.1,
-                    "max_correlation": 0.7,
-                    "max_drawdown": 0.15
-                })
-            )
+            try:
+                strategy_data = json.loads(function_call.arguments)
+                
+                # Create StrategyInsight with validated data
+                return StrategyInsight(
+                    regime_change_probability=strategy_data["regime_change_probability"],
+                    suggested_position_size=strategy_data["suggested_position_size"],
+                    volatility_adjustment=strategy_data["volatility_adjustment"],
+                    regime_specific_rules=strategy_data["regime_specific_rules"],
+                    key_indicators=strategy_data["key_indicators"],
+                    risk_management=strategy_data["risk_management"]
+                )
+                
+            except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
+                logger.error(f"Error processing function call response: {str(e)}")
+                return None
 
         except Exception as e:
             logger.error(f"Error generating strategy: {str(e)}")
