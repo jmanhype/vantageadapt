@@ -1,0 +1,96 @@
+Adaptive regime multiplier mechanism: Provide specific guidelines on how to calculate
+  the adaptive regime multiplier and examples of 'regime' data points to be used for
+  this calculation.
+Current Rules Prompt - parameters: Develop a strategy for dynamic adjustment of strategy
+  parameters, including beta weighting and moving averages, to respond effectively
+  to rapid shifts in market conditions typical of the RANGING_LOW_VOL regime.
+Current Rules Prompt - parameters - regime_mult: Explicitly describe the adaptive
+  regime multiplier logic and provide a pseudo-code or simplified mathematical representation.
+Entry conditions: Refine entry conditions to specify how liquidity indicators and
+  order flow imbalance should be quantified and incorporated into the entry mechanism,
+  possibly using a predefined threshold.
+Entry conditions - regime-specific breakout thresholds: Design and train a machine
+  learning model specifically on historical data from ranging markets with low volatility,
+  to identify and predict successful breakout patterns, with validation to ensure
+  robustness against unexpected regime shifts.
+Entry conditions modification: Incorporate a conditional layer in the entry mechanics
+  to evaluate the impact of recent news or market events, allowing the strategy to
+  avoid entries that may be adversely affected by unscheduled high-impact news.
+Machine learning for analytics dashboard: Detail the machine learning ensemble approach,
+  including the specific algorithms used and how they complement each other's predictive
+  capabilities.
+Review system for performance-weighted moving average: Define specific performance
+  metrics that will trigger updates to the weighting strategy for moving averages,
+  with the goal of optimizing the strategy's responsiveness to RANGING_LOW_VOL conditions.
+Risk management enhancement: Develop a more sophisticated risk management strategy
+  for the RANGING_LOW_VOL market regime that uses machine learning to predict potential
+  economic impacts on volatility, refining rule-based responses accordingly.
+Risk management incorporating economic news: Develop a quantitative model that evaluates
+  the risk of economic news, scales the impact on stop losses and take profits, and
+  adjusts position sizes accordingly, aiming for minimal adverse effects from surprise
+  news events.
+Risk management parameters: Incorporate a real-time risk management system that adapts
+  trailing stops and position sizes using a GARCH (1,1) model to better estimate the
+  impact of 'volatility clustering' effects in RANGING_LOW_VOL environments.
+Risk management rules for RANGING_LOW_VOL regime: Integrate a dynamic component into
+  risk management rules that accounts for economic news impact, using sentiment analysis
+  and news classification techniques to dynamically adjust risk parameters prior to
+  and following major news releases.
+Streamline mean reversion techniques: Enhance mean reversion strategies by incorporating
+  a sentiment analysis module that sensitively reacts to prevailing market sentiments
+  and filters trades more effectively during low volatility conditions.
+conditions - entry: Use logistic regression to establish probability thresholds for
+  breakout success probability models, ensuring that entries are predicated upon high-confidence
+  predictions that are continuously re-calibrated for the market's RANGING_LOW_VOL
+  state.
+parameters - regime_mult: Define a clear algorithmic representation for the adaptive
+  regime multiplier using established financial indicators or statistical measures.
+regime_mult concept: Clarify the regime multiplier algorithm with updated pseudo-code,
+  including a more complex model that accounts for new machine learning insights pertaining
+  to RANGING_LOW_VOL conditions, for accurate real-time adjustment of parameters.
+risk_management: Enhance risk management protocols by simulating various risk scenarios
+  and stress testing against historical data encompassing RANGING_LOW_VOL conditions,
+  ensuring rules are tailored and responsive to low volatility regime characteristics.
+system: Optimize the system's output for real-time application by streamlining the
+  processing and execution logic to reduce latency, ensuring that the generated trading
+  rules can be implemented effectively in fast-paced market environments.
+user_template: 'Generate trading rules and parameters based on the following strategy
+  insights and market context:
+
+
+  Strategy Insights:
+
+  {strategy_insights}
+
+
+  Market Context:
+
+  {market_context}
+
+
+  Requirements:
+
+  1. All parameter values must be numbers (not strings)
+
+  2. Entry conditions must include multiple timeframe confirmation
+
+  3. Exit conditions must include both profit taking and stop loss
+
+  4. Risk management rules must adapt to market regime
+
+  5. Parameters must be optimized for current volatility
+
+
+  Return a single-line JSON object with this exact structure:
+
+  {"conditions":{"entry":["price > ma_20","volume > volume_ma"],"exit":["price < ma_20","drawdown
+  > max_drawdown"]},"parameters":{"take_profit":0.1,"stop_loss":0.05,"order_size":0.001,"max_orders":3}}
+
+
+  IMPORTANT: Return ONLY the JSON object, no additional text or formatting. Put everything
+  on a single line.
+
+  '
+user_template clarity: Simplify the structure of the JSON template for trading rules
+  and parameters to ensure that users can clearly understand and implement the necessary
+  inputs required by the strategy insights and market context.

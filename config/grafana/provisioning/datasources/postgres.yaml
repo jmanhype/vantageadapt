@@ -1,0 +1,36 @@
+apiVersion: 1
+
+deleteDatasources:
+  - name: PostgreSQL
+    orgId: 1
+
+datasources:
+  - name: TradingDB
+    type: postgres
+    access: proxy
+    url: v90-postgres-1:5432
+    user: postgres
+    database: trading_db
+    isDefault: true
+    uid: trading_db
+    jsonData:
+      sslmode: "disable"
+      maxOpenConns: 100
+      maxIdleConns: 100
+      connMaxLifetime: 14400
+      postgresVersion: 1300
+      timescaledb: false
+    secureJsonData:
+      password: postgres
+    version: 1
+    editable: true
+
+  - name: TradingAPI
+    type: grafana-json-datasource
+    access: proxy
+    url: http://host.docker.internal:8001
+    isDefault: false
+    jsonData:
+      httpMethod: GET
+    version: 1
+    editable: true 

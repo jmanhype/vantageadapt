@@ -1,0 +1,28 @@
+Current Rules Prompt - parameters: Enhance the dynamic beta weighting strategy with
+  a feedback loop from real-time performance data to ensure that the beta adjustments
+  are positively impacting the total return within RANGING_LOW_VOL markets.
+Current Rules Prompt - parameters - regime_mult: Provide a comprehensive explanation
+  and mathematical model of the adaptive regime multiplier, ensuring transparency
+  and ease of adjustment when applied within the RANGING_LOW_VOL regime.
+Entry conditions: Restructure entry conditions to use a gradient-boosting framework
+  that combines multiple weak predictive signals into a robust composite entry signal,
+  specifically trained for RANGING_LOW_VOL market conditions.
+Entry conditions - regime-specific breakout thresholds: Define specific conditions
+  under which the breakout thresholds should be re-evaluated, including the identification
+  of false breakouts that can lead to negative returns in RANGING_LOW_VOL regimes.
+Risk management incorporating economic news: Refine the NLP news analysis to detect
+  and quantify the impact of economic news on the specific market regime, directing
+  risk management strategies to react to news that significantly correlates with RANGING_LOW_VOL
+  conditions.
+Risk management parameters: Implement a risk management overlay that integrates RANGING_LOW_VOL
+  indicators with portfolio stress-testing analytics to dynamically adjust risk levels
+  in accordance to market stress signals.
+parameters: Develop an adaptive filtering mechanism for dynamic beta weighting that
+  can shift sensitivity based on microstructure market signals, allowing for a responsive
+  strategy that captures ephemeral RANGING_LOW_VOL opportunities.
+risk_management: Advance risk management by employing a proportional-integral-derivative
+  (PID) controller that auto-adjusts risk parameters in near real-time based on deviations
+  from desired performance benchmarks.
+system: Automate the feedback loop from strategy analytics to actionable strategy
+  adjustments by developing a rules engine that subscribes to performance metrics
+  and implements changes when specific criteria are met.
