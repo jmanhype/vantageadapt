@@ -1,110 +1,56 @@
-Current Strategy Prompt: Incorporate a market regime detection system that utilizes
-  a combination of LSTM networks for time-series analysis and convolutional neural
-  networks (CNNs) for pattern recognition to enhance the prediction of market regime
-  shifts.
-Current Strategy Prompt Focus areas: Restructure the optimization constraints to prioritize
-  achieving a minimum win rate of 0.4 before targeting a Sortino ratio above 2.0,
-  due to the current failure in meeting the win rate requirement.
-Current Strategy Prompt Volatility-based strategy adaptation: Integrate a real-time
-  volatility assessment that accurately adapts the ATR to varying market conditions
-  and apply it on a granular level to individual trades.
-Enhance the multi-objective optimization model: Include an objective to decrease the
-  maximum drawdown, an essential aspect for strategies focusing on RANGING_LOW_VOL
-  regimes where capital preservation is critical in the face of small price movements.
-Focus areas: Expand the use of a multi-objective optimization framework to balance
-  the trade-off between win rate and total return, specifically including constraints
-  that ensure a Sortino ratio above 2.0 and a win rate enhancement to meet the minimum
-  requirement of 0.4.
-Focus areas for RANGING_LOW_VOL regime (in system): Implement a dynamic scaling system
-  based on the Kelly criterion to adjust position sizes in relation to the probability
-  of win and the risk-reward ratio, while ensuring compliance with the preset Sortino
-  ratio and win rate requirements.
-Improve the win rate focus area: Implement machine learning techniques like cluster
-  analysis to categorize losing trades and identify nuanced patterns that lead to
-  strategy underperformance.
-Market Regime Classification System: Incorporate reinforced learning that allows the
-  system to dynamically adjust weightings on different classification parameters based
-  on their predictive success over time.
-Methodology for sentiment indicator weighting: Refine methodology to include sentiment
-  indicators like market news, social media analytics, and economic calendar events
-  to provide comprehensive sentiment analysis especially tailored for low volatility
+entry_zones and exit_zones: Deploy reinforcement learning methods to enable the pattern
+  recognition algorithms to learn and adapt from each trade executed, focusing on
+  maximizing rewards in the form of profitable trades during RANGING_LOW_VOL market
   regimes.
-Real-time volatility assessment: Provide a comparison of latency and computational
-  efficiency between ARIMA/GARCH and LSTM, recommending the most appropriate model
-  for real-time volatility assessment in a RANGING_LOW_VOL market.
-Redefine multi-objective optimization: Introduce a dynamic optimization algorithm
-  capable of adjusting weights in real-time for multiple objectives to quickly respond
-  to sudden changes in market conditions.
-Regime classification system: Outline a comprehensive update procedure for regime
-  classification that includes new data inputs like inter-market correlations and
-  order book dynamics, which should be periodically refined to improve their predictive
-  capabilities in RANGING_LOW_VOL conditions.
-Risk-reward adjustment rules: Develop a model for position size and risk exposure
-  adjustments based on the equity curve filtering, ensuring that the strategy systematically
-  lowers position size during losing streaks, with explicit rules tied to performance
-  metrics.
-Sentiment analysis layer description: Expand the sentiment analysis to utilize NLP
-  techniques on news headlines and social media posts to gauge market sentiment and
-  its potential impact on the low volatility market regime.
-Volatility Level: Develop a more sophisticated regime classification system that uses
-  machine learning techniques to determine current market regimes by training on historical
-  price and volatility data.
-Volatility-based strategy adaptation: Introduce a dual-adaptation strategy that adjusts
-  trading parameters both pre- and post-trade entry. Pre-entry, use a more sophisticated
-  market regime determination that considers real-time volatility. Post-entry, apply
-  a dynamic trailing stop that adjusts to real-time market fluctuations.
-Volatility-based strategy adaptation focus area: Integrate a feedback loop from execution
-  metrics back into the strategy adaptation component, to refine responses to market
-  changes based on actual performance data.
-regime classification system: Suggest specific alternative data sources for inter-market
-  correlations and order book dynamics, such as relative strength of correlated assets
-  and real-time bid/ask pressure.
-risk-reward adjustment rules: Introduce a rule-based tiered approach for scaling position
-  sizes and adjusting risk-reward ratios based on the evolving confidence level of
-  a trade setup, derived from real-time analytics and performance history.
-sentiment analysis layer description: Refine the sentiment analysis model for low
-  volatility regimes by incorporating domain-specific data and considering alternative
-  data sources for machine learning features, such as volatility indices, global news
-  sentiment, and monetary policy announcements.
-system: "You are an expert trading strategist specializing in breakout trading strategies.\n\
-  Your goal is to generate high-probability trading setups that maximize win rate\
-  \ and total return.\n\nFocus areas for RANGING_LOW_VOL regime:\n1. Mean Reversion\
-  \ Strategy\n   - Identify overbought/oversold conditions\n   - Use Bollinger Bands\
-  \ for range boundaries\n   - Scale position sizes inversely with volatility\n  \
-  \ - Implement tight stop losses\n   - Take quick profits at range extremes\n\n2.\
-  \ Volume-Based Confirmation\n   - Require above-average volume for entries\n   -\
-  \ Use volume profile for support/resistance\n   - Monitor volume trend for breakout\
-  \ potential\n   - Scale position size with volume\n\n3. Multiple Timeframe Momentum\n\
-  \   - Use shorter timeframes for entries (5m, 15m)\n   - Confirm with higher timeframes\
-  \ (1h, 4h)\n   - Look for momentum divergences\n   - Monitor range boundaries\n\n\
-  4. Risk Management\n   - Smaller position sizes (0.001-0.005)\n   - Tighter stop\
-  \ losses (0.05-0.08)\n   - Quick take profits (0.03-0.08)\n   - Maximum 3 concurrent\
-  \ positions\n   - Minimum volume thresholds\n\nProvide your response in the following\
-  \ JSON format:\n{\n  \"regime_change_probability\": float,  // 0.0 to 1.0\n  \"\
-  suggested_position_size\": float,    // 0.0 to 1.0\n  \"volatility_adjustment\"\
-  : {\n    \"position_size_multiplier\": float,  // 0.1 to 2.0\n    \"stop_loss_multiplier\"\
-  : float,      // 0.5 to 2.0\n    \"take_profit_multiplier\": float     // 0.5 to\
-  \ 2.0\n  },\n  \"regime_specific_rules\": {\n    \"ranging_low_vol\": {\n      \"\
-  min_volatility\": float,         // Minimum volatility for entry\n      \"max_position_size\"\
-  : float,      // Maximum position size\n      \"min_volume\": float            \
-  \ // Minimum volume for entry\n    },\n    \"trending\": {\n      \"trend_confirmation_period\"\
-  : int, // Periods for trend confirmation\n      \"trailing_stop_activation\": float\
-  \ // % gain to activate trailing stop\n    }\n  },\n  \"key_indicators\": {\n  \
-  \  \"rsi\": {\n      \"period\": int,                   // RSI period\n      \"\
-  overbought\": float,             // Overbought level\n      \"oversold\": float\
-  \               // Oversold level\n    },\n    \"macd\": {\n      \"fast_period\"\
-  : int,              // Fast EMA period\n      \"slow_period\": int,            \
-  \  // Slow EMA period\n      \"signal_period\": int            // Signal line period\n\
-  \    },\n    \"volume\": {\n      \"ma_period\": int,                // Volume MA\
-  \ period\n      \"min_ratio\": float              // Min volume ratio for entry\n\
-  \    }\n  },\n  \"risk_management\": {\n    \"max_position_size\": float,      \
-  \  // Maximum position size\n    \"max_drawdown\": float,            // Maximum\
-  \ drawdown allowed\n    \"profit_taking_levels\": [float]   // Array of profit taking\
-  \ levels\n  }\n}\n"
-user_template: For improved clarity, redesign the user template to include explanations
-  of each parameter's impact on the strategy's performance in the RANGING_LOW_VOL
-  environment, ensuring that users can intuit the role and expected behavior of each
-  element in the strategy.
-volatility-based strategy adaptation: Enhance the breakout threshold adjustment mechanism
-  by including machine learning classification models that predict breakout strength
-  and duration based on historical volatility and order flow data.
+opportunity_description: Incorporate a dynamic thresholding system into historical
+  mean reversion strategies that modulates parameters like volatility bands in real-time
+  based on current market phase information, enhancing responsiveness to market changes.
+regime_change_probability: Integrate real-time text analytics of financial news to
+  complement the multi-factor volatility and volume regime detection system, thereby
+  increasing sensitivity to events that may signal regime changes.
+risk_management_notes: Implement a volatility forecasting model that uses market data
+  combined with leading indicators to predict potential volatility spikes. Adapt liquidity
+  risk assessments dynamically by assessing real-time capital flows between related
+  assets.
+suggested_position_size: Employ machine learning techniques to continuously analyze
+  the market conditions and player behaviors, ensuring the suggested position size
+  is always optimized for the prevailing market depth and volatility.
+system: |
+  You are an expert trading strategy developer specializing in adaptive strategies.
+
+  IMPORTANT: You must respond with ONLY a JSON object in the following format. Do not include any other text, markdown formatting, or explanations:
+  {
+    "regime_change_probability": float,  // Probability of regime change
+    "suggested_position_size": float,    // Recommended position size as %
+    "volatility_adjustment": {           // Volatility-based adjustments
+      "entry_threshold": float,          // Entry threshold multiplier
+      "exit_threshold": float,           // Exit threshold multiplier
+      "position_size": float            // Position size multiplier
+    },
+    "regime_specific_rules": {           // Regime-specific parameters
+      "trend_following": float,          // Trend following weight
+      "mean_reversion": float,           // Mean reversion weight
+      "breakout": float                 // Breakout strategy weight
+    },
+    "risk_management": {                 // Risk management parameters
+      "max_drawdown": float,            // Maximum drawdown limit
+      "correlation_threshold": float,    // Maximum correlation allowed
+      "volatility_limit": float         // Maximum volatility threshold
+    }
+  }
+
+user_template: |
+  Please generate a trading strategy for the theme: {theme}
+
+  Current Market Context:
+  {market_context}
+
+  Focus on:
+  1. Identifying optimal entry and exit points
+  2. Setting appropriate position sizes based on risk
+  3. Defining clear stop loss levels
+  4. Providing comprehensive risk management guidelines
+
+  Return your response as a JSON object with specific numeric values for all parameters.
+  Ensure all numeric values are actual numbers, not placeholders.
+  Entry, exit, and stop loss zones should be based on key price levels.
