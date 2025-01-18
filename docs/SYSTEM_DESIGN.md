@@ -145,3 +145,66 @@ With this architectural overview, you can:
 3. Adjust the LLM prompts
 4. Extend the database schema
 5. Add new market regimes or strategy types 
+
+## Advanced Performance Metrics and Trade Tracking
+
+1. **Optimized Trade Processing**
+   - Numba-accelerated trade tracking using `@njit` decorators
+   - Custom `TradeMemory` structure for efficient record keeping
+   - Vectorized backtesting via `vectorbtpro` with custom settings
+   - Real-time trade metrics logging and analysis
+
+2. **Position Size Management**
+   - Dynamic position sizing based on volatility thresholds
+   - Risk-adjusted position calculations
+   - Default position size modulation using market conditions
+
+3. **Performance Analysis Pipeline**
+   - Comprehensive trade statistics calculation
+   - Integration with VBT's advanced metrics
+   - Custom performance validation thresholds
+   - Real-time metric tracking and adjustment
+
+## Default Trading Configuration
+
+1. **Base Trading Rules**
+   ```python
+   default_rules = {
+       "conditions": {
+           "entry": ["price > ma_20", "volume > volume_ma"],
+           "exit": ["price < ma_20", "drawdown > max_drawdown"]
+       },
+       "parameters": {
+           "take_profit": 0.1,
+           "stop_loss": 0.05,
+           "order_size": 0.001,
+           "max_orders": 3
+       }
+   }
+   ```
+
+2. **Parameter Optimization Ranges**
+   - Take profit: 0.05 to 0.3
+   - Stop loss: 0.02 to 0.15
+   - Order size: 0.0005 to 0.005
+   - Maximum concurrent orders: 1 to 5
+
+## Database Integration
+
+1. **Model Structure**
+   - Strategy model for storing generated strategies
+   - Backtest model for performance results
+   - Async SQLAlchemy integration
+   - Performance metrics storage and retrieval
+
+2. **Async Operations**
+   - Concurrent database operations
+   - Efficient batch updates
+   - Transaction management
+   - Performance metric aggregation
+
+3. **Data Persistence**
+   - Strategy configuration storage
+   - Performance metrics archival
+   - Market context preservation
+   - Historical analysis capabilities 
