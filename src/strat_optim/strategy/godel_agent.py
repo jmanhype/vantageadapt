@@ -437,20 +437,32 @@ class GodelAgent:
                     valid_changes = True
                     
                     for change in improvement['code_changes']:
-                        if change['type'] == 'add':
-                            temp_code = self._insert_code(temp_code, change['location'], change['code'])
-                        elif change['type'] == 'modify':
-                            temp_code = self._modify_code(temp_code, change['location'], change['code'])
-                        elif change['type'] == 'delete':
-                            temp_code = self._delete_code(temp_code, change['location'])
-                            
-                        # Verify the resulting code is still valid
                         try:
+                            if change['type'] == 'add':
+                                # Add new code at the specified location
+                                module_name = context.get('module_name', 'strategy')
+                                target_name = change['location']
+                                new_code = change['code']
+                                temp_code = self._apply_code_change(module_name, target_name, new_code, 'add')
+                            elif change['type'] == 'modify':
+                                # Modify existing code at the specified location
+                                module_name = context.get('module_name', 'strategy')
+                                target_name = change['location']
+                                new_code = change['code']
+                                temp_code = self._apply_code_change(module_name, target_name, new_code, 'modify')
+                            elif change['type'] == 'delete':
+                                # Delete code at the specified location
+                                module_name = context.get('module_name', 'strategy')
+                                target_name = change['location']
+                                temp_code = self._apply_code_change(module_name, target_name, '', 'delete')
+                                
+                            # Verify the resulting code is still valid
                             formatted_code = self.format_code(temp_code)
                             if not self.validate_code_changes(module_code, formatted_code):
                                 valid_changes = False
                                 break
-                        except Exception:
+                        except Exception as e:
+                            logger.error(f"Error applying code change: {str(e)}")
                             valid_changes = False
                             break
                             
@@ -462,6 +474,72 @@ class GodelAgent:
         except Exception as e:
             logger.error(f"Error proposing patch: {str(e)}")
             return None
+
+    def _apply_code_change(self, module_name: str, target_name: str, new_code: str, operation: str = 'modify') -> str:
+        """Apply a code change using the action_adjust_logic approach."""
+        try:
+            # Import the module dynamically
+            module = importlib.import_module(module_name)
+            
+            # Compile and execute the new code
+            if operation in ['modify', 'add']:
+                locals_dict = {}
+                exec(compile(new_code, f"{module_name}.{target_name}", "exec"), globals(), locals_dict)
+                
+                if '.' in target_name:
+                    # Handle nested attributes
+                    parts = target_name.split('.')
+                    obj = module
+                    for part in parts[:-1]:
+                        obj = getattr(obj, part)
+                    setattr(obj, parts[-1], locals_dict[parts[-1]])
+                else:
+                    setattr(module, target_name, locals_dict[target_name])
+                    
+            elif operation == 'delete':
+                if hasattr(module, target_name):
+                    delattr(module, target_name)
+                    
+            return self.read_module_code(module.__file__) or ""
+            
+        except Exception as e:
+            logger.error(f"Error applying code change: {str(e)}")
+            return ""
+
+    def _insert_code(self, original_code: str, new_code: str, location: str) -> str:
+        """Insert new code at the specified location in the original code.
+        
+        Args:
+            original_code (str): The original source code
+            new_code (str): The new code to insert
+            location (str): Where to insert the code ('before', 'after', or 'replace')
+            
+        Returns:
+            str: Modified code with the new code inserted
+        """
+        try:
+            # Parse the original code into an AST
+            tree = ast.parse(original_code)
+            
+            # Create a new AST for the code to insert
+            new_tree = ast.parse(new_code)
+            
+            if location == 'before':
+                # Insert the new code before the target node
+                tree.body = new_tree.body + tree.body
+            elif location == 'after':
+                # Insert the new code after the target node
+                tree.body = tree.body + new_tree.body
+            elif location == 'replace':
+                # Replace the target node with the new code
+                tree.body = new_tree.body
+            
+            # Convert the modified AST back to source code
+            return ast.unparse(tree)
+            
+        except Exception as e:
+            logger.error(f"Error inserting code: {str(e)}")
+            return original_code
 
     def revert_last_change(self, module_path: str) -> bool:
         """Revert to last backup if improvement failed."""
