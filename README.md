@@ -1,21 +1,18 @@
 # VantageAdapt
 
-A Python-based trading strategy optimization and backtesting framework that uses adaptive algorithms to optimize trading strategies.
+A Python-based trading strategy optimization and backtesting framework that uses adaptive algorithms and LLMs to generate and optimize trading strategies.
 
 ## Features
 
 - Advanced backtesting engine with support for multiple assets
-- Strategy optimization using machine learning and LLM-based approaches
+- Strategy optimization using LLM-based approaches with structured generation
 - Real-time market analysis and regime detection
-- Trade pattern recognition and signal generation
-- Performance analytics and visualization
-- Database integration for storing results
-- API for strategy deployment
-- Web-based control panel for strategy management
+- Self-improving code through Gödel machine principles
+- Performance analytics with vectorized operations
+- Database integration for storing results and performance metrics
+- Comprehensive trade tracking and analysis
 
 ## Installation
-
-### Basic Installation
 
 ```bash
 # Clone the repository
@@ -30,71 +27,115 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Docker Installation
-
-```bash
-# Build and run using Docker Compose
-docker-compose up -d
-
-# For testing environment
-docker-compose -f docker-compose.test.yml up -d
-
-# For simple deployment without frontend
-docker-compose -f docker-compose.simple.yml up -d
-```
-
 ## Project Structure
 
 ```
 vantageadapt/
 ├── src/                    # Source code
 │   └── strat_optim/       # Main package
+│       ├── strategy/      # Strategy generation and optimization
+│       └── database/      # Database models and connections
 ├── tests/                  # Test files
 ├── docs/                   # Documentation
-├── config/                # Configuration files
-├── research/             # Research and analysis
-├── frontend/             # Web-based control panel
-│   └── control-panel/    # React/TypeScript frontend
+│   └── SYSTEM_DESIGN.md   # Detailed system architecture
+├── research/              # Research and analysis
+│   └── strategy/         # Strategy research implementations
 └── prompts/              # LLM prompts for strategy generation
 ```
 
 ## Usage
 
-### Running Backtests
+### Data Preparation
+
+The system expects trade data in a pickled dictionary format where each key is an asset symbol and each value is a pandas DataFrame containing:
+- `dex_price`: Price data
+- `timestamp`: Time information
+- Volume and other optional metrics
+
+Example data structure:
+```python
+{
+    "BTC-USD": pd.DataFrame(...),
+    "ETH-USD": pd.DataFrame(...),
+    ...
+}
+```
+
+### Running Strategy Optimization
 
 ```bash
-# Run backtest with specific theme and data
+# Basic usage with breakout trading theme
 python main.py --theme "breakout trading" --data "path/to/data.pkl"
 
-# Run with custom parameters
-python main.py --theme "mean reversion" --data "path/to/data.pkl" --risk-level low
+# Mean reversion strategy
+python main.py --theme "mean reversion" --data "path/to/data.pkl"
+
+# Trend following with specific data
+python main.py --theme "trend following" --data "path/to/data.pkl"
 ```
 
-### Using the Control Panel
+### Trading Themes
 
-1. Start the frontend development server:
-```bash
-cd frontend/control-panel
-npm install
-npm run dev
+The system supports various trading themes including:
+- Breakout trading
+- Mean reversion
+- Trend following
+- Range trading
+- Momentum trading
+- Volatility breakout
+
+Each theme influences how the LLM generates strategies and trading rules.
+
+### Understanding Output
+
+The system will:
+1. Load and analyze market data
+2. Detect current market regime
+3. Generate trading strategy based on theme
+4. Optimize parameters through backtesting
+5. Output:
+   - Strategy performance metrics
+   - Optimized parameters
+   - Trading rules
+   - Market analysis
+
+Example output:
+```
+INFO: Loading trade data from path/to/data.pkl
+INFO: Successfully loaded 65 assets
+INFO: Market regime: RANGING_LOW_VOL (confidence: 0.85)
+INFO: Generating strategy for breakout trading...
+INFO: Optimizing parameters...
+INFO: Best configuration found:
+- Total Return: 2.45
+- Sharpe Ratio: 1.87
+- Win Rate: 0.62
 ```
 
-2. Access the control panel at `http://localhost:5173`
+### Key Components
 
-### API Endpoints
+1. **Market Analysis**
+   - Real-time regime detection
+   - Volatility and trend analysis
+   - Risk level assessment
 
-The API server provides the following endpoints:
+2. **Strategy Generation**
+   - LLM-based strategy creation
+   - Structured parameter generation
+   - Dynamic rule adaptation
 
-- `POST /api/strategy/generate` - Generate new trading strategy
-- `GET /api/strategy/list` - List all strategies
-- `POST /api/backtest/run` - Run backtest with specified parameters
-- `GET /api/backtest/results` - Get backtest results
+3. **Performance Optimization**
+   - Parameter tuning through backtesting
+   - Self-improving code generation
+   - Performance metric tracking
 
 ## Configuration
 
 - Environment variables can be set in `.env` file
 - Trading parameters can be adjusted in `config/trading_params.yaml`
 - Strategy generation prompts are in `prompts/trading/`
+
+For detailed system architecture and components, see [System Design Documentation](docs/SYSTEM_DESIGN.md).
 
 ## Contributing
 
