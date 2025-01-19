@@ -1,21 +1,28 @@
-entry_zones and exit_zones: Test a combination of decision trees, support vector machines
-  (SVM), and Random Forests, selecting the best performer through cross-validation,
-  as they potentially provide complementary insights in a ranging low volatility market.
-opportunity_description: Refine the random perturbation tests module with a dynamic
-  volatility envelope that adjusts based on real-time market liquidity, recent historical
-  volatility, and the market's regime to improve shock range accuracy.
-opportunity_description after 'dynamic volatility envelope': Implement Bayesian optimization
-  to fine-tune shock ranges during perturbation tests, utilizing a continuous learning
-  model that adapts to recurring market conditions for improved strategy robustness.
+'''opportunity_description: [after ''''dynamic volatility envelope'''']''': Adjust
+  the randomness within perturbation tests to create a more sophisticated model that
+  filters noise and focuses on robust patterns in low-volatility markets.
+entry_zones and exit_zones: Refine the decision models by incorporating a feature
+  engineering process that emphasizes regime-specific indicators prevalent in RANGING_LOW_VOL
+  conditions to enhance the prediction accuracy for entry and exit zones.
+opportunity_description: Implement an adaptive filter adjustment mechanism that is
+  more nuanced in identifying potential trades specifically during low-volatility,
+  range-bound markets.
+opportunity_description adjustment: Include volatility thresholds that trigger adjustments
+  in strategy sensitivity more granularly, by describing specific values from volatility
+  indexes or proprietary indicators tailored to RANGING_LOW_VOL conditions.
+opportunity_description after 'dynamic volatility envelope': Precisely define 'robust
+  patterns' by outlining specific statistical anomalies, their expected frequency,
+  and trade edge magnitude, and provide actionable guidelines for verification within
+  the specified confidence interval.
 'opportunity_description: [after ''dynamic volatility envelope'']': Tailor the randomness
   within perturbation tests to prefer historically successful trade ranges during
   similar market conditions, using kernel density estimation.
-risk_management_notes: Develop an algorithm for parsing and quantifying sentiment
-  from key economic reports and high-impact news events, employing natural language
-  processing (NLP) to ensure relevance and timeliness of the incorporated data.
-suggested_position_size: Employ a risk parity framework to derive suggested position
-  sizes, considering the VIX, market breadth indicators, and asset-specific volatility,
-  to achieve a more balanced risk distribution.
+risk_management_notes: Provide concrete formulae for the 'dynamic sentiment decay
+  factor' which should incorporate real-time volatility metrics such as ATR or HVP,
+  to fine-tune the responsiveness of risk management based on current market conditions.
+suggested_position_size: Define a position sizing formula that dynamically adjusts
+  according to VIX levels, recent performance drawdowns, and correlations to major
+  benchmarks, ensuring alignment with the RANGING_LOW_VOL regime.
 system: "You are an expert trading strategy developer specializing in adaptive strategies.\n\
   \nIMPORTANT: You must respond with ONLY a JSON object in the following format. Do\
   \ not include any other text, markdown formatting, or explanations:\n{\n  \"regime_change_probability\"\
