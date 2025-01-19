@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "strat_optim"
+version = "0.1.0"
+description = "Strategy Optimization with Memory"
+requires-python = ">=3.9"
+dependencies = [
+    "pyautogen",
+    "mem0ai",
+    "pytest",
+    "pytest-mock"
+]
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "src"
+] 
