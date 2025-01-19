@@ -1,56 +1,60 @@
-entry_zones and exit_zones: Deploy reinforcement learning methods to enable the pattern
-  recognition algorithms to learn and adapt from each trade executed, focusing on
-  maximizing rewards in the form of profitable trades during RANGING_LOW_VOL market
-  regimes.
-opportunity_description: Incorporate a dynamic thresholding system into historical
-  mean reversion strategies that modulates parameters like volatility bands in real-time
-  based on current market phase information, enhancing responsiveness to market changes.
-regime_change_probability: Integrate real-time text analytics of financial news to
-  complement the multi-factor volatility and volume regime detection system, thereby
-  increasing sensitivity to events that may signal regime changes.
-risk_management_notes: Implement a volatility forecasting model that uses market data
-  combined with leading indicators to predict potential volatility spikes. Adapt liquidity
-  risk assessments dynamically by assessing real-time capital flows between related
-  assets.
-suggested_position_size: Employ machine learning techniques to continuously analyze
-  the market conditions and player behaviors, ensuring the suggested position size
-  is always optimized for the prevailing market depth and volatility.
-system: |
-  You are an expert trading strategy developer specializing in adaptive strategies.
+entry_zones and exit_zones: Test a combination of decision trees, support vector machines
+  (SVM), and Random Forests, selecting the best performer through cross-validation,
+  as they potentially provide complementary insights in a ranging low volatility market.
+opportunity_description: Refine the random perturbation tests module with a dynamic
+  volatility envelope that adjusts based on real-time market liquidity, recent historical
+  volatility, and the market's regime to improve shock range accuracy.
+opportunity_description after 'dynamic volatility envelope': Implement Bayesian optimization
+  to fine-tune shock ranges during perturbation tests, utilizing a continuous learning
+  model that adapts to recurring market conditions for improved strategy robustness.
+'opportunity_description: [after ''dynamic volatility envelope'']': Tailor the randomness
+  within perturbation tests to prefer historically successful trade ranges during
+  similar market conditions, using kernel density estimation.
+risk_management_notes: Develop an algorithm for parsing and quantifying sentiment
+  from key economic reports and high-impact news events, employing natural language
+  processing (NLP) to ensure relevance and timeliness of the incorporated data.
+suggested_position_size: Employ a risk parity framework to derive suggested position
+  sizes, considering the VIX, market breadth indicators, and asset-specific volatility,
+  to achieve a more balanced risk distribution.
+system: "You are an expert trading strategy developer specializing in adaptive strategies.\n\
+  \nIMPORTANT: You must respond with ONLY a JSON object in the following format. Do\
+  \ not include any other text, markdown formatting, or explanations:\n{\n  \"regime_change_probability\"\
+  : float,  // Probability of regime change\n  \"suggested_position_size\": float,\
+  \    // Recommended position size as %\n  \"volatility_adjustment\": {         \
+  \  // Volatility-based adjustments\n    \"entry_threshold\": float,          //\
+  \ Entry threshold multiplier\n    \"exit_threshold\": float,           // Exit threshold\
+  \ multiplier\n    \"position_size\": float            // Position size multiplier\n\
+  \  },\n  \"regime_specific_rules\": {           // Regime-specific parameters\n\
+  \    \"trend_following\": float,          // Trend following weight\n    \"mean_reversion\"\
+  : float,           // Mean reversion weight\n    \"breakout\": float           \
+  \      // Breakout strategy weight\n  },\n  \"risk_management\": {             \
+  \    // Risk management parameters\n    \"max_drawdown\": float,            // Maximum\
+  \ drawdown limit\n    \"correlation_threshold\": float,    // Maximum correlation\
+  \ allowed\n    \"volatility_limit\": float         // Maximum volatility threshold\n\
+  \  }\n}\n"
+user_template: 'Please generate a trading strategy for the theme: {theme}
 
-  IMPORTANT: You must respond with ONLY a JSON object in the following format. Do not include any other text, markdown formatting, or explanations:
-  {
-    "regime_change_probability": float,  // Probability of regime change
-    "suggested_position_size": float,    // Recommended position size as %
-    "volatility_adjustment": {           // Volatility-based adjustments
-      "entry_threshold": float,          // Entry threshold multiplier
-      "exit_threshold": float,           // Exit threshold multiplier
-      "position_size": float            // Position size multiplier
-    },
-    "regime_specific_rules": {           // Regime-specific parameters
-      "trend_following": float,          // Trend following weight
-      "mean_reversion": float,           // Mean reversion weight
-      "breakout": float                 // Breakout strategy weight
-    },
-    "risk_management": {                 // Risk management parameters
-      "max_drawdown": float,            // Maximum drawdown limit
-      "correlation_threshold": float,    // Maximum correlation allowed
-      "volatility_limit": float         // Maximum volatility threshold
-    }
-  }
-
-user_template: |
-  Please generate a trading strategy for the theme: {theme}
 
   Current Market Context:
+
   {market_context}
 
+
   Focus on:
+
   1. Identifying optimal entry and exit points
+
   2. Setting appropriate position sizes based on risk
+
   3. Defining clear stop loss levels
+
   4. Providing comprehensive risk management guidelines
 
+
   Return your response as a JSON object with specific numeric values for all parameters.
+
   Ensure all numeric values are actual numbers, not placeholders.
+
   Entry, exit, and stop loss zones should be based on key price levels.
+
+  '

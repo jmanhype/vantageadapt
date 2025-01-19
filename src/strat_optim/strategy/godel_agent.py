@@ -87,7 +87,15 @@ class GodelAgent:
     def __init__(self, improvement_threshold: float = 0.1, max_iterations: int = 5,
                  backup_dir: str = "backups", prompt_dir: str = "prompts/trading",
                  max_parallel_tests: int = 4):
-        """Initialize the agent."""
+        """Initialize the agent.
+        
+        Args:
+            improvement_threshold (float): Minimum improvement required to accept changes
+            max_iterations (int): Maximum number of improvement iterations
+            backup_dir (str): Directory for storing code backups
+            prompt_dir (str): Directory containing prompt templates
+            max_parallel_tests (int): Maximum number of parallel tests to run
+        """
         self.improvement_threshold = improvement_threshold
         self.max_iterations = max_iterations
         self.backup_dir = backup_dir
@@ -107,6 +115,33 @@ class GodelAgent:
         # Create backup directory if it doesn't exist
         if not os.path.exists(backup_dir):
             os.makedirs(backup_dir)
+            
+        # Initialize code manipulation methods
+        self._initialize_code_manipulation()
+        
+    def _initialize_code_manipulation(self):
+        """Initialize code manipulation methods and their dependencies."""
+        try:
+            # Import required modules
+            import ast
+            import black
+            
+            # Initialize black formatter mode
+            self.black_mode = black.FileMode()
+            
+            # Initialize AST parser
+            self.ast_parser = ast.parse
+            
+            # Initialize code manipulation methods
+            self._insert_code = self._insert_code.__get__(self, GodelAgent)
+            self._modify_code = self._modify_code.__get__(self, GodelAgent)
+            self._delete_code = self._delete_code.__get__(self, GodelAgent)
+            self._apply_code_change = self._apply_code_change.__get__(self, GodelAgent)
+            self.format_code = self.format_code.__get__(self, GodelAgent)
+            
+        except ImportError as e:
+            logger.error(f"Failed to initialize code manipulation: {str(e)}")
+            raise ImportError("Required modules for code manipulation not found. Please install 'black' package.")
 
     def _generate_version_id(self) -> str:
         """Generate a unique version ID based on timestamp."""
@@ -420,9 +455,26 @@ class GodelAgent:
                         
         return improvements if improvements else None
 
-    def propose_patch(self, module_code: str, metrics: Dict[str, Any], context: Dict[str, Any]) -> Optional[List[Dict[str, Any]]]:
-        """Generate code improvements based on performance metrics."""
+    def propose_patch(self, module_path: str, metrics: Dict[str, Any], context: Dict[str, Any]) -> Optional[List[Dict[str, Any]]]:
+        """Generate code improvements based on performance metrics.
+        
+        Args:
+            module_path (str): Path to the module file to improve
+            metrics (Dict[str, Any]): Performance metrics
+            context (Dict[str, Any]): Additional context information
+            
+        Returns:
+            Optional[List[Dict[str, Any]]]: List of valid improvements or None
+        """
         try:
+            # Read the module code
+            with open(module_path, 'r') as f:
+                module_code = f.read()
+                
+            # Update context with module path
+            context['module_path'] = module_path
+            
+            # Create improvement prompt
             prompt = self._create_improvement_prompt(module_code, metrics, context)
             suggestions = self._get_llm_suggestions(prompt)
             
@@ -433,32 +485,38 @@ class GodelAgent:
             for improvement in suggestions['improvements']:
                 if self._validate_improvement_suggestion(improvement):
                     # Pre-validate each code change
-                    temp_code = module_code
                     valid_changes = True
                     
                     for change in improvement['code_changes']:
                         try:
                             if change['type'] == 'add':
                                 # Add new code at the specified location
-                                module_name = context.get('module_name', 'strategy')
                                 target_name = change['location']
                                 new_code = change['code']
-                                temp_code = self._apply_code_change(module_name, target_name, new_code, 'add')
+                                # Pass module_path directly since _insert_code now handles both signatures
+                                result = self._insert_code(module_path, target_name, new_code)
+                                if result is None:
+                                    valid_changes = False
+                                    break
                             elif change['type'] == 'modify':
                                 # Modify existing code at the specified location
-                                module_name = context.get('module_name', 'strategy')
                                 target_name = change['location']
                                 new_code = change['code']
-                                temp_code = self._apply_code_change(module_name, target_name, new_code, 'modify')
+                                # Pass module_path directly since _modify_code now handles both signatures
+                                result = self._modify_code(module_path, target_name, new_code)
+                                if result is None:
+                                    valid_changes = False
+                                    break
                             elif change['type'] == 'delete':
                                 # Delete code at the specified location
-                                module_name = context.get('module_name', 'strategy')
                                 target_name = change['location']
-                                temp_code = self._apply_code_change(module_name, target_name, '', 'delete')
+                                result = self._delete_code(module_path, target_name)
+                                if result is None:
+                                    valid_changes = False
+                                    break
                                 
                             # Verify the resulting code is still valid
-                            formatted_code = self.format_code(temp_code)
-                            if not self.validate_code_changes(module_code, formatted_code):
+                            if not self.validate_code_changes(module_code, result):
                                 valid_changes = False
                                 break
                         except Exception as e:
@@ -475,71 +533,238 @@ class GodelAgent:
             logger.error(f"Error proposing patch: {str(e)}")
             return None
 
-    def _apply_code_change(self, module_name: str, target_name: str, new_code: str, operation: str = 'modify') -> str:
-        """Apply a code change using the action_adjust_logic approach."""
-        try:
-            # Import the module dynamically
-            module = importlib.import_module(module_name)
-            
-            # Compile and execute the new code
-            if operation in ['modify', 'add']:
-                locals_dict = {}
-                exec(compile(new_code, f"{module_name}.{target_name}", "exec"), globals(), locals_dict)
-                
-                if '.' in target_name:
-                    # Handle nested attributes
-                    parts = target_name.split('.')
-                    obj = module
-                    for part in parts[:-1]:
-                        obj = getattr(obj, part)
-                    setattr(obj, parts[-1], locals_dict[parts[-1]])
-                else:
-                    setattr(module, target_name, locals_dict[target_name])
-                    
-            elif operation == 'delete':
-                if hasattr(module, target_name):
-                    delattr(module, target_name)
-                    
-            return self.read_module_code(module.__file__) or ""
-            
-        except Exception as e:
-            logger.error(f"Error applying code change: {str(e)}")
-            return ""
-
-    def _insert_code(self, original_code: str, new_code: str, location: str) -> str:
-        """Insert new code at the specified location in the original code.
+    def _apply_code_change(self, module_name: str, target_name: str, new_code: str, change_type: str) -> str:
+        """Apply a code change to the module.
         
         Args:
-            original_code (str): The original source code
-            new_code (str): The new code to insert
-            location (str): Where to insert the code ('before', 'after', or 'replace')
+            module_name (str): Name of the module being modified
+            target_name (str): Name of the class/method/function to modify
+            new_code (str): The new code to add/modify
+            change_type (str): Type of change ('add' or 'modify')
             
         Returns:
-            str: Modified code with the new code inserted
+            str: The modified code
         """
         try:
-            # Parse the original code into an AST
-            tree = ast.parse(original_code)
+            # Validate the syntax of the new code
+            self.ast_parser(new_code)
             
-            # Create a new AST for the code to insert
-            new_tree = ast.parse(new_code)
+            # Format the code using black
+            formatted_code = self.format_code(new_code)
             
-            if location == 'before':
-                # Insert the new code before the target node
-                tree.body = new_tree.body + tree.body
-            elif location == 'after':
-                # Insert the new code after the target node
-                tree.body = tree.body + new_tree.body
-            elif location == 'replace':
-                # Replace the target node with the new code
-                tree.body = new_tree.body
+            if change_type == 'add':
+                # Add new code at the specified location
+                return self._insert_code(module_name, target_name, formatted_code)
+            elif change_type == 'modify':
+                # Modify existing code at the specified location
+                return self._modify_code(module_name, target_name, formatted_code)
+            else:
+                logger.error(f"Unsupported change type: {change_type}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error applying code change: {str(e)}")
+            return None
+
+    def _insert_code(self, code_or_module: str, location_or_target: str, new_code: str) -> str:
+        """Insert new code at the specified location.
+        
+        This method supports two different signatures:
+        1. (module_name: str, target_name: str, new_code: str) - Used by _apply_code_change
+        2. (code: str, location: str, new_code: str) - Used by other methods
+        
+        Args:
+            code_or_module (str): Either the module name or the code string
+            location_or_target (str): Either the target name (class/function) or location
+            new_code (str): The code to insert
             
-            # Convert the modified AST back to source code
-            return ast.unparse(tree)
+        Returns:
+            str: The modified code with the new code inserted
+        """
+        try:
+            # Determine if we're using module_name/target_name or code/location signature
+            is_module_path = code_or_module.endswith('.py') or '/' in code_or_module
+            
+            if is_module_path:
+                # Handle module_name/target_name signature
+                module_name = code_or_module
+                target_name = location_or_target
+                
+                # Read the module code
+                with open(module_name, 'r') as f:
+                    original_code = f.read()
+                    
+                # Parse the module code
+                tree = self.ast_parser(original_code)
+                
+                # Find the target location
+                target = None
+                for node in ast.walk(tree):
+                    if isinstance(node, (ast.ClassDef, ast.FunctionDef)) and node.name == target_name:
+                        target = node
+                        break
+                        
+                if not target:
+                    logger.error(f"Target {target_name} not found in module {module_name}")
+                    return original_code
+                    
+                # Insert the new code at the end of the target
+                target.body.extend(self.ast_parser(new_code).body)
+                
+                # Format the modified code
+                return self.format_code(ast.unparse(tree))
+            else:
+                # Handle code/location signature (existing functionality)
+                code = code_or_module
+                location = location_or_target
+                
+                try:
+                    # Parse the original code
+                    tree = self.ast_parser(code)
+                    
+                    # Parse the new code
+                    new_tree = self.ast_parser(new_code)
+                    
+                    # Find the insertion point based on location
+                    target = None
+                    for node in ast.walk(tree):
+                        if isinstance(node, (ast.ClassDef, ast.FunctionDef)) and node.name == location:
+                            target = node
+                            break
+                            
+                    if target:
+                        # Insert at the end of the target
+                        target.body.extend(new_tree.body)
+                    else:
+                        # If no target found, append to the end of the module
+                        tree.body.extend(new_tree.body)
+                        
+                    # Convert back to code and format
+                    return self.format_code(ast.unparse(tree))
+                    
+                except Exception as e:
+                    logger.error(f"Error inserting code: {str(e)}")
+                    return code
             
         except Exception as e:
             logger.error(f"Error inserting code: {str(e)}")
-            return original_code
+            return code_or_module
+
+    def _modify_code(self, code_or_module: str, location_or_target: str, new_code: str) -> str:
+        """Modify existing code at the specified location.
+        
+        This method supports two different signatures:
+        1. (module_name: str, target_name: str, new_code: str) - Used by _apply_code_change
+        2. (code: str, location: str, new_code: str) - Used by other methods
+        
+        Args:
+            code_or_module (str): Either the module name or the code string
+            location_or_target (str): Either the target name (class/function) or location
+            new_code (str): The new code to replace the existing code
+            
+        Returns:
+            str: The modified code
+        """
+        try:
+            # Determine if we're using module_name/target_name or code/location signature
+            is_module_path = code_or_module.endswith('.py') or '/' in code_or_module
+            
+            if is_module_path:
+                # Handle module_name/target_name signature
+                module_name = code_or_module
+                target_name = location_or_target
+                
+                # Read the module code
+                with open(module_name, 'r') as f:
+                    original_code = f.read()
+                    
+                # Parse the module code
+                tree = self.ast_parser(original_code)
+                
+                # Find the target location
+                target = None
+                for node in ast.walk(tree):
+                    if isinstance(node, (ast.ClassDef, ast.FunctionDef)) and node.name == target_name:
+                        target = node
+                        break
+                        
+                if not target:
+                    logger.error(f"Target {target_name} not found in module {module_name}")
+                    return original_code
+                    
+                # Replace the target's body with the new code
+                target.body = self.ast_parser(new_code).body
+                
+                # Format the modified code
+                return self.format_code(ast.unparse(tree))
+            else:
+                # Handle code/location signature (existing functionality)
+                code = code_or_module
+                location = location_or_target
+                
+                try:
+                    # Parse the original code
+                    tree = self.ast_parser(code)
+                    
+                    # Parse the new code
+                    new_tree = self.ast_parser(new_code)
+                    
+                    # Find the target to modify
+                    target = None
+                    for node in ast.walk(tree):
+                        if isinstance(node, (ast.ClassDef, ast.FunctionDef)) and node.name == location:
+                            target = node
+                            break
+                            
+                    if target:
+                        # Replace the target's body
+                        target.body = new_tree.body
+                    else:
+                        logger.error(f"Target {location} not found in code")
+                        return code
+                        
+                    # Convert back to code and format
+                    return self.format_code(ast.unparse(tree))
+                    
+                except Exception as e:
+                    logger.error(f"Error modifying code: {str(e)}")
+                    return code
+            
+        except Exception as e:
+            logger.error(f"Error modifying code: {str(e)}")
+            return code_or_module
+
+    def _validate_improvement_suggestion(self, improvement: Dict[str, Any]) -> bool:
+        """Validate an improvement suggestion.
+        
+        Args:
+            improvement (Dict[str, Any]): The improvement suggestion to validate
+            
+        Returns:
+            bool: True if the suggestion is valid, False otherwise
+        """
+        try:
+            required_fields = ['description', 'code_changes', 'expected_impact']
+            if not all(field in improvement for field in required_fields):
+                return False
+                
+            for change in improvement['code_changes']:
+                if not all(field in change for field in ['type', 'location', 'code']):
+                    return False
+                if change['type'] not in ['add', 'modify', 'delete']:
+                    return False
+                    
+                # Validate the code syntax
+                try:
+                    ast.parse(change['code'])
+                except SyntaxError:
+                    return False
+                    
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error validating improvement suggestion: {str(e)}")
+            return False
 
     def revert_last_change(self, module_path: str) -> bool:
         """Revert to last backup if improvement failed."""
@@ -600,135 +825,143 @@ class GodelAgent:
             return False
 
     def _create_improvement_prompt(self, module_code: str, metrics: Dict[str, Any], context: Dict[str, Any]) -> str:
-        """Create a prompt for requesting code improvements."""
-        prompt = f"""You are an expert Python developer tasked with improving a trading strategy module.
-The module's current performance metrics are:
-{json.dumps(metrics, indent=2)}
+        """Create a prompt for suggesting code improvements.
+        
+        Args:
+            module_code (str): The current module code
+            metrics (Dict[str, Any]): Performance metrics
+            context (Dict[str, Any]): Additional context information
+            
+        Returns:
+            str: Generated prompt for the LLM
+        """
+        # Create a detailed prompt for the LLM
+        prompt = f"""Analyze the following trading strategy code and suggest improvements based on performance metrics:
 
-The current market context is:
-{json.dumps(context, indent=2)}
-
-The code that needs improvement is:
+Code:
 {module_code}
 
-Please suggest specific improvements to enhance the strategy's performance. For each improvement:
-1. Maintain proper Python syntax and indentation
-2. Preserve existing class and method structures
-3. Use type hints for all function parameters and return values
-4. Include detailed docstrings for new methods
-5. Follow PEP 8 style guidelines
-6. Ensure all code blocks are properly indented
-7. Keep the existing module organization
+Performance Metrics:
+{json.dumps(metrics, indent=2)}
 
-Format your response as a JSON object with this structure:
+Context:
+{json.dumps(context, indent=2)}
+
+Please suggest specific code improvements that could enhance the strategy's performance.
+Focus on:
+1. Optimizing entry/exit conditions
+2. Improving risk management
+3. Enhancing parameter adaptation
+4. Reducing drawdown
+5. Increasing win rate
+
+Return suggestions in JSON format:
 {{
     "improvements": [
         {{
-            "description": "Brief description of the improvement",
+            "description": str,  // Description of the improvement
             "code_changes": [
                 {{
-                    "type": "add|modify|delete",
-                    "location": "Class or method name/docstring where change should be applied",
-                    "code": "The actual code to add/modify (with proper indentation)"
+                    "type": "add|modify|delete",  // Type of change
+                    "location": str,              // Where to apply the change
+                    "code": str                   // The actual code change
                 }}
             ],
-            "expected_impact": "How this change will improve performance"
+            "expected_impact": str  // Expected impact on performance
         }}
     ]
-}}
-
-The code changes should be complete, properly indented Python code that can be directly inserted into the module."""
-
-        return prompt
-
-    def _create_prompt_improvement_prompt(self, strategy_prompt: Dict, rules_prompt: Dict, 
-                                        context: Dict[str, Any]) -> str:
-        """Create prompt for improving strategy generation prompts."""
-        market_regime = context.get('market_regime', 'unknown')
-        total_return = context.get('total_return', 0)
-        win_rate = context.get('win_rate', 0)
-        failures = context.get('failures', [])
-        
-        prompt = f"""As a trading strategy optimizer, analyze these prompts and suggest improvements:
-
-Current Performance:
-- Market Regime: {market_regime}
-- Total Return: {total_return}
-- Win Rate: {win_rate}
-- Failures: {', '.join(failures)}
-
-Current Strategy Prompt:
-{yaml.dump(strategy_prompt)}
-
-Current Rules Prompt:
-{yaml.dump(rules_prompt)}
-
-Suggest specific improvements that:
-1. Better handle the current market regime
-2. Address performance failures
-3. Improve strategy adaptation
-4. Enhance parameter optimization
-5. Maintain prompt clarity and structure
-
-Respond with a JSON object containing:
-{{
-    "prompt_improvements": {{
-        "strategy_prompt": {{
-            "changes": [
-                {{
-                    "type": "add|modify|delete",
-                    "location": "string",
-                    "content": "string"
-                }}
-            ]
-        }},
-        "rules_prompt": {{
-            "changes": [
-                {{
-                    "type": "add|modify|delete",
-                    "location": "string",
-                    "content": "string"
-                }}
-            ]
-        }}
-    }}
 }}"""
         return prompt
 
     def _get_llm_suggestions(self, prompt: str) -> Optional[Dict[str, Any]]:
-        """Get improvement suggestions from LLM."""
+        """Get improvement suggestions from the LLM.
+        
+        Args:
+            prompt (str): The prompt to send to the LLM
+            
+        Returns:
+            Optional[Dict[str, Any]]: Parsed suggestions from the LLM
+        """
         try:
+            # Initialize OpenAI client
             client = openai.OpenAI()
+            
+            # Get response from GPT-4
             response = client.chat.completions.create(
-                model="gpt-4-1106-preview",
+                model="gpt-4",
                 messages=[
-                    {"role": "system", "content": "You are an expert code improvement assistant."},
+                    {"role": "system", "content": "You are an expert Python developer specializing in trading strategies."},
                     {"role": "user", "content": prompt}
                 ],
+                temperature=0.7,
                 response_format={"type": "json_object"}
             )
             
-            if not response.choices:
-                return None
-                
-            content = response.choices[0].message.content
-            return json.loads(content)
-            
+            # Parse and validate the response
+            if response.choices and response.choices[0].message.content:
+                suggestions = json.loads(response.choices[0].message.content)
+                if self._validate_suggestions_format(suggestions):
+                    return suggestions
+                    
         except Exception as e:
             logger.error(f"Error getting LLM suggestions: {str(e)}")
-            return None
+            
+        return None
+
+    def _validate_suggestions_format(self, suggestions: Dict[str, Any]) -> bool:
+        """Validate the format of LLM suggestions.
+        
+        Args:
+            suggestions (Dict[str, Any]): The suggestions to validate
+            
+        Returns:
+            bool: True if format is valid, False otherwise
+        """
+        try:
+            if not isinstance(suggestions, dict) or 'improvements' not in suggestions:
+                return False
+                
+            improvements = suggestions['improvements']
+            if not isinstance(improvements, list):
+                return False
+                
+            for improvement in improvements:
+                if not all(key in improvement for key in ['description', 'code_changes', 'expected_impact']):
+                    return False
+                    
+                if not isinstance(improvement['code_changes'], list):
+                    return False
+                    
+                for change in improvement['code_changes']:
+                    if not all(key in change for key in ['type', 'location', 'code']):
+                        return False
+                    if change['type'] not in ['add', 'modify', 'delete']:
+                        return False
+                        
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error validating suggestions format: {str(e)}")
+            return False
 
     def format_code(self, code: str) -> str:
-        """Format code using black formatter and verify syntax."""
+        """Format code using black formatter and verify syntax.
+        
+        Args:
+            code (str): The code to format
+            
+        Returns:
+            str: The formatted code
+        """
         try:
             # First verify the code is valid Python syntax
-            ast.parse(code)
+            self.ast_parser(code)
             
             # Format the code using black
-            formatted_code = black.format_str(code, mode=black.FileMode())
+            formatted_code = black.format_str(code, mode=self.black_mode)
             
             # Verify the formatted code is still valid Python
-            ast.parse(formatted_code)
+            self.ast_parser(formatted_code)
             
             return formatted_code
         except Exception as e:
@@ -802,62 +1035,19 @@ Respond with a JSON object containing:
             logger.error(f"Error applying improvements: {str(e)}")
             return current_code
 
-    def _insert_code(self, code: str, location: str, new_code: str) -> str:
-        """Insert new code at specified location."""
-        try:
-            # Parse the code into an AST
-            tree = ast.parse(code)
-            
-            # Find the insertion point
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
-                    if location in ast.get_docstring(node, clean=False) or location in node.name:
-                        # Calculate proper indentation based on node's level
-                        indent_level = len(location) - len(location.lstrip())
-                        indented_code = '\n'.join(' ' * indent_level + line for line in new_code.split('\n'))
-                        
-                        # Insert the code at the appropriate position
-                        lines = code.split('\n')
-                        insert_point = node.lineno
-                        lines.insert(insert_point, indented_code)
-                        return '\n'.join(lines)
-            
-            return code
-        except Exception as e:
-            logger.error(f"Error inserting code: {str(e)}")
-            return code
-
-    def _modify_code(self, code: str, location: str, new_code: str) -> str:
-        """Modify code at specified location."""
-        try:
-            # Parse the code into an AST
-            tree = ast.parse(code)
-            
-            # Find the modification point
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
-                    if location in ast.get_docstring(node, clean=False) or location in node.name:
-                        # Calculate proper indentation
-                        indent_level = len(location) - len(location.lstrip())
-                        indented_code = '\n'.join(' ' * indent_level + line for line in new_code.split('\n'))
-                        
-                        # Replace the old code with new code
-                        lines = code.split('\n')
-                        start_line = node.lineno - 1
-                        end_line = node.end_lineno
-                        lines[start_line:end_line] = indented_code.split('\n')
-                        return '\n'.join(lines)
-            
-            return code
-        except Exception as e:
-            logger.error(f"Error modifying code: {str(e)}")
-            return code
-
     def _delete_code(self, code: str, location: str) -> str:
-        """Delete code at specified location."""
+        """Delete code at specified location.
+        
+        Args:
+            code (str): The code to modify
+            location (str): The location to delete code from
+            
+        Returns:
+            str: The modified code with the specified code deleted
+        """
         try:
             # Parse the code into an AST
-            tree = ast.parse(code)
+            tree = self.ast_parser(code)
             
             # Find the deletion point
             for node in ast.walk(tree):

@@ -162,8 +162,8 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
     agent = GodelAgent(improvement_threshold=0.1, max_iterations=5,
                       backup_dir="backups", prompt_dir="prompts/trading")
     
-    # Initialize trader
-    trader = StrategicTrader()
+    # Initialize trader using async factory method
+    trader = await StrategicTrader.create()
     
     for iteration in range(agent.max_iterations):
         logger.info(f"\nStarting iteration {iteration + 1}")
@@ -249,7 +249,7 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
                 if strategy_improvements:
                     logger.info("Applied improvements to strategy generator")
                     importlib.reload(sys.modules['research.strategy.strategy_generator'])
-                    trader = StrategicTrader()  # Reinitialize with improved code
+                    trader = await StrategicTrader.create()  # Reinitialize with improved code
                     improvements_made = True
                 
                 # 2. Improve backtester
@@ -272,7 +272,7 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
                 if llm_improvements:
                     logger.info("Applied improvements to LLM interface")
                     importlib.reload(sys.modules['research.strategy.llm_interface'])
-                    trader = StrategicTrader()  # Reinitialize with improved code
+                    trader = await StrategicTrader.create()  # Reinitialize with improved code
                     improvements_made = True
                 
                 # 4. Update prompts based on performance
