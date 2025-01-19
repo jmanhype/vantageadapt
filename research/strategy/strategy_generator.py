@@ -45,13 +45,24 @@ class StrategicTrader:
     def __init__(self):
         """Initialize strategic trader."""
         self.prompt_manager = PromptManager()
-        self.llm = LLMInterface(self.prompt_manager)
+        self.llm = None
         self.market_context = None
         self.strategy_insights = None
         self.last_trade_time = None
         self.trade_cooldown = 300  # 5 minutes
         self.performance_history = []
         self.current_position = None
+
+    @classmethod
+    async def create(cls) -> "StrategicTrader":
+        """Create a new instance of StrategicTrader with initialized LLM interface.
+        
+        Returns:
+            StrategicTrader: A new instance with initialized LLM interface.
+        """
+        instance = cls()
+        instance.llm = await LLMInterface.create()
+        return instance
 
     def log_trade_metrics(self, metrics: Dict[str, float]) -> None:
         """Log detailed metrics for analysis and improvement."""
