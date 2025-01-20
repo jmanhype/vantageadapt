@@ -1,44 +1,39 @@
 '''opportunity_description: [after ''''dynamic volatility envelope'''']''': Adjust
   the randomness within perturbation tests to create a more sophisticated model that
   filters noise and focuses on robust patterns in low-volatility markets.
-entry_zones and exit_zones: Refine the decision models by incorporating a feature
-  engineering process that emphasizes regime-specific indicators prevalent in RANGING_LOW_VOL
-  conditions to enhance the prediction accuracy for entry and exit zones.
-opportunity_description: Implement an adaptive filter adjustment mechanism that is
-  more nuanced in identifying potential trades specifically during low-volatility,
-  range-bound markets.
-opportunity_description adjustment: Include volatility thresholds that trigger adjustments
-  in strategy sensitivity more granularly, by describing specific values from volatility
-  indexes or proprietary indicators tailored to RANGING_LOW_VOL conditions.
-opportunity_description after 'dynamic volatility envelope': Precisely define 'robust
-  patterns' by outlining specific statistical anomalies, their expected frequency,
-  and trade edge magnitude, and provide actionable guidelines for verification within
-  the specified confidence interval.
+entry_zones and exit_zones: Use indicators that are specialized for low-volatility
+  range-bound markets, like Bollinger Band width combined with MACD histogram slopes,
+  and set exact numerical thresholds for these indicators to refine entry and exit
+  points.
+opportunity_description: Prioritize trading signals that persist for a minimum duration
+  to reduce likelihood of false triggers in low-volatility ranges.
+opportunity_description [after 'dynamic volatility envelope']: Adjust the model to
+  prioritize trading signals that sustain beyond a minimum time threshold, ensuring
+  that sporadic noise is less likely to trigger false trades in low-volatility ranges.
+opportunity_description adjustment: Introduce precise volatility thresholds that,
+  when crossed, trigger strategic adjustments, supported by real-time data from volatility
+  indexes and proprietary indicators.
+opportunity_description after 'dynamic volatility envelope': Introduce a component
+  that utilizes conditional probability models, such as Markov Chain or Bayesian Network,
+  to better predict likely market regime shifts from RANGING_LOW_VOL to other market
+  conditions.
 'opportunity_description: [after ''dynamic volatility envelope'']': Tailor the randomness
   within perturbation tests to prefer historically successful trade ranges during
   similar market conditions, using kernel density estimation.
-risk_management_notes: Provide concrete formulae for the 'dynamic sentiment decay
-  factor' which should incorporate real-time volatility metrics such as ATR or HVP,
-  to fine-tune the responsiveness of risk management based on current market conditions.
-suggested_position_size: Define a position sizing formula that dynamically adjusts
-  according to VIX levels, recent performance drawdowns, and correlations to major
-  benchmarks, ensuring alignment with the RANGING_LOW_VOL regime.
+risk_management_notes: Refine the dynamic sentiment decay factor to account for the
+  skewness and kurtosis of short-term returns, enhancing risk management for RANGING_LOW_VOL
+  markets.
+suggested_position_size: Adopt a dynamic position sizing algorithm which factors in
+  both VIX levels and market-specific volatility, with clear numeric parameters fitting
+  low-volatility conditions.
 system: "You are an expert trading strategy developer specializing in adaptive strategies.\n\
   \nIMPORTANT: You must respond with ONLY a JSON object in the following format. Do\
-  \ not include any other text, markdown formatting, or explanations:\n{\n  \"regime_change_probability\"\
-  : float,  // Probability of regime change\n  \"suggested_position_size\": float,\
-  \    // Recommended position size as %\n  \"volatility_adjustment\": {         \
-  \  // Volatility-based adjustments\n    \"entry_threshold\": float,          //\
-  \ Entry threshold multiplier\n    \"exit_threshold\": float,           // Exit threshold\
-  \ multiplier\n    \"position_size\": float            // Position size multiplier\n\
-  \  },\n  \"regime_specific_rules\": {           // Regime-specific parameters\n\
-  \    \"trend_following\": float,          // Trend following weight\n    \"mean_reversion\"\
-  : float,           // Mean reversion weight\n    \"breakout\": float           \
-  \      // Breakout strategy weight\n  },\n  \"risk_management\": {             \
-  \    // Risk management parameters\n    \"max_drawdown\": float,            // Maximum\
-  \ drawdown limit\n    \"correlation_threshold\": float,    // Maximum correlation\
-  \ allowed\n    \"volatility_limit\": float         // Maximum volatility threshold\n\
-  \  }\n}\n"
+  \ not include any other text, markdown, or explanations:\n{\n  \"strategy_name\"\
+  : \"string\",\n  \"strategy_type\": \"string\",\n  \"opportunity_description\":\
+  \ \"string\",\n  \"entry_zones\": \"string\",\n  \"exit_zones\": \"string\",\n \
+  \ \"risk_management_notes\": \"string\",\n  \"suggested_position_size\": \"number\
+  \ between 0 and 1 representing the fraction of trading capital to risk (e.g. 0.02\
+  \ for 2%)\"\n}\n"
 user_template: 'Please generate a trading strategy for the theme: {theme}
 
 
@@ -51,17 +46,11 @@ user_template: 'Please generate a trading strategy for the theme: {theme}
 
   1. Identifying optimal entry and exit points
 
-  2. Setting appropriate position sizes based on risk
+  2. Setting appropriate position sizes based on market conditions
 
-  3. Defining clear stop loss levels
-
-  4. Providing comprehensive risk management guidelines
+  3. Managing risk effectively in the current regime
 
 
-  Return your response as a JSON object with specific numeric values for all parameters.
-
-  Ensure all numeric values are actual numbers, not placeholders.
-
-  Entry, exit, and stop loss zones should be based on key price levels.
+  Return your response as a JSON object with the specified fields.
 
   '

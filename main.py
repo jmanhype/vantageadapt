@@ -152,20 +152,16 @@ def analyze_market_conditions(portfolio: Any) -> Dict[str, Any]:
     }
 
 async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optional[Dict[str, Any]]:
-    """Run the trading strategy with self-improvement."""
+    """Run the trading strategy."""
     metrics = None
     best_metrics = None
     result = None
     best_result = None
     
-    # Initialize Gödel Agent
-    agent = GodelAgent(improvement_threshold=0.1, max_iterations=5,
-                      backup_dir="backups", prompt_dir="prompts/trading")
-    
     # Initialize trader using async factory method
     trader = await StrategicTrader.create()
     
-    for iteration in range(agent.max_iterations):
+    for iteration in range(5):  # Run 5 iterations
         logger.info(f"\nStarting iteration {iteration + 1}")
         
         try:
@@ -188,7 +184,7 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
             if not strategy_insights:
                 logger.error("Failed to generate strategy insights")
                 continue
-            
+
             # Generate trading rules
             logger.info("\nGenerating trading rules...")
             conditions, parameters = await trader.generate_trading_rules(strategy_insights, market_context)
@@ -208,80 +204,14 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
             metrics = result.get('metrics', {})
             success, failures = validate_strategy_performance(metrics)
             
-            # Track performance and check for improvement
-            improved = agent.track_performance(
-                metrics=metrics,
-                parameters=result.get('parameters', {}),
-                market_regime=market_context.regime.value
-            )
-            
             # Update best result if this iteration was better
             if best_metrics is None or metrics.get('total_return', 0) > best_metrics.get('total_return', 0):
                 best_metrics = metrics
                 best_result = result
             
             if not success:
-                logger.info("\nStrategy did not meet performance requirements, attempting improvements...")
-                
-                # Create improvement context
-                context = {
-                    'market_regime': market_context.regime.value,
-                    'market_confidence': market_context.confidence,
-                    'risk_level': market_context.risk_level,
-                    'total_return': metrics.get('total_return', 0),
-                    'win_rate': metrics.get('win_rate', 0),
-                    'sortino_ratio': metrics.get('sortino_ratio', 0),
-                    'max_drawdown': metrics.get('max_drawdown', 0),
-                    'failures': failures,
-                    'improved': improved,
-                    'iteration': iteration + 1,
-                    'max_iterations': agent.max_iterations
-                }
-                
-                improvements_made = False
-                
-                # 1. Improve strategy generator
-                strategy_improvements = agent.propose_patch(
-                    'research/strategy/strategy_generator.py',
-                    metrics=metrics,
-                    context=context
-                )
-                if strategy_improvements:
-                    logger.info("Applied improvements to strategy generator")
-                    importlib.reload(sys.modules['research.strategy.strategy_generator'])
-                    trader = await StrategicTrader.create()  # Reinitialize with improved code
-                    improvements_made = True
-                
-                # 2. Improve backtester
-                backtester_improvements = agent.propose_patch(
-                    'backtester.py',
-                    metrics=metrics,
-                    context=context
-                )
-                if backtester_improvements:
-                    logger.info("Applied improvements to backtester")
-                    importlib.reload(sys.modules['backtester'])
-                    improvements_made = True
-                    
-                # 3. Improve LLM interface
-                llm_improvements = agent.propose_patch(
-                    'research/strategy/llm_interface.py',
-                    metrics=metrics,
-                    context=context
-                )
-                if llm_improvements:
-                    logger.info("Applied improvements to LLM interface")
-                    importlib.reload(sys.modules['research.strategy.llm_interface'])
-                    trader = await StrategicTrader.create()  # Reinitialize with improved code
-                    improvements_made = True
-                
-                # 4. Update prompts based on performance
-                if agent.modify_prompts(context):
-                    logger.info("Updated strategy generation prompts")
-                    improvements_made = True
-                
-                if not improvements_made:
-                    logger.warning("No valid improvements were found this iteration")
+                logger.info("\nStrategy did not meet performance requirements")
+                continue
                 
         except Exception as e:
             logger.error(f"Error in iteration {iteration + 1}: {str(e)}")
