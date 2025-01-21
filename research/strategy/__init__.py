@@ -1,0 +1,1 @@
+"""Strategy package for trading system development.""" 

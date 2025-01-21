@@ -1,9 +1,4 @@
-"""Research package for comprehensive topic analysis.
-
-This package provides tools and utilities for conducting research using the
-VectorShift API, with support for multi-threaded execution and dependency
-management.
-"""
+"""Research package for strategy development and analysis."""
 
 from research.agent_research import AgentResearchTool, ResearchQuery, ResearchTask
 

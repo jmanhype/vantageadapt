@@ -13,6 +13,10 @@ import json
 from pathlib import Path
 import importlib
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from research.database import db
 from research.strategy.strategy_generator import StrategicTrader
@@ -22,10 +26,7 @@ from research.strategy.godel_agent import GodelAgent
 from backtester import load_trade_data, calculate_stats, run_parameter_optimization
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Performance validation thresholds
@@ -161,6 +162,16 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
     # Initialize trader using async factory method
     trader = await StrategicTrader.create()
     
+    # Initialize memory manager
+    mem0_api_key = os.getenv("MEM0_API_KEY")
+    if mem0_api_key:
+        from research.strategy.memory_manager import TradingMemoryManager
+        memory_manager = TradingMemoryManager(api_key=mem0_api_key)
+        logger.info("Memory system initialized successfully")
+    else:
+        memory_manager = None
+        logger.warning("Memory system disabled: Missing MEM0_API_KEY")
+    
     for iteration in range(5):  # Run 5 iterations
         logger.info(f"\nStarting iteration {iteration + 1}")
         
@@ -176,6 +187,16 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
             logger.info(f"Market regime: {market_context.regime}")
             logger.info(f"Confidence: {market_context.confidence:.2f}")
             logger.info(f"Risk level: {market_context.risk_level}")
+            
+            # Query similar strategies if memory system is enabled
+            if memory_manager and memory_manager.enabled:
+                similar_strategies = memory_manager.query_similar_strategies(
+                    market_regime=market_context.regime
+                )
+                if similar_strategies:
+                    logger.info(f"Found {len(similar_strategies)} similar strategies")
+                    for strategy in similar_strategies:
+                        logger.debug(f"Similar strategy: {strategy}")
             
             # Generate strategy insights
             logger.info("\nGenerating strategy insights...")
@@ -203,6 +224,26 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
                 
             metrics = result.get('metrics', {})
             success, failures = validate_strategy_performance(metrics)
+            
+            # Store strategy results in memory if enabled
+            if memory_manager and memory_manager.enabled:
+                from research.strategy.types import StrategyContext, BacktestResults
+                context = StrategyContext(
+                    market_regime=market_context.regime,
+                    parameters=parameters,
+                    confidence=market_context.confidence,
+                    risk_level=market_context.risk_level
+                )
+                results = BacktestResults(
+                    total_return=metrics.get('total_return', 0.0),
+                    total_pnl=metrics.get('total_pnl', 0.0),
+                    sortino_ratio=metrics.get('sortino_ratio', 0.0),
+                    win_rate=metrics.get('win_rate', 0.0),
+                    total_trades=metrics.get('total_trades', 0),
+                    asset_count=len(trade_data)
+                )
+                memory_manager.store_strategy_results(context, results, parameters)
+                logger.info("Stored strategy results in memory")
             
             # Update best result if this iteration was better
             if best_metrics is None or metrics.get('total_return', 0) > best_metrics.get('total_return', 0):

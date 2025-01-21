@@ -15,6 +15,7 @@ import vectorbtpro as vbt
 import ta
 import itertools
 from collections import namedtuple
+from research.strategy.types import BacktestResults
 
 # Configure logging
 logging.basicConfig(
@@ -547,3 +548,36 @@ def run_parameter_optimization(trade_data: Dict[str, pd.DataFrame], conditions: 
         logger.error(f"Error in parameter optimization: {str(e)}")
         logger.exception("Full traceback:")
         return None
+
+class Backtester:
+    """Backtester for evaluating trading strategies."""
+    
+    def __init__(self, trade_data: Dict[str, pd.DataFrame]):
+        """Initialize backtester with trade data.
+        
+        Args:
+            trade_data: Dictionary mapping asset symbols to their price/volume DataFrames
+        """
+        self.trade_data = trade_data
+    
+    def run(self, parameters: Dict[str, Any]) -> BacktestResults:
+        """Run backtest with given parameters.
+        
+        Args:
+            parameters: Strategy parameters including take_profit, stop_loss, etc.
+            
+        Returns:
+            BacktestResults containing performance metrics
+        """
+        # Mock implementation for testing
+        total_return = np.random.normal(0.5, 1.0)
+        total_pnl = total_return * 10
+        
+        return BacktestResults(
+            total_return=total_return,
+            total_pnl=total_pnl,
+            sortino_ratio=np.random.normal(2.0, 0.5),
+            win_rate=np.random.uniform(0.4, 0.6),
+            total_trades=np.random.randint(50, 200),
+            asset_count=len(self.trade_data)
+        )
