@@ -35,13 +35,12 @@ class TradingMemoryManager:
             logger.error(f"Failed to initialize memory system: {e}")
             self.client = None
 
-    def store_strategy_results(self, context: StrategyContext, results: BacktestResults, iteration: Optional[int] = None) -> bool:
+    def store_strategy_results(self, context: StrategyContext, results: BacktestResults) -> bool:
         """Store strategy results in memory.
         
         Args:
             context: The strategy context containing market regime and parameters
             results: The backtest results containing performance metrics
-            iteration: Optional iteration number for the strategy run
             
         Returns:
             bool: True if storage was successful, False otherwise
@@ -64,8 +63,7 @@ class TradingMemoryManager:
                     "win_rate": float(results.win_rate),
                     "total_trades": results.total_trades
                 },
-                "timestamp": datetime.utcnow().isoformat(),
-                "iteration": iteration
+                "timestamp": datetime.utcnow().isoformat()
             }
 
             # Add memory with metadata
@@ -76,8 +74,7 @@ class TradingMemoryManager:
                     "metadata": {
                         "type": "strategy_results",
                         "market_regime": context.market_regime.value,
-                        "success": results.total_return > 0,
-                        "iteration": iteration
+                        "success": results.total_return > 0
                     }
                 }],
                 user_id="trading_system",
@@ -89,49 +86,162 @@ class TradingMemoryManager:
             logger.error(f"Failed to store strategy results: {e}")
             return False
 
-    def query_similar_strategies(self, market_regime: MarketRegime) -> List[Dict[str, Any]]:
+    def store_successful_strategy(self, strategy_data: Dict[str, Any], metrics: Dict[str, float], market_context: Dict[str, Any]) -> bool:
+        """Store a successful trading strategy with its performance metrics and market context.
+        
+        Args:
+            strategy_data (Dict[str, Any]): Strategy configuration and parameters
+            metrics (Dict[str, float]): Performance metrics from the strategy execution
+            market_context (Dict[str, Any]): Market conditions when strategy was executed
+            
+        Returns:
+            bool: Whether the strategy was successfully stored
+        """
+        try:
+            # Calculate strategy score
+            score = self._calculate_strategy_score(metrics)
+            
+            # Only store strategies that meet minimum performance threshold
+            if score < 0.5:  # Configurable threshold
+                return False
+                
+            memory_entry = {
+                'strategy': strategy_data,
+                'metrics': metrics,
+                'market_context': market_context,
+                'score': score,
+                'timestamp': datetime.now().isoformat(),
+                'regime': market_context.get('regime', 'UNKNOWN')
+            }
+            
+            # Store in mem0.ai with appropriate metadata
+            self.client.add_memory(
+                user_id='trading_system',
+                agent_id='strategy_optimizer',
+                content=json.dumps(memory_entry),
+                metadata={
+                    'score': score,
+                    'regime': market_context.get('regime', 'UNKNOWN'),
+                    'total_return': metrics.get('total_return', 0),
+                    'sortino_ratio': metrics.get('sortino_ratio', 0)
+                }
+            )
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error storing successful strategy: {str(e)}")
+            return False
+            
+    def query_similar_strategies(self, market_regime: str = None, min_score: float = 0.5) -> List[Dict[str, Any]]:
         """Query for similar successful strategies based on market regime.
         
         Args:
-            market_regime: The current market regime to find strategies for
+            market_regime (str): Market regime to filter by
+            min_score (float): Minimum strategy score to consider
             
         Returns:
-            List of similar successful strategies with their parameters and results
+            List[Dict[str, Any]]: List of similar successful strategies with their metrics
         """
-        if not self.client or not self.enabled:
-            logger.debug("Memory system disabled, returning empty list")
-            return []
-
         try:
-            # Get all memories for our trading system
+            # Convert market regime enum to string if needed
+            if hasattr(market_regime, 'value'):
+                market_regime = market_regime.value
+            
+            # Query mem0.ai with market context as search criteria
             memories = self.client.get_all(
-                user_id="trading_system",
-                agent_id="strategy_optimizer"
+                user_id='trading_system',
+                agent_id='strategy_optimizer',
+                metadata_filter={
+                    'score': {'$gte': min_score},
+                    'regime': market_regime if market_regime else {'$exists': True}
+                }
             )
             
-            # Debug: Log memory structure
-            logger.debug(f"Memory response type: {type(memories)}")
-            if memories:
-                logger.debug(f"First memory structure: {memories[0]}")
-
-            # Filter and parse memories
-            similar_strategies = []
+            strategies = []
             for memory in memories:
                 try:
-                    # Try to get content directly from memory dict
-                    content = json.loads(memory.get("content", "{}"))
-                    if (content.get("market_regime") == market_regime.value and 
-                        content.get("performance", {}).get("total_return", 0) > 0):
-                        similar_strategies.append(content)
-                except (json.JSONDecodeError, KeyError) as e:
-                    logger.warning(f"Failed to parse memory: {e}")
+                    content = memory.get('content', '{}')
+                    if isinstance(content, str):
+                        strategy_data = json.loads(content)
+                    else:
+                        strategy_data = content
+                    strategies.append(strategy_data)
+                except Exception as e:
+                    logger.warning(f"Failed to parse memory content: {e}")
                     continue
-
-            logger.info(f"Found {len(similar_strategies)} similar successful strategies")
-            return similar_strategies
+                    
+            # Sort by score
+            strategies.sort(key=lambda x: x.get('score', 0), reverse=True)
+            return strategies[:10]  # Return top 10 matches
+            
         except Exception as e:
-            logger.error(f"Failed to query similar strategies: {e}")
+            logger.error(f"Error querying similar strategies: {str(e)}")
             return []
+            
+    def _calculate_strategy_score(self, metrics: Dict[str, float]) -> float:
+        """Calculate an overall strategy score based on performance metrics.
+        
+        Args:
+            metrics (Dict[str, float]): Strategy performance metrics
+            
+        Returns:
+            float: Strategy score between 0 and 1
+        """
+        weights = {
+            'total_return': 0.3,
+            'sortino_ratio': 0.2,
+            'win_rate': 0.2,
+            'max_drawdown': 0.15,
+            'profit_factor': 0.15
+        }
+        
+        score = 0.0
+        for metric, weight in weights.items():
+            value = metrics.get(metric, 0)
+            if metric == 'max_drawdown':
+                # Convert drawdown to positive score
+                value = max(0, 1 + value)
+            score += value * weight
+            
+        return max(0, min(1, score))
+        
+    def _calculate_context_similarity(self, context1: Dict[str, Any], context2: Dict[str, Any]) -> float:
+        """Calculate similarity score between two market contexts.
+        
+        Args:
+            context1 (Dict[str, Any]): First market context
+            context2 (Dict[str, Any]): Second market context
+            
+        Returns:
+            float: Similarity score between 0 and 1
+        """
+        try:
+            # Compare key metrics
+            metrics = [
+                'volatility_level',
+                'trend_strength',
+                'volume_profile',
+                'risk_level'
+            ]
+            
+            score = 0.0
+            for metric in metrics:
+                if metric in context1 and metric in context2:
+                    if isinstance(context1[metric], (int, float)) and isinstance(context2[metric], (int, float)):
+                        # Numerical comparison
+                        diff = abs(context1[metric] - context2[metric])
+                        score += 1.0 - min(1.0, diff)
+                    else:
+                        # String comparison
+                        score += 1.0 if context1[metric] == context2[metric] else 0.0
+                        
+            # Normalize score
+            return score / len(metrics)
+            
+        except Exception as e:
+            logger.error(f"Error calculating context similarity: {str(e)}")
+            return 0.0
 
     def reset(self) -> bool:
         """Reset the memory store.

@@ -49,6 +49,8 @@ class ParameterHistory:
     timestamp: datetime
     success: bool
     evaluation: Optional[StrategyEvaluation] = None
+    improvement_score: float = 0.0
+    weighted_score: float = 0.0
 
 class GodelAgent:
     """Agent for self-improving trading strategies."""
@@ -195,19 +197,30 @@ class GodelAgent:
 
     def track_performance(self, metrics: Dict[str, Any], parameters: Dict[str, Any], 
                          market_regime: str) -> bool:
-        """Track performance metrics and determine if improvement occurred."""
+        """Track performance metrics and determine if improvement occurred.
+        
+        Args:
+            metrics: Dictionary of performance metrics
+            parameters: Strategy parameters
+            market_regime: Current market regime
+            
+        Returns:
+            bool: Whether improvement threshold was met
+        """
         if not metrics:
             return False
             
+        # Calculate weighted performance score
+        current_score = self._calculate_weighted_score(metrics, market_regime)
+        
         if not self.last_metrics:
             self.last_metrics = metrics
             self.best_metrics = metrics
             success = True
         else:
             # Calculate comprehensive improvement score
-            current_score = self._calculate_strategy_score(metrics)
-            last_score = self._calculate_strategy_score(self.last_metrics)
-            best_score = self._calculate_strategy_score(self.best_metrics)
+            last_score = self._calculate_weighted_score(self.last_metrics, market_regime)
+            best_score = self._calculate_weighted_score(self.best_metrics, market_regime)
             
             # Update best metrics if current are better
             if current_score > best_score:
@@ -218,53 +231,140 @@ class GodelAgent:
             success = improvement >= self.improvement_threshold
             self.last_metrics = metrics
 
-        # Record parameter history
+        # Record parameter history with enhanced evaluation
         history_entry = ParameterHistory(
             parameters=parameters,
             metrics=metrics,
             market_regime=market_regime,
             timestamp=datetime.now(),
             success=success,
-            evaluation=self.evaluate_strategy(metrics, parameters, market_regime)
+            evaluation=self._generate_enhanced_evaluation(metrics, parameters, market_regime),
+            improvement_score=improvement if 'improvement' in locals() else 0.0,
+            weighted_score=current_score
         )
         self.parameter_history.append(history_entry)
         
-        # Update success patterns if performance was good
-        if self._meets_success_criteria(metrics):
-            if market_regime not in self.success_patterns:
-                self.success_patterns[market_regime] = []
-            
-            # Store parameters with their performance metrics
-            success_entry = {
-                'parameters': parameters,
-                'metrics': metrics,
-                'score': self._calculate_strategy_score(metrics)
-            }
-            self.success_patterns[market_regime].append(success_entry)
-            
-            # Keep only top 5 performing parameter sets
-            self.success_patterns[market_regime].sort(key=lambda x: x['score'], reverse=True)
-            self.success_patterns[market_regime] = self.success_patterns[market_regime][:5]
-            
+        # Store successful strategies in memory if available
+        if success and hasattr(self, 'memory') and self.memory:
+            self._store_successful_strategy(parameters, metrics, market_regime, current_score)
+        
         return success
 
-    def _meets_success_criteria(self, metrics: Dict[str, float]) -> bool:
-        """Determine if a set of metrics meets success criteria."""
-        # Calculate weighted score instead of strict thresholds
+    def _calculate_weighted_score(self, metrics: Dict[str, Any], market_regime: str) -> float:
+        """Calculate a weighted performance score based on market regime.
+        
+        Args:
+            metrics: Performance metrics
+            market_regime: Current market regime
+            
+        Returns:
+            float: Weighted performance score
+        """
+        # Base weights
         weights = {
             'total_return': 0.3,
-            'sortino_ratio': 0.25,
-            'win_rate': 0.25,
-            'total_trades': 0.2
+            'sortino_ratio': 0.2,
+            'win_rate': 0.15,
+            'profit_factor': 0.15,
+            'max_drawdown': 0.1,
+            'trade_count': 0.1
         }
         
-        score = 0
-        score += weights['total_return'] * (1 if metrics.get('total_return', 0) > 0 else 0)
-        score += weights['sortino_ratio'] * (metrics.get('sortino_ratio', 0) / 2)  # Normalized to ~0-1
-        score += weights['win_rate'] * (metrics.get('win_rate', 0))
-        score += weights['total_trades'] * min(1.0, metrics.get('total_trades', 0) / 100)
+        # Adjust weights based on market regime
+        if market_regime == 'RANGING_LOW_VOL':
+            weights['win_rate'] *= 1.5
+            weights['sortino_ratio'] *= 0.8
+        elif market_regime == 'TRENDING_HIGH_VOL':
+            weights['total_return'] *= 1.3
+            weights['max_drawdown'] *= 1.2
         
-        return score > 0.6  # Success if weighted score > 60%
+        score = 0.0
+        for metric, weight in weights.items():
+            if metric in metrics:
+                # Normalize metric value
+                if metric == 'max_drawdown':
+                    # Convert drawdown to positive score
+                    score += weight * (1 + metrics[metric])
+                else:
+                    score += weight * metrics[metric]
+        
+        return score
+
+    def _generate_enhanced_evaluation(self, metrics: Dict[str, Any], 
+                                    parameters: Dict[str, Any],
+                                    market_regime: str) -> Dict[str, Any]:
+        """Generate enhanced strategy evaluation with detailed analysis.
+        
+        Args:
+            metrics: Performance metrics
+            parameters: Strategy parameters
+            market_regime: Current market regime
+            
+        Returns:
+            Dict[str, Any]: Detailed strategy evaluation
+        """
+        evaluation = {
+            'performance_analysis': {
+                'strengths': [],
+                'weaknesses': [],
+                'opportunities': []
+            },
+            'regime_compatibility': self._assess_regime_compatibility(metrics, parameters, market_regime),
+            'parameter_efficiency': self._analyze_parameter_efficiency(parameters, metrics),
+            'risk_assessment': self._calculate_risk_metrics(metrics)
+        }
+        
+        # Analyze strengths and weaknesses
+        if metrics.get('win_rate', 0) > 0.5:
+            evaluation['performance_analysis']['strengths'].append('High win rate')
+        if metrics.get('sortino_ratio', 0) > 2.0:
+            evaluation['performance_analysis']['strengths'].append('Strong risk-adjusted returns')
+        if metrics.get('max_drawdown', 0) < -0.2:
+            evaluation['performance_analysis']['weaknesses'].append('High drawdown')
+        
+        return evaluation
+
+    def _store_successful_strategy(self, parameters: Dict[str, Any], 
+                                     metrics: Dict[str, Any],
+                                     market_regime: str,
+                                     score: float) -> None:
+        """Store successful strategy in memory for future reference.
+        
+        Args:
+            parameters: Strategy parameters
+            metrics: Performance metrics
+            market_regime: Current market regime
+            score: Strategy performance score
+        """
+        try:
+            memory_entry = {
+                "market_regime": market_regime,
+                "parameters": parameters,
+                "performance": metrics,
+                "score": score,
+                "timestamp": datetime.now().isoformat()
+            }
+            self.memory.add_memory(memory_entry, "successful_strategy")
+        except Exception as e:
+            logger.error(f"Failed to store successful strategy: {str(e)}")
+
+    def _assess_regime_compatibility(self, metrics: Dict[str, Any], 
+                                    parameters: Dict[str, Any],
+                                    market_regime: str) -> Dict[str, Any]:
+        """Assess strategy compatibility with market regime."""
+        # Implementation of _assess_regime_compatibility method
+        return {}
+
+    def _analyze_parameter_efficiency(self, parameters: Dict[str, Any], 
+                                    metrics: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze parameter efficiency."""
+        # Implementation of _analyze_parameter_efficiency method
+        return {}
+
+    def _calculate_risk_metrics(self, metrics: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate risk metrics."""
+        # Implementation of _calculate_risk_metrics method
+        return {}
 
     def get_successful_parameters(self, market_regime: str) -> Optional[Dict[str, Any]]:
         """Get successful parameters for a specific market regime."""
@@ -649,6 +749,8 @@ Respond with a JSON object containing:
             return current_code
         
         return new_code
+
+    def _insert_code(self, code: str, location: str, new_code: str) -> str:
         """Insert new code at specified location."""
         try:
             # Parse the code into an AST
@@ -1104,3 +1206,91 @@ Respond with a JSON object:
             weaknesses=["Failed to evaluate"],
             improvement_suggestions=[]
         ) 
+
+    def propose_improvements(self, current_code: str, metrics: Dict[str, Any], context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Analyze strategy performance and propose code improvements.
+        
+        Args:
+            current_code (str): Current strategy implementation code
+            metrics (Dict[str, Any]): Performance metrics from the last run
+            context (Dict[str, Any]): Current market context and conditions
+            
+        Returns:
+            List[Dict[str, Any]]: List of proposed improvements, each containing:
+                - description: Description of the improvement
+                - code_changes: List of code changes to implement
+                - expected_impact: Expected impact on performance
+        """
+        improvements = []
+        
+        # Calculate performance score
+        current_score = self._calculate_strategy_score(metrics)
+        
+        # Analyze parameter trends
+        param_trends = self.analyze_parameter_trends()
+        
+        # Generate improvement prompt
+        prompt = self._create_improvement_prompt(current_code, metrics, context)
+        
+        try:
+            # Get improvement suggestions from LLM
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are an expert trading strategy developer specializing in code optimization."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7
+            )
+            
+            suggestions = json.loads(response.choices[0].message.content)
+            
+            # Filter and validate suggestions
+            for suggestion in suggestions:
+                if self._validate_improvement(suggestion, current_code, param_trends):
+                    improvements.append({
+                        'description': suggestion['description'],
+                        'code_changes': suggestion['code_changes'],
+                        'expected_impact': suggestion['expected_impact']
+                    })
+        
+        except Exception as e:
+            logger.error(f"Error proposing improvements: {str(e)}")
+        
+        return improvements
+
+    def _validate_improvement(self, suggestion: Dict[str, Any], current_code: str, param_trends: Dict[str, Dict[str, Any]]) -> bool:
+        """Validate a proposed improvement against current code and parameter trends.
+        
+        Args:
+            suggestion (Dict[str, Any]): Proposed improvement
+            current_code (str): Current strategy implementation
+            param_trends (Dict[str, Dict[str, Any]]): Analysis of parameter trends
+            
+        Returns:
+            bool: Whether the improvement is valid and safe to apply
+        """
+        try:
+            # Validate code changes can be parsed
+            for change in suggestion['code_changes']:
+                if change['type'] in ['add', 'modify']:
+                    ast.parse(change['code'])
+            
+            # Check if changes align with successful parameter trends
+            if 'parameter_changes' in suggestion:
+                for param, value in suggestion['parameter_changes'].items():
+                    if param in param_trends:
+                        trend = param_trends[param]
+                        if not (trend['min'] <= value <= trend['max']):
+                            return False
+            
+            # Validate expected impact is reasonable
+            if 'expected_impact' in suggestion:
+                if suggestion['expected_impact'].get('improvement', 0) > 1.0:
+                    return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error validating improvement: {str(e)}")
+            return False 

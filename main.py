@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from logging.handlers import RotatingFileHandler
 import argparse
 from typing import Dict, Any, List, Tuple, Optional
 import pandas as pd
@@ -14,6 +15,12 @@ from pathlib import Path
 import importlib
 import sys
 from dotenv import load_dotenv
+from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
+from termcolor import colored
+from src.strat_optim.strategy.backtester import load_trade_data, calculate_stats, run_parameter_optimization
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,11 +30,56 @@ from research.strategy.strategy_generator import StrategicTrader
 from research.analysis.trade_analyzer import TradeAnalyzer
 from research.visualization.trade_visualizer import TradeVisualizer
 from research.strategy.godel_agent import GodelAgent
-from backtester import load_trade_data, calculate_stats, run_parameter_optimization
+from research.strategy.memory_manager import TradingMemoryManager
+from research.strategy.teachability import Teachability
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+def setup_logging(theme: str) -> str:
+    """Set up logging to both file and console with proper formatting.
+    
+    Args:
+        theme: Trading strategy theme for naming the log file
+        
+    Returns:
+        str: Path to the log file
+    """
+    # Create logs directory if it doesn't exist
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+    
+    # Create timestamped log file name
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = log_dir / f"strategy_{theme.replace(' ', '_')}_{timestamp}.log"
+    
+    # Create formatters and handlers
+    file_formatter = logging.Formatter(
+        '%(asctime)s | %(levelname)s | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    console_formatter = logging.Formatter(
+        '%(message)s'
+    )
+    
+    # File handler with rotation
+    file_handler = RotatingFileHandler(
+        log_file,
+        maxBytes=10*1024*1024,  # 10MB
+        backupCount=5
+    )
+    file_handler.setFormatter(file_formatter)
+    
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(console_formatter)
+    
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+    
+    return str(log_file)
 
 # Performance validation thresholds
 PERFORMANCE_THRESHOLDS = {
@@ -159,21 +211,56 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
     result = None
     best_result = None
     
+    # Set up logging
+    log_file = setup_logging(theme)
+    logger.info(f"Starting strategy run - logging to {log_file}")
+    logger.info(f"Theme: {theme}")
+    logger.info(f"Number of assets: {len(trade_data)}")
+    
     # Initialize trader using async factory method
     trader = await StrategicTrader.create()
     
-    # Initialize memory manager
-    mem0_api_key = os.getenv("MEM0_API_KEY")
-    if mem0_api_key:
-        from research.strategy.memory_manager import TradingMemoryManager
-        memory_manager = TradingMemoryManager(api_key=mem0_api_key)
-        logger.info("Memory system initialized successfully")
-    else:
-        memory_manager = None
-        logger.warning("Memory system disabled: Missing MEM0_API_KEY")
+    # Initialize memory and teachability
+    memory_manager = TradingMemoryManager()
+    teachability = Teachability(memory_client=memory_manager.client, agent_id="trading_system")
+    logger.info("Memory and teachability systems initialized successfully")
+    
+    # Initialize GodelAgent for self-improvement
+    godel_agent = GodelAgent(
+        improvement_threshold=0.1,  # Only accept meaningful improvements
+        max_iterations=5,          # Number of improvement attempts
+        backup_dir="backups",      # Directory for code backups
+        prompt_dir="prompts/trading"  # Directory for prompt templates
+    )
+    logger.info("GodelAgent initialized for self-improvement")
+    
+    # Create a summary dictionary to track overall progress
+    run_summary = {
+        'start_time': datetime.now().isoformat(),
+        'theme': theme,
+        'iterations': [],
+        'best_metrics': None,
+        'improvements_made': 0,
+        'successful_iterations': 0
+    }
+        
+    # Add teachability to trader
+    trader.add_teachability(teachability)
+    logger.info("Added teachability capability to trader")
     
     for iteration in range(5):  # Run 5 iterations
+        iteration_start = datetime.now()
         logger.info(f"\nStarting iteration {iteration + 1}")
+        
+        # Initialize iteration summary
+        iteration_summary = {
+            'iteration': iteration + 1,
+            'start_time': iteration_start.isoformat(),
+            'market_regime': None,
+            'metrics': None,
+            'improvements': [],
+            'success': False
+        }
         
         try:
             # Analyze market context
@@ -225,45 +312,84 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
             metrics = result.get('metrics', {})
             success, failures = validate_strategy_performance(metrics)
             
-            # Store strategy results in memory if enabled
-            if memory_manager and memory_manager.enabled:
-                from research.strategy.types import StrategyContext, BacktestResults
-                context = StrategyContext(
-                    market_regime=market_context.regime,
-                    parameters=parameters,
-                    confidence=market_context.confidence,
-                    risk_level=market_context.risk_level
-                )
-                results = BacktestResults(
-                    total_return=metrics.get('total_return', 0.0),
-                    total_pnl=metrics.get('total_pnl', 0.0),
-                    sortino_ratio=metrics.get('sortino_ratio', 0.0),
-                    win_rate=metrics.get('win_rate', 0.0),
-                    total_trades=metrics.get('total_trades', 0),
-                    asset_count=len(trade_data)
-                )
-                memory_manager.store_strategy_results(context, results, parameters)
-                logger.info("Stored strategy results in memory")
+            # Update iteration summary with market context
+            iteration_summary['market_regime'] = market_context.regime.value
             
-            # Update best result if this iteration was better
-            if best_metrics is None or metrics.get('total_return', 0) > best_metrics.get('total_return', 0):
-                best_metrics = metrics
-                best_result = result
+            # Track performance with GodelAgent and check for improvements
+            improvement_needed = godel_agent.track_performance(
+                metrics=metrics,
+                parameters=parameters,
+                market_regime=market_context.regime
+            )
             
-            if not success:
-                logger.info("\nStrategy did not meet performance requirements")
-                continue
+            if improvement_needed:
+                logger.info("\nAttempting strategy code improvements with GodelAgent...")
+                improvements = await godel_agent.optimize_strategy(
+                    module_code=trader.read_module_code(),
+                    metrics=metrics,
+                    context={
+                        'market_regime': market_context.regime,
+                        'performance_history': trader.performance_history,
+                        'failures': failures
+                    }
+                )
                 
+                if improvements:
+                    logger.info("GodelAgent suggested code improvements - applying changes...")
+                    # Apply the improvements and update the trader
+                    if await trader.apply_code_improvements(improvements):
+                        run_summary['improvements_made'] += 1
+                        iteration_summary['improvements'].append({
+                            'timestamp': datetime.now().isoformat(),
+                            'type': 'code_improvement',
+                            'success': True
+                        })
+            
+            # Update iteration summary with metrics
+            iteration_summary['metrics'] = metrics
+            iteration_summary['success'] = success
+            iteration_summary['end_time'] = datetime.now().isoformat()
+            
+            if success:
+                run_summary['successful_iterations'] += 1
+            
+            # Add iteration summary to run summary
+            run_summary['iterations'].append(iteration_summary)
+            
+            # Update best metrics
+            if best_metrics is None or metrics.get('total_return', 0) > best_metrics.get('total_return', 0):
+                best_metrics = metrics.copy()
+                best_result = result.copy()
+                run_summary['best_metrics'] = best_metrics
+            
+            # Save current run summary to file
+            summary_file = Path(log_file).parent / f"summary_{Path(log_file).stem}.json"
+            with open(summary_file, 'w') as f:
+                json.dump(run_summary, f, indent=2)
+            
         except Exception as e:
             logger.error(f"Error in iteration {iteration + 1}: {str(e)}")
+            iteration_summary['error'] = str(e)
+            iteration_summary['end_time'] = datetime.now().isoformat()
+            run_summary['iterations'].append(iteration_summary)
             continue
     
-    if best_result is None:
-        logger.warning("No successful strategy configuration found")
-        return None
-        
-    logger.info("\nStrategy run completed")
-    logger.info(f"Best metrics achieved: {json.dumps(best_metrics, indent=2)}")
+    # Final summary logging
+    run_summary['end_time'] = datetime.now().isoformat()
+    logger.info("\nStrategy Run Complete")
+    logger.info(f"Total Iterations: {len(run_summary['iterations'])}")
+    logger.info(f"Successful Iterations: {run_summary['successful_iterations']}")
+    logger.info(f"Improvements Made: {run_summary['improvements_made']}")
+    if best_metrics:
+        logger.info("\nBest Metrics Achieved:")
+        logger.info(f"Total Return: {best_metrics.get('total_return', 0):.2%}")
+        logger.info(f"Sortino Ratio: {best_metrics.get('sortino_ratio', 0):.2f}")
+        logger.info(f"Win Rate: {best_metrics.get('win_rate', 0):.2%}")
+    
+    # Save final summary
+    summary_file = Path(log_file).parent / f"summary_{Path(log_file).stem}.json"
+    with open(summary_file, 'w') as f:
+        json.dump(run_summary, f, indent=2)
     
     return best_result
 

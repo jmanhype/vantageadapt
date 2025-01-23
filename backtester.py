@@ -37,7 +37,14 @@ trade_memory = None
 TradeMemory = namedtuple("TradeMemory", ["trade_records", "trade_counts"])
 
 def load_trade_data(data_path: str) -> Dict[str, pd.DataFrame]:
-    """Load market data from pickle file."""
+    """Load market data from pickle file.
+    
+    Args:
+        data_path: Path to the pickle file containing market data.
+        
+    Returns:
+        Dict[str, pd.DataFrame]: Dictionary mapping asset names to their market data DataFrames.
+    """
     try:
         logger.info(f"Loading trade data from {data_path}")
         with open(data_path, 'rb') as f:
@@ -49,10 +56,8 @@ def load_trade_data(data_path: str) -> Dict[str, pd.DataFrame]:
             
         logger.info(f"Successfully loaded {len(data)} assets")
         return data
-        
     except Exception as e:
-        logger.error(f"Error loading trade data: {str(e)}")
-        logger.exception("Full traceback:")
+        logger.error(f"Error loading trade data: {e}")
         return None
 
 def calculate_entries_and_params(trade_data_df: pd.DataFrame, p: Dict[str, Any]) -> pd.DataFrame:

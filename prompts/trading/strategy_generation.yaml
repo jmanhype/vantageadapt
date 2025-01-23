@@ -34,23 +34,15 @@ system: "You are an expert trading strategy developer specializing in adaptive s
   \ \"risk_management_notes\": \"string\",\n  \"suggested_position_size\": \"number\
   \ between 0 and 1 representing the fraction of trading capital to risk (e.g. 0.02\
   \ for 2%)\"\n}\n"
-user_template: 'Please generate a trading strategy for the theme: {theme}
+user_template: 'Please generate a trading strategy based on the following context:
 
+{context}
 
-  Current Market Context:
+Focus on:
+1. Identifying optimal entry and exit points
+2. Setting appropriate position sizes based on market conditions
+3. Managing risk effectively in the current regime
+4. Learning from similar strategies when available
 
-  {market_context}
-
-
-  Focus on:
-
-  1. Identifying optimal entry and exit points
-
-  2. Setting appropriate position sizes based on market conditions
-
-  3. Managing risk effectively in the current regime
-
-
-  Return your response as a JSON object with the specified fields.
-
-  '
+Return your response as a JSON object with the specified fields.
+'

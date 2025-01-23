@@ -9,6 +9,7 @@ from enum import Enum
 import pandas as pd
 from langchain_openai import ChatOpenAI
 from langchain.schema.messages import SystemMessage, HumanMessage
+from datetime import datetime
 
 # Set up LangSmith environment variables
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
@@ -299,12 +300,13 @@ class LLMInterface:
             logger.error(f"Error analyzing market: {str(e)}")
             return None
 
-    async def generate_strategy(self, theme: str, market_context: MarketContext) -> StrategyInsight:
+    async def generate_strategy(self, theme: str, market_context: MarketContext, similar_strategies: Optional[List[Dict[str, Any]]] = None) -> StrategyInsight:
         """Generate trading strategy based on theme and market context.
         
         Args:
             theme: Trading strategy theme
             market_context: Current market context
+            similar_strategies: Optional list of similar strategies to consider
             
         Returns:
             StrategyInsight object containing strategy recommendations
@@ -321,10 +323,15 @@ class LLMInterface:
             logger.info("System: %s", system_prompt[:200] + "...")
             logger.info("User template: %s", user_prompt[:200] + "...")
                 
-            # Format user prompt with theme and market context
+            # Format user prompt with theme, market context and similar strategies
+            context_dict = {
+                "theme": theme,
+                "market_context": market_context.to_dict(),
+                "similar_strategies": similar_strategies if similar_strategies else []
+            }
+            
             user_prompt = user_prompt.format(
-                theme=theme,
-                market_context=json.dumps(market_context.to_dict(), indent=2)
+                context=json.dumps(context_dict, indent=2)
             )
             
             # Get LLM strategy
@@ -373,96 +380,230 @@ class LLMInterface:
             Dictionary containing improved strategy parameters and conditions
         """
         try:
-            # Prepare trade summary
-            trade_summary = {
-                'total_trades': len(trades_df),
-                'win_rate': metrics.get('win_rate', 0.0),
-                'profit_factor': metrics.get('profit_factor', 0.0),
-                'avg_win': metrics.get('avg_win', 0.0),
-                'avg_loss': metrics.get('avg_loss', 0.0),
-                'max_drawdown': metrics.get('max_drawdown', 0.0),
-                'sharpe_ratio': metrics.get('sharpe_ratio', 0.0),
-                'sortino_ratio': metrics.get('sortino_ratio', 0.0)
-            }
+            # Prepare trade summary with enhanced metrics
+            trade_summary = self._prepare_enhanced_trade_summary(trades_df, metrics)
+            
+            # Get historical performance if memory manager is available
+            historical_context = self._get_historical_context() if hasattr(self, 'memory_manager') else None
+            
+            # Prepare performance analysis prompt
+            analysis_prompt = self._build_performance_analysis_prompt(trade_summary, historical_context)
             
             # Get LLM analysis and improvements
             response = self.chat_completion(
                 messages=[{
                     "role": "system",
-                    "content": """You are an expert trading strategy optimizer. Analyze the performance metrics and suggest improvements.
+                    "content": analysis_prompt
+                }, {
+                    "role": "user",
+                    "content": f"Based on these performance metrics and historical context, suggest improvements to the strategy:\n\nTrade Summary:\n{json.dumps(trade_summary, indent=2)}\n\nHistorical Context:\n{json.dumps(historical_context, indent=2) if historical_context else 'No historical data available'}"
+                }],
+                response_format={"type": "json_object"}
+            )
+            
+            # Parse and validate improvements
+            improvements = self._validate_strategy_improvements(
+                self.parse_json_response(response),
+                trade_summary,
+                historical_context
+            )
+            
+            # Store successful improvements if memory manager available
+            if improvements and hasattr(self, 'memory_manager'):
+                self._store_strategy_improvements(improvements, trade_summary)
+            
+            return improvements or self._get_default_parameters()
+            
+        except Exception as e:
+            logger.error(f"Error improving strategy: {str(e)}")
+            return self._get_default_parameters()
+
+    def _prepare_enhanced_trade_summary(self, trades_df: pd.DataFrame, 
+                                      metrics: Dict[str, float]) -> Dict[str, Any]:
+        """Prepare enhanced trade summary with detailed metrics.
+        
+        Args:
+            trades_df: DataFrame containing trade history
+            metrics: Dictionary of performance metrics
+            
+        Returns:
+            Dict[str, Any]: Enhanced trade summary
+        """
+        # Calculate additional metrics
+        trade_durations = trades_df['exit_time'] - trades_df['entry_time']
+        profitable_trades = trades_df[trades_df['pnl'] > 0]
+        losing_trades = trades_df[trades_df['pnl'] < 0]
+        
+        return {
+            'total_trades': len(trades_df),
+            'win_rate': metrics.get('win_rate', 0.0),
+            'profit_factor': metrics.get('profit_factor', 0.0),
+            'avg_win': metrics.get('avg_win', 0.0),
+            'avg_loss': metrics.get('avg_loss', 0.0),
+            'max_drawdown': metrics.get('max_drawdown', 0.0),
+            'sharpe_ratio': metrics.get('sharpe_ratio', 0.0),
+            'sortino_ratio': metrics.get('sortino_ratio', 0.0),
+            'enhanced_metrics': {
+                'avg_trade_duration': trade_durations.mean().total_seconds() / 3600,  # in hours
+                'profit_trades_avg_duration': (profitable_trades['exit_time'] - profitable_trades['entry_time']).mean().total_seconds() / 3600,
+                'loss_trades_avg_duration': (losing_trades['exit_time'] - losing_trades['entry_time']).mean().total_seconds() / 3600,
+                'consecutive_wins': self._calculate_max_consecutive(trades_df['pnl'] > 0),
+                'consecutive_losses': self._calculate_max_consecutive(trades_df['pnl'] < 0),
+                'profit_loss_ratio': abs(metrics.get('avg_win', 0.0) / metrics.get('avg_loss', -1.0)),
+                'recovery_factor': abs(metrics.get('total_return', 0.0) / metrics.get('max_drawdown', -1.0))
+            }
+        }
+
+    def _get_historical_context(self) -> Optional[Dict[str, Any]]:
+        """Get historical performance context from memory manager."""
+        try:
+            if not hasattr(self, 'memory_manager'):
+                return None
+            
+            similar_strategies = self.memory_manager.query_similar_strategies(
+                market_regime=self.market_context.regime,
+                min_return=0.0,
+                min_trades=10,
+                max_results=5
+            )
+            
+            if not similar_strategies:
+                return None
+            
+            return {
+                'similar_strategies': similar_strategies,
+                'best_performance': max(s['performance']['total_return'] for s in similar_strategies),
+                'avg_performance': sum(s['performance']['total_return'] for s in similar_strategies) / len(similar_strategies),
+                'best_parameters': sorted(similar_strategies, 
+                                       key=lambda x: x['performance']['total_return'], 
+                                       reverse=True)[0]['parameters']
+            }
+        except Exception as e:
+            logger.error(f"Error getting historical context: {str(e)}")
+            return None
+
+    def _build_performance_analysis_prompt(self, trade_summary: Dict[str, Any], 
+                                         historical_context: Optional[Dict[str, Any]]) -> str:
+        """Build performance analysis prompt with historical context."""
+        base_prompt = """You are an expert trading strategy optimizer. Analyze the performance metrics and suggest improvements.
 You MUST respond with ONLY a JSON object containing improved strategy parameters and conditions in the following format (no other text):
 {
     "analysis": {
         "strengths": ["string"],
         "weaknesses": ["string"],
-        "opportunities": ["string"]
+        "opportunities": ["string"],
+        "historical_insights": ["string"]
     },
     "parameters": {
-        "take_profit": 0.05,
-        "stop_loss": 0.03,
-        "order_size": 0.1,
-        "max_orders": 3,
-        "sl_window": 400,
-        "post_buy_delay": 2,
-        "post_sell_delay": 5,
-        "enable_sl_mod": false,
-        "enable_tp_mod": false
+        "take_profit": float,
+        "stop_loss": float,
+        "order_size": float,
+        "max_orders": int,
+        "sl_window": int,
+        "post_buy_delay": int,
+        "post_sell_delay": int,
+        "enable_sl_mod": boolean,
+        "enable_tp_mod": boolean
     },
     "conditions": {
-        "entry": ["(df_indicators['rsi'] < 30)"],
-        "exit": ["(df_indicators['rsi'] > 70)"]
+        "entry": ["string"],
+        "exit": ["string"]
     }
 }"""
-                }, {
-                    "role": "user",
-                    "content": f"Based on these performance metrics, suggest improvements to the strategy:\n\nTrade Summary:\n{json.dumps(trade_summary, indent=2)}"
-                }],
-                response_format={"type": "json_object"}
-            )
+
+        if historical_context:
+            base_prompt += "\n\nConsider the historical performance data provided. Analyze patterns in successful strategies and incorporate relevant insights into your recommendations."
+        
+        return base_prompt
+
+    def _validate_strategy_improvements(self, improvements: Optional[Dict[str, Any]], 
+                                      trade_summary: Dict[str, Any],
+                                      historical_context: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Validate and adjust strategy improvements based on context."""
+        if not improvements:
+            return None
+        
+        try:
+            # Validate parameters are within reasonable ranges
+            params = improvements.get('parameters', {})
+            if params:
+                params['take_profit'] = max(0.01, min(0.5, params.get('take_profit', 0.05)))
+                params['stop_loss'] = max(0.01, min(0.3, params.get('stop_loss', 0.03)))
+                params['order_size'] = max(0.01, min(1.0, params.get('order_size', 0.1)))
             
-            # Parse response
-            improvements = self.parse_json_response(response)
-            if not improvements:
-                logger.error("Failed to parse strategy improvements")
-                return {
-                    'parameters': {
-                        'take_profit': 0.05,
-                        'stop_loss': 0.03,
-                        'order_size': 0.1,
-                        'max_orders': 3,
-                        'sl_window': 400,
-                        'post_buy_delay': 2,
-                        'post_sell_delay': 5,
-                        'enable_sl_mod': False,
-                        'enable_tp_mod': False
-                    },
-                    'conditions': {
-                        'entry': ["(df_indicators['rsi'] < 30)"],
-                        'exit': ["(df_indicators['rsi'] > 70)"]
-                    }
-                }
-                
+            # Ensure conditions are valid Python expressions
+            conditions = improvements.get('conditions', {})
+            if conditions:
+                for key in ['entry', 'exit']:
+                    if key in conditions:
+                        conditions[key] = [cond for cond in conditions[key] 
+                                         if self._is_valid_condition(cond)]
+            
             return improvements
-            
         except Exception as e:
-            logger.error(f"Error improving strategy: {str(e)}")
-            return {
-                'parameters': {
-                    'take_profit': 0.05,
-                    'stop_loss': 0.03,
-                    'order_size': 0.1,
-                    'max_orders': 3,
-                    'sl_window': 400,
-                    'post_buy_delay': 2,
-                    'post_sell_delay': 5,
-                    'enable_sl_mod': False,
-                    'enable_tp_mod': False
-                },
-                'conditions': {
-                    'entry': ["(df_indicators['rsi'] < 30)"],
-                    'exit': ["(df_indicators['rsi'] > 70)"]
-                }
+            logger.error(f"Error validating improvements: {str(e)}")
+            return None
+
+    def _calculate_max_consecutive(self, series: pd.Series) -> int:
+        """Calculate maximum consecutive True values in series."""
+        max_consecutive = 0
+        current_consecutive = 0
+        
+        for value in series:
+            if value:
+                current_consecutive += 1
+                max_consecutive = max(max_consecutive, current_consecutive)
+            else:
+                current_consecutive = 0
+            
+        return max_consecutive
+
+    def _is_valid_condition(self, condition: str) -> bool:
+        """Check if a condition string is a valid Python expression."""
+        try:
+            compile(condition, '<string>', 'eval')
+            return True
+        except:
+            return False
+
+    def _store_strategy_improvements(self, improvements: Dict[str, Any], 
+                                   trade_summary: Dict[str, Any]) -> None:
+        """Store successful strategy improvements in memory."""
+        try:
+            if not hasattr(self, 'memory_manager'):
+                return
+            
+            memory_entry = {
+                "market_regime": self.market_context.regime.value,
+                "parameters": improvements['parameters'],
+                "conditions": improvements['conditions'],
+                "performance": trade_summary,
+                "timestamp": datetime.now().isoformat()
             }
+            
+            self.memory_manager.add_memory(memory_entry)
+        except Exception as e:
+            logger.error(f"Error storing strategy improvements: {str(e)}")
+
+    def _get_default_parameters(self) -> Dict[str, Any]:
+        """Get default strategy parameters."""
+        return {
+            'parameters': {
+                'take_profit': 0.05,
+                'stop_loss': 0.03,
+                'order_size': 0.1,
+                'max_orders': 3,
+                'sl_window': 400,
+                'post_buy_delay': 2,
+                'post_sell_delay': 5,
+                'enable_sl_mod': False,
+                'enable_tp_mod': False
+            },
+            'conditions': {
+                'entry': ["(df_indicators['rsi'] < 30)"],
+                'exit': ["(df_indicators['rsi'] > 70)"]
+            }
+        }
 
     async def generate_trading_rules(
         self,

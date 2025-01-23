@@ -32,7 +32,7 @@ class Teachability(AgentCapability):
         "llm": {
             "provider": "openai",
             "config": {
-                "model": "gpt-4-turbo-preview",
+                "model": "gpt-4o",
                 "temperature": 0.1,
                 "max_tokens": 2000,
                 "api_key": os.getenv("OPENAI_API_KEY")
@@ -77,7 +77,7 @@ class Teachability(AgentCapability):
 
         # Set default LLM config if none provided
         self.llm_config = llm_config or {
-            "model": "gpt-4-turbo-preview",
+            "model": "gpt-4o",
             "temperature": 0.1,
             "max_tokens": 2000
         }
@@ -177,7 +177,31 @@ class Teachability(AgentCapability):
                 logger.debug("Generalized pattern: %s", pattern)
                 
                 # Store pattern-solution pair
-                self._store_pattern_solution_pair(pattern, advice)
+                memory_content = {
+                    "type": "pattern_solution",
+                    "pattern": pattern,
+                    "solution": advice,
+                    "original_text": text_content,
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+                # Create memory in mem0ai format
+                messages = [{
+                    "role": "system",
+                    "content": json.dumps(memory_content),
+                    "metadata": {
+                        "type": "pattern_solution",
+                        "timestamp": datetime.now().isoformat(),
+                        "agent_id": self.user_id
+                    }
+                }]
+                
+                logger.debug("Storing pattern-solution pair: %s", memory_content)
+                self.memory.add(
+                    messages=messages,
+                    user_id=self.user_id
+                )
+                logger.debug("Successfully stored pattern-solution pair")
             except Exception as e:
                 logger.error("Failed to store pattern-solution pair: %s", str(e))
         
@@ -196,7 +220,31 @@ class Teachability(AgentCapability):
                 logger.debug("Generated answer: %s", answer)
                 
                 # Store Q&A pair
-                self._store_qa_pair(question, answer)
+                memory_content = {
+                    "type": "qa_pair",
+                    "question": question,
+                    "answer": answer,
+                    "original_text": text_content,
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+                # Create memory in mem0ai format
+                messages = [{
+                    "role": "system",
+                    "content": json.dumps(memory_content),
+                    "metadata": {
+                        "type": "qa_pair",
+                        "timestamp": datetime.now().isoformat(),
+                        "agent_id": self.user_id
+                    }
+                }]
+                
+                logger.debug("Storing Q&A pair: %s", memory_content)
+                self.memory.add(
+                    messages=messages,
+                    user_id=self.user_id
+                )
+                logger.debug("Successfully stored Q&A pair")
             except Exception as e:
                 logger.error("Failed to store Q&A pair: %s", str(e))
 
@@ -236,24 +284,41 @@ class Teachability(AgentCapability):
         memo_list = list(set(memo_list))
         return comment + self._concatenate_memo_texts(memo_list)
 
-    def _retrieve_relevant_memos(self, text: str, max_results: int = 5) -> List[Dict[str, Any]]:
-        """Retrieve memories relevant to the input text."""
+    def _retrieve_relevant_memos(self, input_text: str) -> List[Dict[str, Any]]:
+        """Retrieve relevant memories for the input text.
+        
+        Args:
+            input_text: The text to find relevant memories for
+            
+        Returns:
+            List of relevant memories
+        """
         try:
-            # Get all memories for this user
-            memories = self.memory.search(
-                query=text,
+            # Get all memories for our trading system
+            memories = self.memory.get_all(
                 user_id=self.user_id,
-                limit=max_results
+                limit=self.max_num_retrievals
             )
             
-            if not memories:
-                logger.info("No sufficiently similar memories found")
-                return []
-                
-            return memories
+            # Filter memories based on relevance
+            relevant_memories = []
+            for memory in memories:
+                try:
+                    if isinstance(memory, dict):
+                        if "content" in memory:
+                            content = json.loads(memory["content"])
+                            relevant_memories.append(content)
+                except (json.JSONDecodeError, KeyError) as e:
+                    logger.warning(f"Failed to parse memory: {e}")
+                    continue
+
+            if self.verbosity >= 1 and not relevant_memories:
+                print(colored("\nNo Sufficiently Similar Memories Found", "light_yellow"))
+
+            return relevant_memories[:self.max_num_retrievals]
             
         except Exception as e:
-            logger.error(f"Error retrieving memories: {str(e)}")
+            logger.error(f"Failed to retrieve memories: {e}")
             return []
 
     def _concatenate_memo_texts(self, memo_list: List[Dict[str, Any]]) -> str:
@@ -343,58 +408,6 @@ class Teachability(AgentCapability):
             logger.error("Error in _analyze: %s", str(e), exc_info=True)
             raise
 
-    def _store_pattern_solution_pair(self, pattern: str, solution: str) -> None:
-        """Store a pattern-solution pair in memory."""
-        try:
-            messages = [{
-                "role": "user",
-                "content": pattern
-            }, {
-                "role": "assistant", 
-                "content": solution
-            }]
-            
-            self.memory.add(
-                messages=messages,
-                user_id=self.user_id,
-                metadata={
-                    "type": "pattern_solution",
-                    "timestamp": datetime.now().isoformat(),
-                    "pattern": pattern,
-                    "solution": solution
-                }
-            )
-            logger.info("Stored pattern-solution pair in memory")
-            
-        except Exception as e:
-            logger.error(f"Error storing pattern-solution pair: {str(e)}")
-
-    def _store_qa_pair(self, question: str, answer: str) -> None:
-        """Store a Q&A pair in memory."""
-        try:
-            messages = [{
-                "role": "user",
-                "content": question
-            }, {
-                "role": "assistant",
-                "content": answer
-            }]
-            
-            self.memory.add(
-                messages=messages,
-                user_id=self.user_id,
-                metadata={
-                    "type": "qa_pair",
-                    "timestamp": datetime.now().isoformat(),
-                    "question": question,
-                    "answer": answer
-                }
-            )
-            logger.info("Stored Q&A pair in memory")
-            
-        except Exception as e:
-            logger.error(f"Error storing Q&A pair: {str(e)}")
-
 if __name__ == "__main__":
     # Load environment variables
     load_dotenv()
@@ -420,7 +433,7 @@ if __name__ == "__main__":
         and provides trading strategies. You have deep knowledge of technical analysis,
         market patterns, and risk management.""",
         llm_config={
-            "model": "gpt-4-turbo-preview",
+            "model": "gpt-4o",
             "temperature": 0.1,
             "max_tokens": 2000,
             "api_key": os.getenv("OPENAI_API_KEY")

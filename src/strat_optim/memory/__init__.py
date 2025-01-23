@@ -7,4 +7,6 @@ information, patterns, and insights.
 from .mem0 import Memory
 from .teachability import Teachability
 
-__all__ = ["Memory", "Teachability"] 
+__all__ = ["Memory", "Teachability"]
+
+"""Memory management package.""" 
