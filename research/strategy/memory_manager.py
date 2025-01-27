@@ -5,21 +5,14 @@ import os
 import logging
 from datetime import datetime
 from mem0 import MemoryClient
-<<<<<<< HEAD
-from .types import MarketRegime, StrategyContext, BacktestResults
-=======
 from .models import MarketRegime, MarketContext as StrategyContext
->>>>>>> fb68cbd (feat: Implement memory system for strategy optimization)
 import json
 
 logger = logging.getLogger(__name__)
 
-<<<<<<< HEAD
-=======
 # Type alias for backtest results
 BacktestResults = Dict[str, Any]
 
->>>>>>> fb68cbd (feat: Implement memory system for strategy optimization)
 class TradingMemoryManager:
     """Manages memory for trading strategies using mem0ai."""
 
@@ -36,11 +29,7 @@ class TradingMemoryManager:
         if not self.api_key:
             logger.warning("No MEM0_API_KEY provided, memory system will be disabled")
             return
-<<<<<<< HEAD
-
-=======
         
->>>>>>> fb68cbd (feat: Implement memory system for strategy optimization)
         try:
             self.client = MemoryClient(api_key=self.api_key)
             self.enabled = True
@@ -66,18 +55,6 @@ class TradingMemoryManager:
         try:
             # Convert context and results to a structured memory format
             memory_content = {
-<<<<<<< HEAD
-                "market_regime": context.market_regime.value,
-                "confidence": context.confidence,
-                "risk_level": context.risk_level,
-                "parameters": context.parameters,
-                "performance": {
-                    "total_return": float(results.total_return),
-                    "total_pnl": float(results.total_pnl),
-                    "sortino_ratio": float(results.sortino_ratio),
-                    "win_rate": float(results.win_rate),
-                    "total_trades": results.total_trades
-=======
                 "market_regime": context.regime.value,
                 "confidence": context.confidence,
                 "risk_level": context.risk_level,
@@ -92,7 +69,6 @@ class TradingMemoryManager:
                     "sortino_ratio": float(results.get('sortino_ratio', 0)),
                     "win_rate": float(results.get('win_rate', 0)),
                     "total_trades": results.get('total_trades', 0)
->>>>>>> fb68cbd (feat: Implement memory system for strategy optimization)
                 },
                 "timestamp": datetime.utcnow().isoformat()
             }
@@ -103,15 +79,9 @@ class TradingMemoryManager:
                     "role": "system",
                     "content": json.dumps(memory_content),
                     "metadata": {
-<<<<<<< HEAD
-                        "type": "strategy_results",
-                        "market_regime": context.market_regime.value,
-                        "success": results.total_return > 0
-=======
                     "type": "strategy_results",
                         "market_regime": context.regime.value,
                     "success": results.get('total_return', 0) > 0
->>>>>>> fb68cbd (feat: Implement memory system for strategy optimization)
                     }
                 }],
                 user_id="trading_system",
@@ -152,18 +122,6 @@ class TradingMemoryManager:
             }
             
             # Store in mem0.ai with appropriate metadata
-<<<<<<< HEAD
-            self.client.add_memory(
-                user_id='trading_system',
-                agent_id='strategy_optimizer',
-                content=json.dumps(memory_entry),
-                metadata={
-                    'score': score,
-                    'regime': market_context.get('regime', 'UNKNOWN'),
-                    'total_return': metrics.get('total_return', 0),
-                    'sortino_ratio': metrics.get('sortino_ratio', 0)
-                }
-=======
             self.client.add(
                 messages=[{
                     "role": "system",
@@ -177,7 +135,6 @@ class TradingMemoryManager:
                 }],
                 user_id="trading_system",
                 agent_id="strategy_optimizer"
->>>>>>> fb68cbd (feat: Implement memory system for strategy optimization)
             )
             
             return True
@@ -186,49 +143,6 @@ class TradingMemoryManager:
             logger.error(f"Error storing successful strategy: {str(e)}")
             return False
             
-<<<<<<< HEAD
-    def query_similar_strategies(self, market_regime: str = None, min_score: float = 0.5) -> List[Dict[str, Any]]:
-        """Query for similar successful strategies based on market regime.
-        
-        Args:
-            market_regime (str): Market regime to filter by
-            min_score (float): Minimum strategy score to consider
-            
-        Returns:
-            List[Dict[str, Any]]: List of similar successful strategies with their metrics
-        """
-        try:
-            # Convert market regime enum to string if needed
-            if hasattr(market_regime, 'value'):
-                market_regime = market_regime.value
-            
-            # Query mem0.ai with market context as search criteria
-            memories = self.client.get_all(
-                user_id='trading_system',
-                agent_id='strategy_optimizer',
-                metadata_filter={
-                    'score': {'$gte': min_score},
-                    'regime': market_regime if market_regime else {'$exists': True}
-                }
-            )
-            
-            strategies = []
-            for memory in memories:
-                try:
-                    content = memory.get('content', '{}')
-                    if isinstance(content, str):
-                        strategy_data = json.loads(content)
-                    else:
-                        strategy_data = content
-                    strategies.append(strategy_data)
-                except Exception as e:
-                    logger.warning(f"Failed to parse memory content: {e}")
-                    continue
-                    
-            # Sort by score
-            strategies.sort(key=lambda x: x.get('score', 0), reverse=True)
-            return strategies[:10]  # Return top 10 matches
-=======
     def query_similar_strategies(self, query: Dict[str, Any], limit: int = 5) -> List[Dict[str, Any]]:
         """Query similar strategies from memory based on theme and market context.
         
@@ -254,7 +168,6 @@ class TradingMemoryManager:
             if response and isinstance(response, list):
                 return [json.loads(memory.content) for memory in response]
             return []
->>>>>>> fb68cbd (feat: Implement memory system for strategy optimization)
             
         except Exception as e:
             logger.error(f"Error querying similar strategies: {str(e)}")
