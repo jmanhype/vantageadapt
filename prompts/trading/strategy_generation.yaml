@@ -1,31 +1,30 @@
-'''opportunity_description: [after ''''dynamic volatility envelope'''']''': Adjust
-  the randomness within perturbation tests to create a more sophisticated model that
-  filters noise and focuses on robust patterns in low-volatility markets.
-entry_zones and exit_zones: Use indicators that are specialized for low-volatility
-  range-bound markets, like Bollinger Band width combined with MACD histogram slopes,
-  and set exact numerical thresholds for these indicators to refine entry and exit
-  points.
-opportunity_description: Prioritize trading signals that persist for a minimum duration
-  to reduce likelihood of false triggers in low-volatility ranges.
-opportunity_description [after 'dynamic volatility envelope']: Adjust the model to
-  prioritize trading signals that sustain beyond a minimum time threshold, ensuring
-  that sporadic noise is less likely to trigger false trades in low-volatility ranges.
+entry_zones and exit_zones: Prioritize mean reversion strategies and statistical arbitrage
+  techniques that are better suited for non-trending, low volatility markets, using indicators 
+  like Bollinger Band width combined with MACD histogram slopes, and set exact numerical 
+  thresholds for these indicators to refine entry and exit points.
+opportunity_description: Refine the random perturbation tests module with a dynamic
+  volatility envelope that adjusts based on real-time market liquidity, recent historical
+  volatility, and the market's regime to improve shock range accuracy.
+opportunity_description after 'dynamic volatility envelope': Integrate adaptive learning
+  algorithms such as online boosting and adaptive filtering, which can update predictive
+  models in real-time based on new data without retraining from scratch, enhancing
+  strategy responsiveness to market dynamics.
+'opportunity_description: [after ''''dynamic volatility envelope'''']': Employ a more
+  granular analysis of historical data through clustering methods to distinguish between
+  subtly different low volatility scenarios, rather than relying solely on kernel
+  density estimation, to achieve finer strategy tuning.
 opportunity_description adjustment: Introduce precise volatility thresholds that,
   when crossed, trigger strategic adjustments, supported by real-time data from volatility
   indexes and proprietary indicators.
-opportunity_description after 'dynamic volatility envelope': Introduce a component
-  that utilizes conditional probability models, such as Markov Chain or Bayesian Network,
-  to better predict likely market regime shifts from RANGING_LOW_VOL to other market
-  conditions.
-'opportunity_description: [after ''dynamic volatility envelope'']': Tailor the randomness
-  within perturbation tests to prefer historically successful trade ranges during
-  similar market conditions, using kernel density estimation.
-risk_management_notes: Refine the dynamic sentiment decay factor to account for the
-  skewness and kurtosis of short-term returns, enhancing risk management for RANGING_LOW_VOL
-  markets.
-suggested_position_size: Adopt a dynamic position sizing algorithm which factors in
-  both VIX levels and market-specific volatility, with clear numeric parameters fitting
-  low-volatility conditions.
+risk_management_notes: Incorporate adaptive risk control rules that scale exposure
+  based on the success or failure of recent trades, as well as prevailing market liquidity
+  and volatility indicators, with a dynamic sentiment decay factor that accounts for the
+  skewness and kurtosis of short-term returns.
+suggested_position_size: Adopt an adaptive position sizing algorithm that factors
+  in the volatility-adjusted Sharpe ratio, VIX levels, and market-specific volatility,
+  utilizing Bayesian methods to update position sizes in response to evolving market 
+  conditions and strategy performance.
+
 system: "You are an expert trading strategy developer specializing in adaptive strategies.\n\
   \nIMPORTANT: You must respond with ONLY a JSON object in the following format. Do\
   \ not include any other text, markdown, or explanations:\n{\n  \"strategy_name\"\

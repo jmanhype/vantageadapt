@@ -1,41 +1,39 @@
-Adaptive regime multiplier mechanism: Detail the Bayesian optimization by identifying
-  and setting specific hyperparameters that enhance the model's responsiveness to
-  different market regimes, resulting in more accurate regime predictions.
-After Entry conditions: Outline the specific model or algorithm for liquidity assessment,
-  including fixed parameter values to analyze order book depth and set actionable
-  threshold values.
-After Entry conditions - regime-specific breakout thresholds: Clearly describe the
-  feature set and data transformation processes needed for effectively implementing
-  machine learning techniques like decision trees or support vector machines for low-volatility
-  conditions, providing concrete examples of pre-processing steps and variables used
-  in training.
-After adaptive regime multiplier mechanism: Outline an actionable plan for incorporating
-  ensembles of neural networks to ensure generalization and mitigate overfitting,
-  with explicit strategies for model selection during rolling validation periods.
-After risk management parameters: Develop a comprehensive strategy for responding
-  to volatility spikes, with a clear escalation matrix that dictates risk aversion
-  based on the intensity and persistence of spikes.
-After streamlining mean reversion techniques: Specify the approach for 'adaptive grid
-  optimization' in parameter search algorithms, and describe how it improves mean
-  reversion threshold calibration.
-Conditions - entry: Incorporate an asymmetry factor into the volatility model for
-  entry conditions, to account for the differing market reactions to upward versus
-  downward price movements in the current regime.
-Current rules prompt - parameters: Introduce a dynamically adjusting grid within the
-  Differential Evolution algorithm to fine-tune exploration and exploitation balance,
-  promoting efficient search for optimal parameters.
-Entry conditions: Implement real-time adaptation for entry thresholds that respond
-  immediately to short-term volatility fluctuations, with specific conditions and
-  numerical parameters.
-Entry conditions - regime-specific breakout thresholds: Provide a complete data feature
-  set with numerical parameters, including specific preprocessing steps such as normalization
-  or anomaly detection tailored to low-volatility conditions.
+Adaptive regime multiplier mechanism: Enhance the Bayesian optimization process to
+  dynamically adjust weights applied to ensemble methods, with feedback from market
+  volatility and price patterns specific to RANGING_LOW_VOL regimes.
+After Entry conditions: Design an adaptive slippage model that accounts for observed
+  price changes and their frequency, thus optimizing order execution, reducing transaction
+  costs, and mitigating adverse price movements especially in a low volatility environment.
+After Entry conditions - regime-specific breakout thresholds: Develop a regime-specific
+  model that combines traditional technical indicators with machine learning classification
+  techniques for identifying optimal entry points tailored to low volatility conditions.
+After adaptive regime multiplier mechanism: Integrate a continuous learning reinforcement
+  algorithm, such as deep reinforcement learning, for better strategy adaptability,
+  exploiting the low volatility regime characteristics more effectively.
+After risk management parameters: Enhance risk management by introducing a dynamic
+  stop loss mechanism that adjusts to intraday volatility, utilizing high-frequency
+  data to craft stop loss levels that are coherent with the current market tempo.
+After risk_management_parameters: Embed an adaptive stop-loss system that considers
+  intraday volatility, recent price action, and current liquidity to set responsive
+  and realistic stop loss levels.
+Conditions - entry: Apply short-term volatility analysis using exponential moving
+  averages of high-frequency price data to adjust entry conditions in real-time.
+Current Rules Prompt - parameters: Employ a dynamic adjustment mechanism within the
+  Differential Evolution algorithm to streamline exploration and exploitation, creating
+  a balance that is responsive to real-time performance feedback and market conditions.
+Entry conditions: Implement an adaptive layer that updates entry thresholds in real-time
+  based on short-term volatility contraction and expansion cycles, even within a low
+  volatility environment.
+Entry conditions - regime-specific breakout thresholds: Combine CNN outputs with an
+  attention mechanism to selectively focus on the most relevant features of price,
+  volume, and order book data, thus improving the robustness and reliability of the
+  breakout detection process.
 New Section After Current Rules Prompt - parameters: Define the parameters and conditions
   that trigger the 'cooling period', ensuring that the system avoids overfitting and
   maintains adaptiveness to the market by inducing strategy diversity.
-New section after regime_specific_rules: Provide a detailed procedure for real-time
-  strategy weight recalibration, identifying performance metrics, autocorrelation
-  measures, and real-time inputs that should be considered.
+New section after regime_specific_rules: Embed an adaptive feedback mechanism in real-time
+  that recalibrates strategy weights based on recent performance, market autocorrelation,
+  and current conditions for ongoing strategic learning.
 New section after rules_prompt: Conduct a parameter sensitivity analysis to assess
   strategy robustness and define a mechanism to adjust parameters dynamically based
   on their impact on performance.
@@ -43,50 +41,53 @@ New section after strategy_prompt: Introduce a systematic method for reassessing
   performance and viability of the strategy at regular intervals, by incorporating
   a rolling out-of-sample performance review in order to detect and reduce the risk
   of strategy degradation over time.
-Risk management enhancement: Include precise numeric values for asymmetric volatility
-  parameters in the GARCH model to reflect the actual behavior within RANGING_LOW_VOL
-  markets.
+Risk management enhancement: Refine the use of extreme value theory within GARCH models
+  to estimate the probability of extreme market movements more accurately in low volatility
+  regimes.
 Risk management parameters: Update the existing risk management framework to include
   Conditional Value at Risk (CVaR) which considers the severity of tail losses, thereby
   providing a complementary risk perspective during low-volatility periods.
-Risk_management: Introduce clear metrics for the 'resilience metric' and describe
-  how it impacts position sizing adjustments.
-Streamline mean reversion techniques: Elaborate on the recalibration frequency and
-  trigger conditions for the Kalman Filter's parameters, as well as introduce alternative
-  adaptive filtering techniques suited for low-volatility environments to ensure the
-  optimization and streamlining of mean reversion signals.
-adaptive regime multiplier mechanism: Revise the loss function of the machine learning
-  model to include a numerically-driven penalty algorithm that weighs false negatives
-  more for a RANGING_LOW_VOL regime, ensuring enhanced sensitivity.
-current rules prompt - parameters: Integrate a performance-based feedback system that
-  automatically suggests parameter adjustments in the Differential Evolution algorithm,
-  fostering continuous improvement based on recent strategy successes and failures.
-regime_specific_rules: Define the process for dynamically adjusting strategy weights,
-  including the look-back period, the statistical methodologies used to assess performance,
-  and the frequency with which adjustments are to be made, to maintain relevance in
-  the current regime.
-risk management parameters: Introduce a layered approach to risk management that factors
-  in the unique attributes of RANGING_LOW_VOL, such as incorporating liquidity-adjusted
-  stop-losses.
-risk_management: Develop a clear definition of 'resilience metric' with exact calculations
-  and thresholds for adjusting position sizes in RANGING_LOW_VOL conditions.
-risk_management parameters: Incorporate a detailed computational formula for Conditional
-  Value at Risk (CVaR), including frequency of updates and dynamic window size, to
-  better manage risks during low-volatility periods.
-risk_management rules for RANGING_LOW_VOL regime: More precisely define 'liquidity-adjusted
-  risk metrics', explaining in detail how they enhance risk management strategies
-  in a low volatility market by managing exposure to liquidity risk.
-risk_management_parameters: Elaborate on the computing formulae for Conditional Value
-  at Risk incorporating a numerical frequency for updates, and specify a dynamic window
-  size that's reflective of the RANGING_LOW_VOL regime.
-streamline mean reversion techniques: Adjust the Kalman Filter settings to respond
-  more quickly to price variations while reducing noise impact in the low-volatility
-  regime by calibrating the measurement and process noise covariances to current market
-  conditions.
-system: Streamline the systematic feedback loop to not only revise Differential Evolution
-  parameters but also dynamically adapt entry and exit rules based on leading indicators
-  of volatility and inter-market analysis, enhancing the strategy's sensitivity to
-  shifts in market regime.
+Risk_management: Include a resilience metric within the risk management system that
+  quantifies the strategy's ability to recover from losses and dynamically alters
+  position sizing in response to changes in this metric.
+Streamline mean reversion techniques: Optimize mean reversion strategies by incorporating
+  machine learning algorithms that can identify short-term anomalies and statistically
+  significant price reversals within the low volatility regime.
+adaptive regime multiplier mechanism: Further refine the Bayesian optimization process
+  to detect shifts in market regimes with higher precision, particularly focusing
+  on identifying the transition into and out of low volatility states.
+current rules prompt - parameters: Adjust the adaptive mutation rate to be dependent
+  on strategy performance deviation rather than a generic success rate, thus improving
+  the algorithm's ability to respond to the current market.
+end of current rules prompt: Apply adaptive market filters that utilize high-frequency
+  trading data to more accurately detect regime shifts, thereby providing timely strategy
+  adjustments to different phases of the RANGING_LOW_VOL regime.
+regime_specific_rules: Implement an adaptive regime detection mechanism using clustering
+  techniques to identify subtle shifts within the low volatility regime, allowing
+  for fine-grained strategy adjustments.
+risk management parameters: Refine the risk model to include a cascading stop loss
+  system that reacts in real-time to changes in market volatility, order flow pace,
+  and spread dynamics, for a more nuanced and responsive set of risk parameters.
+risk_management: Develop a real-time risk assessment methodology that takes into account
+  the evolving covariance among different asset classes and dynamically adjusts capital
+  allocation to optimize the trade-off between risk and return.
+risk_management enhancement: Enhance GARCH models with a focus on tail risk protection
+  by incorporating stress testing and scenario analysis specific to low-volatility
+  environments.
+risk_management parameters: Refine the risk management approach by integrating a multi-factor
+  model that assesses risks from volatility clustering, liquidity gaps, and extreme
+  price movements, adjusting stop losses and position sizes accordingly.
+risk_management rules for RANGING_LOW_VOL regime: Incorporate a dynamic liquidity
+  assessment tool that evaluates the market depth and adjusts risk levels accordingly,
+  ensuring that position sizes are always aligned with the current market's ability
+  to absorb trade volume without significant impact.
+risk_management_parameters: Augment the risk model to include a stress test against
+  hypothetical worst-case scenarios specific to low volatility markets to ensure robustness
+  and preparedness for sudden market shifts.
+system: Enhance the systematic feedback loop with a focus on magnitude and frequency
+  of market moves to better capture the nuances of a RANGING_LOW_VOL regime, adjusting
+  entry and exit rules accordingly.
+
 user_template: 'Please generate trading rules for the following strategy and market
   context:
 
