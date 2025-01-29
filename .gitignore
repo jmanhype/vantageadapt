@@ -49,3 +49,14 @@ optimization_results_*.json
 *.log
 output/
 backups/
+data/
+logs/
+trading_memories/
+*.tmp
+*.bak
+temp_*/
+analysis_results.json
+
+# Documentation
+docs/_build/
+docs/generated/
