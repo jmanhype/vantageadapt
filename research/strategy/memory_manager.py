@@ -7,6 +7,13 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from mem0 import MemoryClient
 from .types import MarketRegime, StrategyContext, BacktestResults
+import sys
+from pathlib import Path
+
+# Add the project root to Python path for imports
+project_root = str(Path(__file__).parent.parent.parent)
+sys.path.insert(0, project_root)
+
 from config.mem0_config import MEM0_CONFIG, validate_config
 import json
 
