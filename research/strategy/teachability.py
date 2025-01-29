@@ -71,6 +71,7 @@ class Teachability(AgentCapability):
         self.max_num_retrievals = max_num_retrievals
         self.analyzer = None
         self.teachable_agent = None
+        self.enabled = False  # Initialize enabled flag
 
         if reset_db:
             self.memory.reset()
@@ -108,6 +109,9 @@ class Teachability(AgentCapability):
             agent.system_message +
             "\nYou've been given the special ability to remember trading patterns and insights from prior conversations."
         )
+        
+        # Enable the capability after successful initialization
+        self.enabled = True
 
     def process_last_received_message(self, text: Union[str, Dict]) -> str:
         """Process the last received message and store relevant memories.
