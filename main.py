@@ -240,7 +240,7 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
                     continue
                     
                 try:
-                    from research.strategy.types import BacktestResults
+                    from research.strategy.types import BacktestResults, StrategyContext
                     # Ensure all required fields are present with proper types and log any missing/invalid values
                     total_return = backtest_results.get('total_return')
                     if total_return is None:
@@ -286,8 +286,20 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
                         trades=trades,
                         metrics=metrics
                     )
+                    
+                    # Debug logging for parameters
+                    logger.debug(f"Result keys: {result.keys()}")
+                    logger.debug(f"Parameters from result: {result.get('parameters', {})}")
+                    logger.debug(f"Market context attributes: {market_context.__dict__}")
+                    
+                    # Convert MarketContext to StrategyContext
+                    strategy_context = StrategyContext.from_market_context(
+                        market_context=market_context,
+                        parameters=result.get('parameters', {})
+                    )
+                    
                     stored = memory_manager.store_strategy_results(
-                        context=market_context,
+                        context=strategy_context,
                         results=results_obj,
                         iteration=iteration
                     )

@@ -1,86 +1,105 @@
+'''opportunity_description: [after ''''dynamic volatility envelope'''']''': Refine
+  perturbation tests with a focus on historically successful trade ranges during RANGING_LOW_VOL
+  market conditions, using kernel density estimation and other statistical methods
+  appropriate for low volatility environments.
 After opportunity_description after 'market structure changes': Include a complexity
   penalty within the machine learning models to avoid overfitting, ensuring that the
   strategies remain responsive to market changes without being overly sensitive to
   noise.
-complexity penalty within the machine learning models: Revise the mechanism to adjust
-  the complexity penalty based on the length of the RANGING_LOW_VOL period, since
-  longer periods may require different model sensitivities.
-dynamic volatility envelope: Introduce a mechanism for dynamic adjustment of the Gaussian
-  Process Regression hyperparameters to cater to changes within RANGING_LOW_VOL conditions.
-dynamic volatility envelope section: Enhance the volatility envelope by applying adaptive
-  filtering techniques with a focus on historical accuracy in regimes similar to RANGING_LOW_VOL,
-  thereby providing a tailored response to volatility shifts.
-entry_zones and exit_zones: Implement a liquidity-adjusted entry/exit zone model that
-  scales decision thresholds based on liquidity data to provide a more nuanced approach
-  in RANGING_LOW_VOL environments.
-entry_zones and exit_zones section: Adjust the confidence threshold formula to be
-  more sensitive to regime changes and historical accuracy rates, minimizing false
-  trigger risks in RANGING_LOW_VOL conditions.
-opportunity_description: Utilize adaptive filtering in state-space models to dynamically
-  adjust for noise and volatility, honing in on relevant regime changes within RANGING_LOW_VOL.
-opportunity_description - market structure changes: Expand the sentiment analysis
-  by integrating macroeconomic indicators that are highly relevant in low volatility
-  markets, for a more comprehensive view impacting RANGING_LOW_VOL conditions.
-opportunity_description after 'dynamic volatility envelope': Implement a cooperative
-  framework of diverse reinforcement learning agents to converge on robust strategies,
-  learning from different aspects of RANGING_LOW_VOL conditions for improved market
-  predictions.
-opportunity_description after 'market structure changes': Enhance strategy by analyzing
-  order flow dynamics and incorporating this data into the real-time sentiment analysis,
-  improving predictive accuracy in RANGING_LOW_VOL markets.
-'opportunity_description: [after ''dynamic volatility envelope'']': Tailor the randomness
-  within perturbation tests to prefer historically successful trade ranges during
-  similar market conditions, using kernel density estimation.
-perturbation tests: Adapt perturbation tests to RANGING_LOW_VOL by selectively testing
-  scenarios with historically lower volatility, thereby aligning perturbation analysis
-  with current market conditions.
-perturbation tests section: Incorporate adaptive stress testing with perturbation
-  tests focusing on model resilience under potential market regime shifts, aligning
-  these tests more closely with RANGING_LOW_VOL conditions.
-risk_management_notes: Implement an adaptive liquidity hierarchy that aligns with
-  real-time market liquidity data, improving responsiveness to sudden liquidity changes
-  in RANGING_LOW_VOL regimes.
-risk_management_notes section: Further refine real-time VaR models to include asymmetric
-  risk measures that are more sensitive to downside risks prevalent in RANGING_LOW_VOL
-  regimes.
-strategy_review_period: Strategize review periods to include an evaluation of short-term
-  performance trends and regime persistence, enabling proactive adjustments to the
-  trading strategy.
-strategy_review_period section: Incorporate algorithmic learning techniques that enable
-  the trading system to auto-correct and fine-tune its strategy review periods based
-  on performance feedback loops.
-suggested_position_size: Introduce a multi-factor model for position sizing that considers
-  not only liquidity and volatility but also the strategy's historical drawdowns and
-  recovery patterns in similar regimes.
+after opportunity_description after 'market structure changes': Simplify the complexity
+  penalty statement to directly connect with core live performance metrics such as
+  the Sharpe ratio, ensuring clarity and direct relevance to preventing overfitting
+  in a RANGING_LOW_VOL regime.
+complexity penalty: Introduce a scaling factor for the complexity penalty that is
+  inversely proportional to the win rate, ensuring that the penalty is relaxed when
+  the strategy is performing well, thus allowing for necessary complexity.
+complexity penalty section: Redefine complexity penalty scaling to more accurately
+  reflect a balance between win rate and market conditions, integrating a finer-tuned
+  relationship with the current volatility regime as measured by key statistical indicators.
+complexity penalty within the machine learning models: Introduce a dynamic complexity
+  penalty that not only considers the win rate and regime stability but also factors
+  in the performance of the model on out-of-sample data, ensuring that the strategy
+  remains robust across market conditions.
+complexity penalty within the machine learning models section: Simplify the complexity
+  penalty framework by auto-adjusting to the current Sharpe ratio, ensuring a balance
+  is maintained between model simplicity and adaptability in RANGING_LOW_VOL market
+  conditions.
+dynamic volatility envelope: Update the dynamic volatility envelope to explicitly
+  target the nuanced range of price movements typical of RANGING_LOW_VOL markets,
+  ensuring sensitivity to genuine regime shifts while reducing noise.
+dynamic volatility envelope section: Augment the dynamic volatility envelope with
+  an adaptive filter based on standard deviation bands to fine-tune trigger thresholds
+  specifically for RANGING_LOW_VOL markets.
+opportunity_description: Instead of refining the opportunity description with a broad
+  focus on RANGING_LOW_VOL markets, specify machine learning models that adapt to
+  subtle market structure shifts without overfitting. This can be achieved by emphasizing
+  the importance of cross-validation and regularization techniques to ensure model
+  generalizability.
+opportunity_description - after dynamic volatility envelope: Adjust the description
+  to emphasize machine learning models that can adapt to market structure shifts,
+  not just the current RANGING_LOW_VOL regime, prioritizing strategies that have historical
+  resilience across different regimes.
+opportunity_description - after dynamic volatility envelope section: Refocus the opportunity
+  description to concentrate on identifying key historical indicators of regime changes,
+  with the aim of improving the proactiveness of the strategy in anticipating and
+  adapting to potential shifts in market conditions.
+opportunity_description - market structure changes: Refine opportunity descriptions
+  to more effectively integrate sentiment and liquidity analysis, eliminating redundant
+  processes and focusing on the unique aspects of RANGING_LOW_VOL market conditions.
+opportunity_description after 'dynamic volatility envelope': Enhance the dynamic volatility
+  envelope by refining the 'just-in-time' tuning algorithms, ensuring precision alignment
+  with current low volatility market conditions for the RANGING_LOW_VOL regime.
+'opportunity_description: [after ''dynamic volatility envelope'']': Reassess perturbation
+  tests with an adaptive range, ensuring they align with successful historical trades
+  specific to RANGING_LOW_VOL market conditions. Employ enhanced statistical methods
+  such as kernel density estimation to refine the tests for low volatility environments.
+perturbation tests: Include tests for resilience against irregular but plausible market
+  events within RANGING_LOW_VOL conditions to ensure robustness and minimize the strategy's
+  sensitivity to market shocks.
+perturbation tests section: Integrate advanced filtering mechanisms in perturbation
+  tests to balance between responsiveness to historical success and adaptability to
+  current market feeds, factoring in the need for performance stability across changing
+  conditions.
+perturbation tests with a focus on historically successful trade ranges: Utilize adaptive
+  machine learning techniques, incorporating broader historical success metrics and
+  live RANGING_LOW_VOL data to better gauge parameters' efficacy.
+perturbation tests with a focus on historically successful trade ranges section: Enhance
+  perturbation tests to integrate a weighted analysis of historically successful trades
+  under RANGING_LOW_VOL conditions with a diminishing emphasis on outlier events to
+  fine-tune future performance.
+risk_management_notes: Add a risk management protocol that responds more dynamically
+  to shifts in volatility, even within low volatility phases. This can involve adjusting
+  leverage and position sizes based on a rolling assessment of market conditions.
+risk_management_notes section: Incorporate a risk management approach that addresses
+  current low volatility conditions with scalable aggression. As market volatility
+  increases, the strategy should proportionately adjust its leverage and position
+  sizes to maintain a consistent risk profile.
+strategy_prompt end: Establish a validation system that periodically stress-tests
+  the entire strategy against extreme but plausible RANGING_LOW_VOL scenarios to ensure
+  robustness without constant over-tuning.
+strategy_review_period section: Incorporate an adaptive learning loop in the strategy
+  review process that constantly updates the strategy based on a combination of short,
+  medium, and long-term performance metrics, ensuring ongoing relevance to current
+  market conditions.
+suggested_position_size: Calibrate the intelligent position sizing model to specifically
+  factor in the typical range-based movements found in RANGING_LOW_VOL markets for
+  more precise risk-aware capital allocation.
 system: "You are an expert trading strategy generator.\n\nIMPORTANT: You must respond\
   \ with ONLY a JSON object in the following format. Do not include any other text,\
-  \ markdown formatting, or explanations:\n{\n  \"regime_change_probability\": float\
-  \ between 0 and 1,\n  \"suggested_position_size\": float between 0 and 1,\n  \"\
-  risk_reward_target\": float greater than 0,\n  \"entry_zones\": [\n    {\n     \
-  \ \"price\": float,\n      \"confidence\": float between 0 and 1\n    }\n  ],\n\
-  \  \"exit_zones\": [\n    {\n      \"price\": float,\n      \"confidence\": float\
-  \ between 0 and 1\n    }\n  ],\n  \"stop_loss_zones\": [\n    {\n      \"price\"\
-  : float,\n      \"confidence\": float between 0 and 1\n    }\n  ],\n  \"trade_frequency\"\
-  : \"low\" | \"medium\" | \"high\",\n  \"position_sizing_advice\": string,\n  \"\
-  risk_management_notes\": [string],\n  \"opportunity_description\": string\n}\n"
-user_template: 'Please generate a trading strategy as a JSON object based on the following
-  theme and market context:
+  \ markdown formatting, or explanations:\n{\n  \"regime_change_probability\": number,\n\
+  \  \"suggested_position_size\": number,\n  \"risk_reward_target\": number,\n  \"\
+  entry_zones\": [\n    {\n      \"price\": number,\n      \"confidence\": number\n\
+  \    }\n  ],\n  \"exit_zones\": [\n    {\n      \"price\": number,\n      \"confidence\"\
+  : number\n    }\n  ],\n  \"stop_loss_zones\": [\n    {\n      \"price\": number,\n\
+  \      \"confidence\": number\n    }\n  ],\n  \"trade_frequency\": string,\n  \"\
+  position_sizing_advice\": string,\n  \"risk_management_notes\": [string],\n  \"\
+  opportunity_description\": string\n}\n"
+user_template: 'Please generate a trading strategy as a JSON object based on:
 
 
   Theme: {theme}
 
   Market Context: {market_context}
-
-
-  Focus on:
-
-  1. Position sizing and risk management appropriate for the market regime
-
-  2. Entry and exit zones based on key support/resistance levels
-
-  3. Trade frequency aligned with volatility and opportunity
-
-  4. Clear risk/reward targets
 
 
   Return ONLY a JSON object with the exact structure specified in the system prompt.

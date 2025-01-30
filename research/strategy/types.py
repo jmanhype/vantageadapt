@@ -18,7 +18,7 @@ class MarketRegime(Enum):
 @dataclass
 class StrategyContext:
     """Context information for strategy generation."""
-    market_regime: MarketRegime
+    regime: MarketRegime
     confidence: float
     risk_level: str
     parameters: Dict[str, Any]
@@ -27,12 +27,40 @@ class StrategyContext:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
         return {
-            "market_regime": self.market_regime.value,
+            "regime": self.regime.value,
             "confidence": self.confidence,
             "risk_level": self.risk_level,
             "parameters": self.parameters,
             "opportunity_score": self.opportunity_score
         }
+        
+    @classmethod
+    def from_market_context(cls, market_context: Any, parameters: Optional[Dict[str, Any]] = None) -> 'StrategyContext':
+        """Create a StrategyContext from a MarketContext.
+        
+        Args:
+            market_context: The MarketContext object to convert
+            parameters: Optional parameters dictionary. If not provided, will create from market_context attributes
+            
+        Returns:
+            A new StrategyContext object
+        """
+        if parameters is None:
+            parameters = {
+                "volatility_level": market_context.volatility_level,
+                "trend_strength": market_context.trend_strength,
+                "volume_profile": market_context.volume_profile,
+                "key_levels": market_context.key_levels,
+                "analysis": market_context.analysis
+            }
+            
+        return cls(
+            regime=market_context.regime,
+            confidence=market_context.confidence,
+            risk_level=market_context.risk_level,
+            parameters=parameters,
+            opportunity_score=0.0  # Default since MarketContext doesn't have this
+        )
 
 @dataclass
 class BacktestResults:

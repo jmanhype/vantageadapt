@@ -1,8 +1,10 @@
 """Test market regime transition handling and parameter consistency."""
 
 import pytest
+import pytest_asyncio
 import logging
 from datetime import datetime, timedelta
+from typing import Dict, Any, List
 import pandas as pd
 import numpy as np
 from research.strategy.llm_teachable import TeachableLLMInterface
@@ -16,10 +18,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def llm_interface():
     """Create TeachableLLM instance."""
-    interface = await TeachableLLMInterface.create()
+    interface = TeachableLLMInterface()
+    await interface._initialize()  # Ensure fully initialized
     return interface
 
 @pytest.fixture
@@ -56,7 +59,7 @@ def market_data():
 
 async def analyze_regime_transition(llm: TeachableLLMInterface, 
                                  data: pd.DataFrame, 
-                                 window_size: int = 60) -> List[Dict]:
+                                 window_size: int = 60) -> List[Dict[str, Any]]:
     """Analyze market regimes using sliding window."""
     transitions = []
     

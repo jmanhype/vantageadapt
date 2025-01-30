@@ -3,7 +3,7 @@
 import pytest
 import logging
 from typing import Dict, Any
-from research.strategy.strategy_generator import StrategyGenerator
+from research.strategy.llm_interface import LLMInterface
 from research.strategy.types import MarketRegime, StrategyContext
 
 # Configure minimal logging
@@ -15,9 +15,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 @pytest.fixture
-async def strategy_generator():
-    """Create strategy generator instance."""
-    return await StrategyGenerator.create()
+async def llm_interface():
+    """Create LLM interface instance."""
+    return await LLMInterface.create()
 
 @pytest.fixture
 def edge_case_params() -> Dict[str, Dict[str, Any]]:
@@ -56,7 +56,7 @@ def edge_case_params() -> Dict[str, Dict[str, Any]]:
     }
 
 @pytest.mark.asyncio
-async def test_edge_case_parameters(strategy_generator, edge_case_params):
+async def test_edge_case_parameters(llm_interface, edge_case_params):
     """Test validation of edge case strategy parameters.
     
     This test verifies that:
@@ -80,7 +80,7 @@ async def test_edge_case_parameters(strategy_generator, edge_case_params):
         try:
             # Attempt to validate parameters
             context.parameters = params
-            is_valid = await strategy_generator.validate_parameters(
+            is_valid = await llm_interface.validate_strategy_parameters(
                 context=context,
                 parameters=params
             )

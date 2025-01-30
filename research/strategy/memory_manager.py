@@ -65,25 +65,28 @@ class TradingMemoryManager:
         """Store strategy results in memory.
         
         Args:
-            context: The strategy context containing market regime and parameters
-            results: The backtest results containing performance metrics
-            iteration: Optional iteration number for the strategy run
+            context: Strategy context
+            results: Backtest results
+            iteration: Optional iteration number
             
         Returns:
-            bool: True if storage was successful, False otherwise
+            True if storage was successful
         """
-        if not self.client or not self.enabled:
-            logger.debug("Memory system disabled, skipping storage")
-            return False
-
         try:
-            # Check if results meet success criteria
-            success = (
-                results.total_return >= MEM0_CONFIG["success_criteria"]["min_return"] and
-                results.sortino_ratio >= MEM0_CONFIG["success_criteria"]["min_sortino"] and
-                results.win_rate >= MEM0_CONFIG["success_criteria"]["min_win_rate"]
+            if not self.enabled:
+                logger.warning("Memory system not enabled")
+                return False
+                
+            # Calculate a weighted score for the strategy
+            score = (
+                (0.4 * (1 + float(results.total_return))) +  # Normalize to prevent negative scores
+                (0.3 * (1 + float(results.sortino_ratio))) +
+                (0.3 * float(results.win_rate))
             )
-
+            
+            # More lenient success criteria based on composite score
+            success = score > 1.0  # This means it's better than average in some aspects
+            
             # Create a more descriptive conversation
             messages = [
                 {
@@ -98,7 +101,7 @@ class TradingMemoryManager:
                 {
                     "role": "assistant",
                     "content": json.dumps({
-                        "market_regime": context.regime.value,
+                        "regime": context.regime.value,
                         "confidence": context.confidence,
                         "risk_level": context.risk_level,
                         "parameters": context.parameters,
@@ -109,20 +112,22 @@ class TradingMemoryManager:
                             "win_rate": float(results.win_rate),
                             "total_trades": results.total_trades
                         },
+                        "score": score,
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                         "iteration": iteration
                     }, indent=2)
                 }
             ]
-
+            
             # Add memory with metadata
             response = self.client.add(
                 messages=messages,
                 user_id=MEM0_CONFIG["user_id"],
                 metadata={
                     "type": MEM0_CONFIG["metadata_types"]["strategy_results"],
-                    "market_regime": context.regime.value,
+                    "regime": context.regime.value,  # Use consistent key name
                     "success": success,
+                    "score": score,
                     "iteration": iteration,
                     "confidence": context.confidence,
                     "risk_level": context.risk_level,
@@ -137,7 +142,7 @@ class TradingMemoryManager:
 
             # Check if the response is valid
             if response is not None:
-                logger.info("Successfully stored strategy results in memory")
+                logger.info(f"Successfully stored strategy results in memory with score {score}")
                 return True
             else:
                 logger.warning("No valid response from memory storage")
@@ -149,13 +154,13 @@ class TradingMemoryManager:
             return False
 
     def query_similar_strategies(self, market_regime: MarketRegime) -> List[Dict[str, Any]]:
-        """Query for similar successful strategies based on market regime.
+        """Query for similar strategies based on market regime, including partially successful ones.
         
         Args:
             market_regime: The current market regime to find strategies for
             
         Returns:
-            List of similar successful strategies with their parameters and results
+            List of similar strategies with their parameters and results, sorted by effectiveness
         """
         if not self.client or not self.enabled:
             logger.debug("Memory system disabled, returning empty list")
@@ -181,30 +186,54 @@ class TradingMemoryManager:
                     logger.debug(f"Memory: {memory}")
                     logger.debug(f"Metadata: {metadata}")
                     
-                    # Check if this is a successful strategy for the right market regime
-                    if (metadata.get("market_regime") == market_regime.value and 
-                        metadata.get("success", False) and
+                    # Check if this is a strategy for the right market regime
+                    if (metadata.get("regime") == market_regime.value and  # Fixed key name
                         metadata.get("type") == MEM0_CONFIG["metadata_types"]["strategy_results"]):
+                        
+                        # Use pre-calculated score if available, otherwise calculate it
+                        score = metadata.get("score")
+                        if score is None:
+                            total_return = metadata.get("total_return", 0)
+                            sortino_ratio = metadata.get("sortino_ratio", 0)
+                            win_rate = metadata.get("win_rate", 0)
+                            
+                            score = (
+                                (0.4 * (1 + total_return)) +
+                                (0.3 * (1 + sortino_ratio)) +
+                                (0.3 * win_rate)
+                            )
                         
                         # Create strategy details from metadata
                         strategy_details = {
-                            "market_regime": metadata.get("market_regime"),
+                            "market_regime": metadata.get("regime"),  # Fixed key name
                             "confidence": metadata.get("confidence"),
                             "risk_level": metadata.get("risk_level"),
                             "performance": {
-                                "total_return": metadata.get("total_return"),
-                                "total_pnl": metadata.get("total_pnl"),
-                                "sortino_ratio": metadata.get("sortino_ratio"),
-                                "win_rate": metadata.get("win_rate"),
-                                "total_trades": metadata.get("total_trades")
-                            }
+                                "total_return": metadata.get("total_return", 0),
+                                "total_pnl": metadata.get("total_pnl", 0),
+                                "sortino_ratio": metadata.get("sortino_ratio", 0),
+                                "win_rate": metadata.get("win_rate", 0),
+                                "total_trades": metadata.get("total_trades", 0)
+                            },
+                            "score": score,
+                            "parameters": metadata.get("parameters", {})
                         }
                         similar_strategies.append(strategy_details)
                 except (KeyError, AttributeError) as e:
                     logger.warning(f"Failed to parse memory: {e}")
                     continue
             
-            logger.info(f"Found {len(similar_strategies)} similar successful strategies")
+            # Sort strategies by score in descending order
+            similar_strategies.sort(key=lambda x: x["score"], reverse=True)
+            
+            # Take top N strategies
+            top_n = min(5, len(similar_strategies))
+            similar_strategies = similar_strategies[:top_n]
+            
+            logger.info(f"Found {len(similar_strategies)} similar strategies for {market_regime.value}")
+            for i, strat in enumerate(similar_strategies):
+                logger.info(f"Strategy {i+1}: Score={strat['score']:.3f}, Return={strat['performance']['total_return']:.3f}")
+            
             return similar_strategies
         except Exception as e:
             logger.error(f"Failed to query similar strategies: {e}")

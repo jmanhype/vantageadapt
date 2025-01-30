@@ -131,10 +131,10 @@ def from_signals_backtest(trade_data_df: pd.DataFrame, **p) -> Optional[Any]:
                 close=trade_data_df["dex_price"],
                 entries=trade_data_df["entries"],
                 exits=trade_data_df["exits"],
-                init_cash=10,
+                init_cash=1.0,  # Reduced initial cash
                 size=p.get('order_size', 0.001),
-                fees=0.001,
-                freq='s'
+                fees=0.0,  # Remove fees for now
+                freq='1h'  # Use hourly frequency
             )
             
             # Validate portfolio creation

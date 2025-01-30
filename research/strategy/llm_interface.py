@@ -153,6 +153,9 @@ class LLMInterface:
             lc_messages = []
             for msg in messages:
                 if msg["role"] == "system":
+                    # Add JSON format instruction if response_format is set to json_object
+                    if response_format and response_format.get("type") == "json_object":
+                        msg["content"] = f"{msg['content']} Please provide your response in JSON format."
                     lc_messages.append(SystemMessage(content=msg["content"]))
                 elif msg["role"] == "user":
                     lc_messages.append(HumanMessage(content=msg["content"]))
@@ -301,91 +304,58 @@ class LLMInterface:
             return None
 
     async def generate_strategy(
-        self, theme: str, market_context: MarketContext
+        self, 
+        theme: str, 
+        market_context: MarketContext,
+        base_parameters: Optional[Dict[str, Any]] = None
     ) -> Optional[StrategyInsight]:
-        """Generate strategic trading insights.
+        """Generate trading strategy based on market context.
         
         Args:
-            theme: Trading theme
-            market_context: Market context
+            theme: Trading theme to focus on
+            market_context: Current market context
+            base_parameters: Optional parameters from similar successful strategies to use as base
             
         Returns:
-            Optional StrategyInsight object
+            Optional[StrategyInsight]: Generated strategy insights
         """
         try:
-            # Get prompts
+            # Get prompts from prompt manager
             system_prompt = self.prompt_manager.get_prompt_content('trading/strategy_generation', 'system')
-            user_prompt = self.prompt_manager.get_prompt_content('trading/strategy_generation', 'user_template')
+            user_template = self.prompt_manager.get_prompt_content('trading/strategy_generation', 'user_template')
             
-            if not system_prompt or not user_prompt:
-                raise ValueError("Failed to load strategy generation prompts")
+            if not system_prompt or not user_template:
+                logger.error("Missing required prompts for strategy generation")
+                return None
                 
-            # Set default values based on market regime
-            default_values = {
-                MarketRegime.RANGING_LOW_VOL: {
-                    'position_size': 0.05,  # 5% position size for low volatility
-                    'risk_reward': 2.0,  # 2:1 risk-reward for ranging markets
-                },
-                MarketRegime.RANGING_HIGH_VOL: {
-                    'position_size': 0.03,  # 3% position size for high volatility
-                    'risk_reward': 2.5,  # 2.5:1 risk-reward for volatile markets
-                },
-                MarketRegime.TRENDING_BULLISH: {
-                    'position_size': 0.07,  # 7% position size for trending markets
-                    'risk_reward': 3.0,  # 3:1 risk-reward for trends
-                },
-                MarketRegime.TRENDING_BEARISH: {
-                    'position_size': 0.07,
-                    'risk_reward': 3.0,
-                },
-                MarketRegime.BREAKOUT: {
-                    'position_size': 0.06,
-                    'risk_reward': 2.5,
-                },
-                MarketRegime.BREAKDOWN: {
-                    'position_size': 0.06,
-                    'risk_reward': 2.5,
-                },
-                MarketRegime.REVERSAL: {
-                    'position_size': 0.04,
-                    'risk_reward': 2.0,
-                },
-                MarketRegime.UNKNOWN: {
-                    'position_size': 0.03,
-                    'risk_reward': 1.5,
-                }
-            }
+            # Format user prompt with theme and market context
+            user_prompt = user_template.format(
+                theme=theme,
+                market_context=json.dumps(market_context.to_dict(), indent=2),
+                base_parameters=json.dumps(base_parameters, indent=2) if base_parameters else "null"
+            )
             
-            # Get default values for current regime
-            defaults = default_values.get(market_context.regime, default_values[MarketRegime.UNKNOWN])
-            
-            # Prepare strategy request
+            # Create messages for chat completion
             messages = [
                 {"role": "system", "content": system_prompt},
-                {
-                    "role": "user",
-                    "content": user_prompt.format(
-                        theme=theme,
-                        market_context=json.dumps(market_context.to_dict(), indent=2)
-                    )
-                }
+                {"role": "user", "content": user_prompt}
             ]
             
-            # Get strategy insights from LLM
-            response = self.chat_completion(messages)
+            # Get strategy response
+            response = self.chat_completion(messages, response_format={"type": "json_object"})
             if not response:
-                raise ValueError("Failed to get strategy insights from LLM")
+                return None
                 
             # Parse response
             strategy_data = self.parse_json_response(response)
             if not strategy_data:
-                raise ValueError("Failed to parse strategy insights")
+                return None
                 
-            # Create StrategyInsight with default values if needed
+            # Create StrategyInsight from response
             strategy = StrategyInsight(
-                regime_change_probability=float(strategy_data.get('regime_change_probability', 0.1)),
-                suggested_position_size=float(strategy_data.get('suggested_position_size', defaults['position_size'])),
-                risk_reward_target=float(strategy_data.get('risk_reward_target', defaults['risk_reward'])),
+                regime_change_probability=float(strategy_data.get('regime_change_probability', 0.0)),
+                suggested_position_size=float(strategy_data.get('suggested_position_size', 0.0)),
+                risk_reward_target=float(strategy_data.get('risk_reward_target', 0.0)),
                 entry_zones=strategy_data.get('entry_zones', []),
                 exit_zones=strategy_data.get('exit_zones', []),
                 stop_loss_zones=strategy_data.get('stop_loss_zones', []),
@@ -395,7 +365,13 @@ class LLMInterface:
                 opportunity_description=str(strategy_data.get('opportunity_description', ''))
             )
             
-            # Store the strategy
+            # Apply base parameters if provided
+            if base_parameters:
+                for key, value in base_parameters.items():
+                    if hasattr(strategy, key):
+                        setattr(strategy, key, value)
+                        logger.info(f"Applied base parameter {key}: {value}")
+            
             self._current_strategy = strategy
             return strategy
             

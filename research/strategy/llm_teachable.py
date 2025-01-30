@@ -96,14 +96,36 @@ class TeachableLLMInterface(LLMInterface):
             logger.error(f"Error in teachable market analysis: {str(e)}")
             return None
             
-    async def generate_strategy(self, theme: str, market_context: MarketContext) -> Optional[StrategyInsight]:
-        """Generate strategy with teachability enhancement."""
+    async def generate_strategy(
+        self, 
+        theme: str, 
+        market_context: MarketContext,
+        base_parameters: Optional[Dict[str, Any]] = None
+    ) -> Optional[StrategyInsight]:
+        """Generate strategy with teachability enhancement.
+        
+        Args:
+            theme: Trading theme to focus on
+            market_context: Current market context
+            base_parameters: Optional parameters from similar successful strategies to use as base
+            
+        Returns:
+            Optional[StrategyInsight]: Generated strategy insights
+        """
         try:
             # Get base strategy insights
             strategy_insights = await super().generate_strategy(theme, market_context)
             
             if not strategy_insights:
                 return None
+                
+            # Apply base parameters if provided
+            if base_parameters:
+                # Update strategy parameters with weighted values from similar strategies
+                for key, value in base_parameters.items():
+                    if hasattr(strategy_insights, key):
+                        setattr(strategy_insights, key, value)
+                        logger.info(f"Applied learned parameter {key}: {value}")
                 
             # Enhance with teachability
             if self.teachability and self.teachability.enabled:
@@ -114,7 +136,8 @@ class TeachableLLMInterface(LLMInterface):
                     - Risk/Reward: {strategy_insights.risk_reward_target}
                     - Position Size: {strategy_insights.suggested_position_size}
                     - Trade Frequency: {strategy_insights.trade_frequency}
-                    - Opportunity: {strategy_insights.opportunity_description}"""
+                    - Opportunity: {strategy_insights.opportunity_description}
+                    - Base Parameters: {base_parameters if base_parameters else 'None'}"""
                 }
                 
                 # Process with teachability

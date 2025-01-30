@@ -10,6 +10,7 @@ import json
 
 from .llm_teachable import TeachableLLMInterface
 from .llm_interface import MarketContext, StrategyInsight
+from .memory_manager import TradingMemoryManager
 from ..database import db
 from ..database.models.trading import Strategy, Backtest
 from prompts.prompt_manager import PromptManager
@@ -53,6 +54,7 @@ class StrategicTrader:
         self.trade_cooldown = 300  # 5 minutes
         self.performance_history = []
         self.current_position = None
+        self.memory_manager = None
 
     @classmethod
     async def create(cls) -> "StrategicTrader":
@@ -63,6 +65,7 @@ class StrategicTrader:
         """
         instance = cls()
         instance.llm = await TeachableLLMInterface.create()
+        instance.memory_manager = TradingMemoryManager()
         return instance
 
     def log_trade_metrics(self, metrics: Dict[str, float]) -> None:
@@ -95,24 +98,59 @@ class StrategicTrader:
         return self.market_context
 
     async def generate_strategy(self, theme: str) -> Optional[StrategyInsight]:
-        """Generate strategic trading insights."""
+        """Generate strategic trading insights.
+        
+        Args:
+            theme: Trading theme
+            
+        Returns:
+            Optional[StrategyInsight]: Generated strategy insights
+        """
         try:
             if not self.market_context:
-                logger.error("Must analyze market first")
+                logger.error("No market context available")
                 return None
 
-            self.strategy_insights = await self.llm.generate_strategy(
-                theme, self.market_context
-            )
-
-            if not self.strategy_insights:
-                logger.error("Failed to generate strategy insights")
-                return None
-
-            return self.strategy_insights
-
+            # Get similar strategies from memory
+            similar_strategies = self.memory_manager.query_similar_strategies(self.market_context.regime)
+            
+            # Extract insights from similar strategies
+            strategy_insights = None
+            if similar_strategies:
+                # Weight parameters by strategy scores
+                total_score = sum(s["score"] for s in similar_strategies)
+                if total_score > 0:
+                    weighted_params = {}
+                    for strategy in similar_strategies:
+                        weight = strategy["score"] / total_score
+                        params = strategy.get("parameters", {})
+                        for key, value in params.items():
+                            if isinstance(value, (int, float)):
+                                weighted_params[key] = weighted_params.get(key, 0) + (value * weight)
+                    
+                    # Use weighted parameters as base for new strategy
+                    strategy_insights = await self.llm.generate_strategy(
+                        theme=theme,
+                        market_context=self.market_context,
+                        base_parameters=weighted_params
+                    )
+                    
+                    logger.info(f"Generated strategy using {len(similar_strategies)} similar strategies as reference")
+                else:
+                    logger.info("Found similar strategies but total score is 0, generating fresh strategy")
+            
+            # If no useful similar strategies, generate fresh strategy
+            if not strategy_insights:
+                strategy_insights = await self.llm.generate_strategy(
+                    theme=theme,
+                    market_context=self.market_context
+                )
+                
+            self.strategy_insights = strategy_insights
+            return strategy_insights
+            
         except Exception as e:
-            logger.error(f"Error generating strategy: {str(e)}")
+            logger.error(f"Failed to generate strategy: {str(e)}")
             return None
 
     async def generate_trading_rules(
