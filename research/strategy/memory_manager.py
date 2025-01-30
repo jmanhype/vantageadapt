@@ -89,7 +89,7 @@ class TradingMemoryManager:
                 {
                     "role": "user",
                     "content": (
-                        f"Store trading strategy results for {context.market_regime.value} market regime:\n"
+                        f"Store trading strategy results for {context.regime.value} market regime:\n"
                         f"- Confidence: {context.confidence}\n"
                         f"- Risk Level: {context.risk_level}\n"
                         f"- Parameters: {json.dumps(context.parameters, indent=2)}"
@@ -98,7 +98,7 @@ class TradingMemoryManager:
                 {
                     "role": "assistant",
                     "content": json.dumps({
-                        "market_regime": context.market_regime.value,
+                        "market_regime": context.regime.value,
                         "confidence": context.confidence,
                         "risk_level": context.risk_level,
                         "parameters": context.parameters,
@@ -121,7 +121,7 @@ class TradingMemoryManager:
                 user_id=MEM0_CONFIG["user_id"],
                 metadata={
                     "type": MEM0_CONFIG["metadata_types"]["strategy_results"],
-                    "market_regime": context.market_regime.value,
+                    "market_regime": context.regime.value,
                     "success": success,
                     "iteration": iteration,
                     "confidence": context.confidence,

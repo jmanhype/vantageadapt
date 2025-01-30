@@ -116,6 +116,7 @@ class LLMInterface:
         """Initialize LLM interface."""
         self.client = None
         self.prompt_manager = PromptManager()
+        self._current_strategy = None  # Store current strategy
         logger.info("Available prompts: %s", self.prompt_manager.get_all_prompt_keys())
         
     @classmethod
@@ -381,7 +382,7 @@ class LLMInterface:
                 raise ValueError("Failed to parse strategy insights")
                 
             # Create StrategyInsight with default values if needed
-            return StrategyInsight(
+            strategy = StrategyInsight(
                 regime_change_probability=float(strategy_data.get('regime_change_probability', 0.1)),
                 suggested_position_size=float(strategy_data.get('suggested_position_size', defaults['position_size'])),
                 risk_reward_target=float(strategy_data.get('risk_reward_target', defaults['risk_reward'])),
@@ -394,9 +395,21 @@ class LLMInterface:
                 opportunity_description=str(strategy_data.get('opportunity_description', ''))
             )
             
+            # Store the strategy
+            self._current_strategy = strategy
+            return strategy
+            
         except Exception as e:
             logger.error(f"Error generating strategy: {str(e)}")
             return None
+
+    async def get_current_strategy(self) -> Optional[StrategyInsight]:
+        """Get the current strategy.
+        
+        Returns:
+            The current strategy or None if no strategy is set
+        """
+        return self._current_strategy
 
     async def improve_strategy(self, trades_df: pd.DataFrame, metrics: Dict[str, float]) -> Dict[str, Any]:
         """Improve strategy based on performance metrics and trade history.
