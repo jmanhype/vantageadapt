@@ -1,0 +1,143 @@
+@startuml Strategy Generation and Execution
+title Strategy Generation and Execution Flow
+
+participant "Main" as Main
+participant "LLMInterface" as LLM
+participant "StrategyGenerator" as SG
+participant "MemoryManager" as MM
+participant "Backtester" as BT
+participant "Database" as DB
+
+== Strategy Generation ==
+Main -> LLM: analyze_market(market_data)
+activate LLM
+LLM -> LLM: chat_completion(market_analysis_prompt)
+LLM --> Main: MarketContext
+deactivate LLM
+
+Main -> LLM: generate_strategy(theme, market_context)
+activate LLM
+LLM -> LLM: chat_completion(strategy_generation_prompt)
+LLM --> Main: StrategyInsight
+deactivate LLM
+
+Main -> LLM: generate_trading_rules(strategy_insights, market_context)
+activate LLM
+LLM -> LLM: chat_completion(rules_generation_prompt)
+LLM --> Main: conditions, parameters
+deactivate LLM
+
+== Backtesting ==
+Main -> BT: run_parameter_optimization(trade_data, conditions)
+activate BT
+BT -> BT: from_signals_backtest(trade_data)
+BT -> BT: calculate_stats(portfolio)
+BT --> Main: BacktestResults
+deactivate BT
+
+== Memory Management ==
+Main -> MM: store_strategy_results(context, results)
+activate MM
+MM -> MM: validate success criteria
+MM -> MM: add memory with metadata
+MM --> Main: storage_success
+deactivate MM
+
+Main -> MM: query_similar_strategies(market_regime)
+activate MM
+MM -> MM: search memories
+MM --> Main: similar_strategies
+deactivate MM
+
+@enduml
+
+@startuml Memory System Integration
+title Memory System Integration
+
+participant "TradingMemoryManager" as MM
+participant "MemoryClient" as MC
+participant "Config" as Config
+database "Memory Store" as Store
+
+== Initialization ==
+[-> MM: __init__(api_key)
+activate MM
+MM -> Config: validate_config()
+MM -> MC: create client
+activate MC
+MC --> MM: client instance
+deactivate MC
+[<-- MM
+deactivate MM
+
+== Strategy Storage ==
+[-> MM: store_strategy_results(context, results)
+activate MM
+MM -> MM: check success criteria
+MM -> MC: add(messages, metadata)
+activate MC
+MC -> Store: store memory
+Store --> MC: confirmation
+MC --> MM: response
+deactivate MC
+[<-- MM: success status
+deactivate MM
+
+== Strategy Retrieval ==
+[-> MM: query_similar_strategies(market_regime)
+activate MM
+MM -> MC: search(query, metadata)
+activate MC
+MC -> Store: query memories
+Store --> MC: matching memories
+MC --> MM: memory list
+deactivate MC
+MM -> MM: parse and filter strategies
+[<-- MM: similar strategies
+deactivate MM
+
+@enduml
+
+@startuml Backtesting Process
+title Backtesting Process
+
+participant "Main" as Main
+participant "Backtester" as BT
+participant "VectorBT" as VBT
+participant "MemoryManager" as MM
+database "Database" as DB
+
+== Parameter Optimization ==
+Main -> BT: run_parameter_optimization(trade_data, conditions)
+activate BT
+BT -> BT: initialize parameter ranges
+loop for each asset
+    BT -> VBT: Portfolio.from_signals()
+    activate VBT
+    VBT --> BT: portfolio
+    deactivate VBT
+    BT -> BT: calculate_stats(portfolio)
+end
+BT -> BT: update parameters
+BT -> BT: save optimization results
+BT --> Main: optimization results
+deactivate BT
+
+== Performance Analysis ==
+Main -> BT: calculate_stats(portfolio)
+activate BT
+BT -> BT: process portfolio metrics
+BT -> BT: calculate performance stats
+BT --> Main: statistics DataFrame
+deactivate BT
+
+== Memory Integration ==
+Main -> MM: store_strategy_results(context, results)
+activate MM
+MM -> MM: validate performance
+MM -> DB: save strategy
+DB --> MM: confirmation
+MM --> Main: storage status
+deactivate MM
+
+@enduml

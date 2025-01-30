@@ -1,0 +1,116 @@
+@startuml Trading System State Diagram
+title Trading System States and Transitions
+
+' Style settings
+skinparam state {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+
+[*] --> Initialization
+
+state Initialization {
+    [*] --> LoadingConfig
+    LoadingConfig --> InitializingLLM
+    InitializingLLM --> InitializingMemory
+    InitializingMemory --> SystemReady
+    SystemReady --> [*]
+}
+
+state "Strategy Generation" as StratGen {
+    state "Market Analysis" as MarketAnalysis {
+        [*] --> AnalyzingData
+        AnalyzingData --> DeterminingRegime
+        DeterminingRegime --> EnhancingAnalysis : TeachableLLM
+        EnhancingAnalysis --> [*]
+    }
+    
+    state "Strategy Creation" as StratCreation {
+        [*] --> GeneratingInsights
+        GeneratingInsights --> ApplyingTeachability
+        ApplyingTeachability --> GeneratingRules
+        GeneratingRules --> [*]
+    }
+}
+
+state "Backtesting" as Backtest {
+    state "Parameter Optimization" as ParamOpt {
+        [*] --> InitializingParams
+        InitializingParams --> RunningTests
+        RunningTests --> CalculatingStats
+        CalculatingStats --> [*]
+    }
+    
+    state "Performance Analysis" as PerfAnalysis {
+        [*] --> AnalyzingTrades
+        AnalyzingTrades --> CalculatingMetrics
+        CalculatingMetrics --> GeneratingVisuals
+        GeneratingVisuals --> [*]
+    }
+}
+
+state "Self-Improvement" as SelfImprove {
+    state "Performance Evaluation" as PerfEval {
+        [*] --> TrackingPerformance
+        TrackingPerformance --> AnalyzingPatterns
+        AnalyzingPatterns --> [*]
+    }
+    
+    state "System Improvement" as SysImprove {
+        [*] --> ProposingPatches
+        ProposingPatches --> ModifyingPrompts
+        ModifyingPrompts --> OptimizingStrategy
+        OptimizingStrategy --> [*]
+    }
+}
+
+state "Memory Management" as MemManage {
+    [*] --> ValidatingResults
+    ValidatingResults --> StoringExperience
+    StoringExperience --> UpdatingPatterns
+    UpdatingPatterns --> [*]
+}
+
+' Main state transitions
+Initialization --> StratGen : System Ready
+StratGen --> Backtest : Strategy Generated
+Backtest --> SelfImprove : Testing Complete
+SelfImprove --> MemManage : Improvements Applied
+MemManage --> StratGen : New Iteration
+
+' Alternative flows
+Backtest --> StratGen : Performance Below Threshold
+SelfImprove --> Backtest : Verify Improvements
+MemManage --> SelfImprove : Pattern Recognition
+
+' Terminal states
+MemManage --> [*] : Max Iterations\nReached
+SelfImprove --> [*] : Performance\nTarget Met
+
+' Notes
+note right of StratGen
+  Market regime analysis
+  Strategy generation
+  Trading rules creation
+end note
+
+note right of Backtest
+  Parameter optimization
+  Performance validation
+  Statistical analysis
+end note
+
+note right of SelfImprove
+  Code improvements
+  Prompt modifications
+  Strategy optimization
+end note
+
+note right of MemManage
+  Experience storage
+  Pattern recognition
+  Knowledge retrieval
+end note
+
+@enduml
