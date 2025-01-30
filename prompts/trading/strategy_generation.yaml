@@ -1,60 +1,88 @@
-entry_zones and exit_zones: Test a combination of decision trees, support vector machines
-  (SVM), and Random Forests, selecting the best performer through cross-validation,
-  as they potentially provide complementary insights in a ranging low volatility market.
-opportunity_description: Refine the random perturbation tests module with a dynamic
-  volatility envelope that adjusts based on real-time market liquidity, recent historical
-  volatility, and the market's regime to improve shock range accuracy.
-opportunity_description after 'dynamic volatility envelope': Implement Bayesian optimization
-  to fine-tune shock ranges during perturbation tests, utilizing a continuous learning
-  model that adapts to recurring market conditions for improved strategy robustness.
+After opportunity_description after 'market structure changes': Include a complexity
+  penalty within the machine learning models to avoid overfitting, ensuring that the
+  strategies remain responsive to market changes without being overly sensitive to
+  noise.
+complexity penalty within the machine learning models: Revise the mechanism to adjust
+  the complexity penalty based on the length of the RANGING_LOW_VOL period, since
+  longer periods may require different model sensitivities.
+dynamic volatility envelope: Introduce a mechanism for dynamic adjustment of the Gaussian
+  Process Regression hyperparameters to cater to changes within RANGING_LOW_VOL conditions.
+dynamic volatility envelope section: Enhance the volatility envelope by applying adaptive
+  filtering techniques with a focus on historical accuracy in regimes similar to RANGING_LOW_VOL,
+  thereby providing a tailored response to volatility shifts.
+entry_zones and exit_zones: Implement a liquidity-adjusted entry/exit zone model that
+  scales decision thresholds based on liquidity data to provide a more nuanced approach
+  in RANGING_LOW_VOL environments.
+entry_zones and exit_zones section: Adjust the confidence threshold formula to be
+  more sensitive to regime changes and historical accuracy rates, minimizing false
+  trigger risks in RANGING_LOW_VOL conditions.
+opportunity_description: Utilize adaptive filtering in state-space models to dynamically
+  adjust for noise and volatility, honing in on relevant regime changes within RANGING_LOW_VOL.
+opportunity_description - market structure changes: Expand the sentiment analysis
+  by integrating macroeconomic indicators that are highly relevant in low volatility
+  markets, for a more comprehensive view impacting RANGING_LOW_VOL conditions.
+opportunity_description after 'dynamic volatility envelope': Implement a cooperative
+  framework of diverse reinforcement learning agents to converge on robust strategies,
+  learning from different aspects of RANGING_LOW_VOL conditions for improved market
+  predictions.
+opportunity_description after 'market structure changes': Enhance strategy by analyzing
+  order flow dynamics and incorporating this data into the real-time sentiment analysis,
+  improving predictive accuracy in RANGING_LOW_VOL markets.
 'opportunity_description: [after ''dynamic volatility envelope'']': Tailor the randomness
   within perturbation tests to prefer historically successful trade ranges during
   similar market conditions, using kernel density estimation.
-risk_management_notes: Develop an algorithm for parsing and quantifying sentiment
-  from key economic reports and high-impact news events, employing natural language
-  processing (NLP) to ensure relevance and timeliness of the incorporated data.
-suggested_position_size: Employ a risk parity framework to derive suggested position
-  sizes, considering the VIX, market breadth indicators, and asset-specific volatility,
-  to achieve a more balanced risk distribution.
-system: "You are an expert trading strategy developer specializing in adaptive strategies.\n\
-  \nIMPORTANT: You must respond with ONLY a JSON object in the following format. Do\
-  \ not include any other text, markdown formatting, or explanations:\n{\n  \"regime_change_probability\"\
-  : float,  // Probability of regime change\n  \"suggested_position_size\": float,\
-  \    // Recommended position size as %\n  \"volatility_adjustment\": {         \
-  \  // Volatility-based adjustments\n    \"entry_threshold\": float,          //\
-  \ Entry threshold multiplier\n    \"exit_threshold\": float,           // Exit threshold\
-  \ multiplier\n    \"position_size\": float            // Position size multiplier\n\
-  \  },\n  \"regime_specific_rules\": {           // Regime-specific parameters\n\
-  \    \"trend_following\": float,          // Trend following weight\n    \"mean_reversion\"\
-  : float,           // Mean reversion weight\n    \"breakout\": float           \
-  \      // Breakout strategy weight\n  },\n  \"risk_management\": {             \
-  \    // Risk management parameters\n    \"max_drawdown\": float,            // Maximum\
-  \ drawdown limit\n    \"correlation_threshold\": float,    // Maximum correlation\
-  \ allowed\n    \"volatility_limit\": float         // Maximum volatility threshold\n\
-  \  }\n}\n"
-user_template: 'Please generate a trading strategy for the theme: {theme}
+perturbation tests: Adapt perturbation tests to RANGING_LOW_VOL by selectively testing
+  scenarios with historically lower volatility, thereby aligning perturbation analysis
+  with current market conditions.
+perturbation tests section: Incorporate adaptive stress testing with perturbation
+  tests focusing on model resilience under potential market regime shifts, aligning
+  these tests more closely with RANGING_LOW_VOL conditions.
+risk_management_notes: Implement an adaptive liquidity hierarchy that aligns with
+  real-time market liquidity data, improving responsiveness to sudden liquidity changes
+  in RANGING_LOW_VOL regimes.
+risk_management_notes section: Further refine real-time VaR models to include asymmetric
+  risk measures that are more sensitive to downside risks prevalent in RANGING_LOW_VOL
+  regimes.
+strategy_review_period: Strategize review periods to include an evaluation of short-term
+  performance trends and regime persistence, enabling proactive adjustments to the
+  trading strategy.
+strategy_review_period section: Incorporate algorithmic learning techniques that enable
+  the trading system to auto-correct and fine-tune its strategy review periods based
+  on performance feedback loops.
+suggested_position_size: Introduce a multi-factor model for position sizing that considers
+  not only liquidity and volatility but also the strategy's historical drawdowns and
+  recovery patterns in similar regimes.
+system: "You are an expert trading strategy generator.\n\nIMPORTANT: You must respond\
+  \ with ONLY a JSON object in the following format. Do not include any other text,\
+  \ markdown formatting, or explanations:\n{\n  \"regime_change_probability\": float\
+  \ between 0 and 1,\n  \"suggested_position_size\": float between 0 and 1,\n  \"\
+  risk_reward_target\": float greater than 0,\n  \"entry_zones\": [\n    {\n     \
+  \ \"price\": float,\n      \"confidence\": float between 0 and 1\n    }\n  ],\n\
+  \  \"exit_zones\": [\n    {\n      \"price\": float,\n      \"confidence\": float\
+  \ between 0 and 1\n    }\n  ],\n  \"stop_loss_zones\": [\n    {\n      \"price\"\
+  : float,\n      \"confidence\": float between 0 and 1\n    }\n  ],\n  \"trade_frequency\"\
+  : \"low\" | \"medium\" | \"high\",\n  \"position_sizing_advice\": string,\n  \"\
+  risk_management_notes\": [string],\n  \"opportunity_description\": string\n}\n"
+user_template: 'Please generate a trading strategy as a JSON object based on the following
+  theme and market context:
 
 
-  Current Market Context:
+  Theme: {theme}
 
-  {market_context}
+  Market Context: {market_context}
 
 
   Focus on:
 
-  1. Identifying optimal entry and exit points
+  1. Position sizing and risk management appropriate for the market regime
 
-  2. Setting appropriate position sizes based on risk
+  2. Entry and exit zones based on key support/resistance levels
 
-  3. Defining clear stop loss levels
+  3. Trade frequency aligned with volatility and opportunity
 
-  4. Providing comprehensive risk management guidelines
+  4. Clear risk/reward targets
 
 
-  Return your response as a JSON object with specific numeric values for all parameters.
-
-  Ensure all numeric values are actual numbers, not placeholders.
-
-  Entry, exit, and stop loss zones should be based on key price levels.
+  Return ONLY a JSON object with the exact structure specified in the system prompt.
 
   '

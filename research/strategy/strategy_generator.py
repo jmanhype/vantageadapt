@@ -8,7 +8,8 @@ from datetime import datetime
 from dataclasses import dataclass
 import json
 
-from .llm_interface import LLMInterface, MarketContext, StrategyInsight
+from .llm_teachable import TeachableLLMInterface
+from .llm_interface import MarketContext, StrategyInsight
 from ..database import db
 from ..database.models.trading import Strategy, Backtest
 from prompts.prompt_manager import PromptManager
@@ -61,7 +62,7 @@ class StrategicTrader:
             StrategicTrader: A new instance with initialized LLM interface.
         """
         instance = cls()
-        instance.llm = await LLMInterface.create()
+        instance.llm = await TeachableLLMInterface.create()
         return instance
 
     def log_trade_metrics(self, metrics: Dict[str, float]) -> None:

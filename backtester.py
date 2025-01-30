@@ -524,22 +524,43 @@ def run_parameter_optimization(trade_data: Dict[str, pd.DataFrame], conditions: 
                     }
                 }
 
+        # Create backtest results structure
+        backtest_results = {
+            'total_return': float(all_stats_df['total_return'].sum()),
+            'total_pnl': float(all_stats_df['total_pnl'].sum()),
+            'sortino_ratio': float(all_stats_df['sortino_ratio'].mean()),
+            'win_rate': float((all_stats_df['total_return'] > 0).mean()),
+            'total_trades': int(all_stats_df['total_trades'].sum()),
+            'trades': trades_data,
+            'metrics': {
+                'avg_pnl_per_trade': float(all_stats_df['avg_pnl_per_trade'].mean()),
+                'asset_count': len(all_stats_df),
+                'total_orders': int(all_stats_df['total_orders'].sum()),
+                'trade_memory_stats': trade_memory_stats,
+                'per_asset_stats': {
+                    'total_return': all_stats_df['total_return'].to_dict(),
+                    'avg_pnl_per_trade': all_stats_df['avg_pnl_per_trade'].to_dict()
+                }
+            }
+        }
+
         # Save optimization results
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         results = {
             'parameters': updated_params,
+            'backtest_results': backtest_results,  # Add backtest_results to the output
             'metrics': metrics,
             'trade_memory_stats': trade_memory_stats,
             'stats': {
                 'total_return': all_stats_df['total_return'].to_dict(),
                 'avg_pnl_per_trade': all_stats_df['avg_pnl_per_trade'].to_dict()
             },
-            'trades': trades_data  # Add trades data to results
+            'trades': trades_data
         }
         
         with open(f'optimization_results_{timestamp}.json', 'w') as f:
             json.dump(results, f, indent=2)
-        
+            
         logger.info(f"Optimization results saved to optimization_results_{timestamp}.json")
         return results
         

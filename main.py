@@ -19,6 +19,7 @@ from research.strategy.strategy_generator import StrategicTrader
 from research.analysis.trade_analyzer import TradeAnalyzer
 from research.visualization.trade_visualizer import TradeVisualizer
 from research.strategy.godel_agent import GodelAgent
+from research.strategy.memory_manager import TradingMemoryManager
 from backtester import load_trade_data, calculate_stats, run_parameter_optimization
 
 # Configure logging
@@ -158,6 +159,11 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
     result = None
     best_result = None
     
+    # Initialize memory manager
+    memory_manager = TradingMemoryManager()
+    if not memory_manager.enabled:
+        logger.warning("Memory system not enabled, continuing without memory capabilities")
+    
     # Initialize Gödel Agent
     agent = GodelAgent(improvement_threshold=0.1, max_iterations=5,
                       backup_dir="backups", prompt_dir="prompts/trading")
@@ -181,6 +187,13 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
             logger.info(f"Confidence: {market_context.confidence:.2f}")
             logger.info(f"Risk level: {market_context.risk_level}")
             
+            # Query similar strategies from memory
+            if memory_manager.enabled:
+                similar_strategies = memory_manager.query_similar_strategies(market_context.regime)
+                if similar_strategies:
+                    logger.info(f"Found {len(similar_strategies)} similar successful strategies")
+                    # TODO: Use similar strategies to inform current strategy generation
+            
             # Generate strategy insights
             logger.info("\nGenerating strategy insights...")
             strategy_insights = await trader.generate_strategy(theme)
@@ -202,11 +215,90 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
             result = run_parameter_optimization(trade_data, conditions)
             
             if result is None:
-                logger.warning("Parameter optimization failed")
+                logger.error("Parameter optimization returned None - this should never happen with new error handling")
+                continue
+                
+            # Log the optimization result structure with more detail
+            logger.debug(f"Optimization result keys: {result.keys()}")
+            if 'backtest_results' in result:
+                logger.debug(f"Backtest results keys: {result['backtest_results'].keys()}")
+                logger.debug(f"Backtest results metrics: {result['backtest_results'].get('metrics', {})}")
+            else:
+                logger.error("No backtest_results key in optimization result - structure: {result}")
                 continue
                 
             metrics = result.get('metrics', {})
+            if not metrics:
+                logger.warning("Empty metrics dictionary in optimization result")
             success, failures = validate_strategy_performance(metrics)
+            
+            # Store strategy results in memory
+            if memory_manager.enabled:
+                backtest_results = result.get('backtest_results')
+                if not backtest_results:
+                    logger.error(f"Invalid backtest_results in optimization result: {backtest_results}")
+                    continue
+                    
+                try:
+                    from research.strategy.types import BacktestResults
+                    # Ensure all required fields are present with proper types and log any missing/invalid values
+                    total_return = backtest_results.get('total_return')
+                    if total_return is None:
+                        logger.warning("Missing total_return in backtest_results")
+                        total_return = 0.0
+                        
+                    total_pnl = backtest_results.get('total_pnl')
+                    if total_pnl is None:
+                        logger.warning("Missing total_pnl in backtest_results")
+                        total_pnl = 0.0
+                        
+                    sortino_ratio = backtest_results.get('sortino_ratio')
+                    if sortino_ratio is None:
+                        logger.warning("Missing sortino_ratio in backtest_results")
+                        sortino_ratio = 0.0
+                        
+                    win_rate = backtest_results.get('win_rate')
+                    if win_rate is None:
+                        logger.warning("Missing win_rate in backtest_results")
+                        win_rate = 0.0
+                        
+                    total_trades = backtest_results.get('total_trades')
+                    if total_trades is None:
+                        logger.warning("Missing total_trades in backtest_results")
+                        total_trades = 0
+                        
+                    trades = backtest_results.get('trades')
+                    if trades is None:
+                        logger.warning("Missing trades list in backtest_results")
+                        trades = []
+                        
+                    metrics = backtest_results.get('metrics')
+                    if metrics is None:
+                        logger.warning("Missing metrics dictionary in backtest_results")
+                        metrics = {}
+                    
+                    results_obj = BacktestResults(
+                        total_return=float(total_return),
+                        total_pnl=float(total_pnl),
+                        sortino_ratio=float(sortino_ratio),
+                        win_rate=float(win_rate),
+                        total_trades=int(total_trades),
+                        trades=trades,
+                        metrics=metrics
+                    )
+                    stored = memory_manager.store_strategy_results(
+                        context=market_context,
+                        results=results_obj,
+                        iteration=iteration
+                    )
+                    if stored:
+                        logger.info("Successfully stored strategy results in memory")
+                    else:
+                        logger.warning("Failed to store strategy results in memory")
+                except Exception as e:
+                    logger.error(f"Error creating BacktestResults object: {str(e)}")
+                    logger.debug(f"Backtest results data: {backtest_results}")
+                    continue
             
             # Track performance and check for improvement
             improved = agent.track_performance(

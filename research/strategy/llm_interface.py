@@ -299,56 +299,92 @@ class LLMInterface:
             logger.error(f"Error analyzing market: {str(e)}")
             return None
 
-    async def generate_strategy(self, theme: str, market_context: MarketContext) -> StrategyInsight:
-        """Generate trading strategy based on theme and market context.
+    async def generate_strategy(
+        self, theme: str, market_context: MarketContext
+    ) -> Optional[StrategyInsight]:
+        """Generate strategic trading insights.
         
         Args:
-            theme: Trading strategy theme
-            market_context: Current market context
+            theme: Trading theme
+            market_context: Market context
             
         Returns:
-            StrategyInsight object containing strategy recommendations
+            Optional StrategyInsight object
         """
         try:
-            # Get prompts from prompt manager
+            # Get prompts
             system_prompt = self.prompt_manager.get_prompt_content('trading/strategy_generation', 'system')
             user_prompt = self.prompt_manager.get_prompt_content('trading/strategy_generation', 'user_template')
             
             if not system_prompt or not user_prompt:
                 raise ValueError("Failed to load strategy generation prompts")
-            
-            logger.info("Using strategy generation prompts:")
-            logger.info("System: %s", system_prompt[:200] + "...")
-            logger.info("User template: %s", user_prompt[:200] + "...")
                 
-            # Format user prompt with theme and market context
-            user_prompt = user_prompt.format(
-                theme=theme,
-                market_context=json.dumps(market_context.to_dict(), indent=2)
-            )
+            # Set default values based on market regime
+            default_values = {
+                MarketRegime.RANGING_LOW_VOL: {
+                    'position_size': 0.05,  # 5% position size for low volatility
+                    'risk_reward': 2.0,  # 2:1 risk-reward for ranging markets
+                },
+                MarketRegime.RANGING_HIGH_VOL: {
+                    'position_size': 0.03,  # 3% position size for high volatility
+                    'risk_reward': 2.5,  # 2.5:1 risk-reward for volatile markets
+                },
+                MarketRegime.TRENDING_BULLISH: {
+                    'position_size': 0.07,  # 7% position size for trending markets
+                    'risk_reward': 3.0,  # 3:1 risk-reward for trends
+                },
+                MarketRegime.TRENDING_BEARISH: {
+                    'position_size': 0.07,
+                    'risk_reward': 3.0,
+                },
+                MarketRegime.BREAKOUT: {
+                    'position_size': 0.06,
+                    'risk_reward': 2.5,
+                },
+                MarketRegime.BREAKDOWN: {
+                    'position_size': 0.06,
+                    'risk_reward': 2.5,
+                },
+                MarketRegime.REVERSAL: {
+                    'position_size': 0.04,
+                    'risk_reward': 2.0,
+                },
+                MarketRegime.UNKNOWN: {
+                    'position_size': 0.03,
+                    'risk_reward': 1.5,
+                }
+            }
             
-            # Get LLM strategy
-            response = self.chat_completion(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                response_format={"type": "json_object"}
-            )
+            # Get default values for current regime
+            defaults = default_values.get(market_context.regime, default_values[MarketRegime.UNKNOWN])
             
+            # Prepare strategy request
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": user_prompt.format(
+                        theme=theme,
+                        market_context=json.dumps(market_context.to_dict(), indent=2)
+                    )
+                }
+            ]
+            
+            # Get strategy insights from LLM
+            response = self.chat_completion(messages)
             if not response:
-                raise ValueError("Failed to get strategy from LLM")
+                raise ValueError("Failed to get strategy insights from LLM")
                 
             # Parse response
             strategy_data = self.parse_json_response(response)
             if not strategy_data:
-                raise ValueError("Failed to parse strategy response")
+                raise ValueError("Failed to parse strategy insights")
                 
-            # Create StrategyInsight object
+            # Create StrategyInsight with default values if needed
             return StrategyInsight(
-                regime_change_probability=float(strategy_data.get('regime_change_probability', 0.0)),
-                suggested_position_size=float(strategy_data.get('suggested_position_size', 0.0)),
-                risk_reward_target=float(strategy_data.get('risk_reward_target', 0.0)),
+                regime_change_probability=float(strategy_data.get('regime_change_probability', 0.1)),
+                suggested_position_size=float(strategy_data.get('suggested_position_size', defaults['position_size'])),
+                risk_reward_target=float(strategy_data.get('risk_reward_target', defaults['risk_reward'])),
                 entry_zones=strategy_data.get('entry_zones', []),
                 exit_zones=strategy_data.get('exit_zones', []),
                 stop_loss_zones=strategy_data.get('stop_loss_zones', []),
