@@ -15,11 +15,13 @@ import vectorbtpro as vbt
 import ta
 import itertools
 from collections import namedtuple
+import random
+import gc
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(levelname)s:%(name)s:%(message)s'
 )
 logger = logging.getLogger(__name__)
 
@@ -54,25 +56,129 @@ def load_trade_data(data_path: str) -> Dict[str, pd.DataFrame]:
         logger.exception("Full traceback:")
         return None
 
-def calculate_entries_and_params(trade_data_df: pd.DataFrame, p: Dict[str, Any]) -> pd.DataFrame:
-    """Calculate entry signals and parameters."""
+def calculate_entries_and_params(trade_data_df: pd.DataFrame, p: Dict[str, Any]) -> Optional[pd.DataFrame]:
+    """Calculate entry signals and parameters based on LLM-generated conditions.
+    
+    Args:
+        trade_data_df: DataFrame containing market data
+        p: Dictionary containing parameters and conditions
+        
+    Returns:
+        DataFrame with calculated signals or None if error
+    """
     try:
         # Set take profit and stop loss
-        trade_data_df['take_profit'] = p['take_profit']
-        trade_data_df['stop_loss'] = p['stop_loss']
+        trade_data_df['take_profit'] = p.get('take_profit', 0.05)
+        trade_data_df['stop_loss'] = p.get('stop_loss', 0.03)
 
-        # Calculate MACD signals
-        fast = p['macd_signal_fast']
-        slow = p['macd_signal_slow']
-        signal = p['macd_signal_signal']
-        macd = vbt.MACD.run(trade_data_df['dex_price'], fast_window=fast, slow_window=slow, signal_window=signal)
-        macd_signal = macd.macd.vbt.crossed_above(macd.signal)
-
-        # Generate entry signals
-        trade_data_df['entries'] = (
-            (macd.macd > p['min_macd_signal_threshold']) 
-            & macd_signal
+        # Create indicators DataFrame
+        df_indicators = pd.DataFrame(index=trade_data_df.index)
+        
+        # Add price-based indicators
+        df_indicators['price'] = trade_data_df['dex_price']
+        
+        # Initialize default indicators that might be needed for fallback
+        window = p.get('rsi_window', 14)
+        df_indicators['rsi'] = ta.momentum.RSIIndicator(
+            close=trade_data_df['dex_price'],
+            window=window,
+            fillna=True
+        ).rsi()
+        
+        bb = ta.volatility.BollingerBands(
+            close=trade_data_df['dex_price'],
+            window=p.get('bb_window', 20),
+            window_dev=p.get('bb_std', 2.0),
+            fillna=True
         )
+        df_indicators['bb_upper'] = bb.bollinger_hband()
+        df_indicators['bb_lower'] = bb.bollinger_lband()
+        df_indicators['bb_mid'] = bb.bollinger_mavg()
+        
+        # Extract conditions from parameters
+        conditions = p.get('conditions', {})
+        if isinstance(conditions, str):
+            try:
+                conditions = json.loads(conditions)
+            except json.JSONDecodeError:
+                logger.error("Failed to parse conditions string")
+                conditions = {}
+                
+        entry_conditions = conditions.get('entry', [])
+        exit_conditions = conditions.get('exit', [])
+        
+        if not entry_conditions and not exit_conditions:
+            # Fallback to default range trading conditions
+            logger.info("Using default range trading conditions")
+            entry_conditions = ["(df_indicators['rsi'] < 30) & (df_indicators['price'] <= df_indicators['bb_lower'])"]
+            exit_conditions = ["(df_indicators['rsi'] > 70) | (df_indicators['price'] >= df_indicators['bb_upper'])"]
+        
+        # Add any additional indicators based on conditions
+        for condition in entry_conditions + exit_conditions:
+            if not isinstance(condition, str):
+                continue
+                
+            # Skip if condition is not a valid Python expression
+            if any(word in condition.lower() for word in ['touches', 'level', 'confidence']):
+                continue
+                
+            condition_lower = condition.lower()
+            if 'macd' in condition_lower:
+                try:
+                    macd = ta.trend.MACD(
+                        close=trade_data_df['dex_price'],
+                        window_fast=p.get('macd_fast', 12),
+                        window_slow=p.get('macd_slow', 26),
+                        window_sign=p.get('macd_signal', 9),
+                        fillna=True
+                    )
+                    df_indicators['macd'] = macd.macd()
+                    df_indicators['macd_signal'] = macd.macd_signal()
+                except Exception as e:
+                    logger.error(f"Error calculating MACD: {str(e)}")
+                    df_indicators['macd'] = 0
+                    df_indicators['macd_signal'] = 0
+        
+        # Ensure all indicators are properly filled
+        df_indicators = df_indicators.ffill().bfill()
+        
+        # Generate entry signals from conditions
+        try:
+            entry_signal = pd.Series(True, index=trade_data_df.index)
+            valid_conditions = []
+            
+            for condition in entry_conditions:
+                if not isinstance(condition, str):
+                    continue
+                    
+                # Skip if condition is not a valid Python expression
+                if any(word in condition.lower() for word in ['touches', 'level', 'confidence']):
+                    continue
+                    
+                # Replace indicator references with df_indicators
+                condition = condition.replace("df['", "df_indicators['").replace("data['", "df_indicators['")
+                try:
+                    entry_signal &= eval(condition)
+                    valid_conditions.append(condition)
+                except Exception as e:
+                    logger.warning(f"Invalid condition {condition}: {str(e)}")
+                    
+            if not valid_conditions:
+                logger.warning("No valid conditions found, using defaults")
+                entry_signal = (
+                    (df_indicators['rsi'] < 30) & 
+                    (df_indicators['price'] <= df_indicators['bb_lower'])
+                )
+            
+            trade_data_df['entries'] = entry_signal
+            
+        except Exception as e:
+            logger.error(f"Error evaluating entry conditions: {str(e)}")
+            # Fallback to simple range trading logic
+            trade_data_df['entries'] = (
+                (df_indicators['rsi'] < 30) & 
+                (df_indicators['price'] <= df_indicators['bb_lower'])
+            )
         
         return trade_data_df
         
@@ -375,196 +481,141 @@ def run_parameter_optimization(trade_data: Dict[str, pd.DataFrame], conditions: 
         Dictionary containing optimization results, or None if optimization fails
     """
     try:
-        global trade_memory
-        
-        # Define parameter ranges
-        params = {
-            "take_profit": 0.08,
-            "stop_loss": 0.12,
-            "sl_window": 400,
-            "max_orders": 3,
-            "order_size": 0.0025,
-            "post_buy_delay": 2,
-            "post_sell_delay": 5,
-            "macd_signal_fast": 120,
-            "macd_signal_slow": 260,
-            "macd_signal_signal": 90,
-            "min_macd_signal_threshold": 0,
-            "max_macd_signal_threshold": 0,
-            "enable_sl_mod": False,
-            "enable_tp_mod": False,
+        # Base parameter space with reduced combinations
+        param_space = {
+            'take_profit': [0.03, 0.05, 0.08],  # Reduced from 5 to 3
+            'stop_loss': [0.02, 0.03],          # Reduced from 4 to 2
+            'order_size': [0.1, 0.2],           # Reduced from 3 to 2
+            'max_orders': [1, 2],               # Reduced from 3 to 2
+            'sl_window': [200, 400],            # Reduced from 3 to 2
+            'post_buy_delay': [1, 2],           # Reduced from 3 to 2
+            'post_sell_delay': [3, 5],          # Reduced from 3 to 2
+            'enable_sl_mod': [False],
+            'enable_tp_mod': [False]
         }
 
-        # Define optimization parameters
-        rand_test_params = {
-            **params,
-            "take_profit": vbt.Param(np.arange(0.01, 0.15, 0.01)), 
-            "stop_loss": vbt.Param(np.arange(0.01, 0.15, 0.01)),
-            "macd_signal_fast": vbt.Param(np.arange(100, 10000, 100)),
-            "macd_signal_slow": vbt.Param(np.arange(100, 10000, 100)),
-            "macd_signal_signal": vbt.Param(np.arange(100, 10000, 100)),
-            "_random_subset": 200
-        }
+        # Ensure conditions is a dictionary
+        if not isinstance(conditions, dict):
+            logger.warning("Invalid conditions format, using defaults")
+            conditions = {
+                'entry': ["(df_indicators['rsi'] < 30) & (df_indicators['price'] <= df_indicators['bb_lower'])"],
+                'exit': ["(df_indicators['rsi'] > 70) | (df_indicators['price'] >= df_indicators['bb_upper'])"]
+            }
         
-        # Run optimization on test assets
-        train_portfolio = {}
-        test_assets = list(trade_data.keys())[:2]
-        for asset, asset_data in [(asset, trade_data[asset]) for asset in test_assets]:
-            trade_memory = None
+        # Add indicator-specific parameters based on conditions
+        all_conditions = conditions.get('entry', []) + conditions.get('exit', [])
+        for condition in all_conditions:
+            if not isinstance(condition, str):
+                continue
+                
+            condition = condition.lower()
+            if 'rsi' in condition:
+                param_space.update({
+                    'rsi_window': [14, 21],  # Reduced options
+                })
+            if 'macd' in condition:
+                param_space.update({
+                    'macd_fast': [12],
+                    'macd_slow': [26],
+                    'macd_signal': [9]
+                })
+            if 'bb' in condition or 'bollinger' in condition:
+                param_space.update({
+                    'bb_window': [20, 30],
+                    'bb_std': [2.0, 2.5]
+                })
 
-            df = asset_data.copy()
-            # Trim length
-            two_weeks_ago = asset_data['timestamp'].max() - pd.Timedelta(weeks=2)
-            df = df[df['timestamp'] >= two_weeks_ago]
+        # Convert conditions to string
+        conditions_str = json.dumps(conditions)
 
-            pf = from_signals_backtest(df, **rand_test_params)
-            train_portfolio[asset] = pf
+        # Generate limited parameter combinations
+        param_names = list(param_space.keys())
+        param_values = list(param_space.values())
+        
+        # Use a subset of combinations to keep optimization time reasonable
+        max_combinations = 50  # Reduced from 100 to 50
+        all_combinations = list(itertools.product(*param_values))
+        if len(all_combinations) > max_combinations:
+            selected_combinations = random.sample(all_combinations, max_combinations)
+        else:
+            selected_combinations = all_combinations
 
-        # Get best parameters
-        portfolio = {}
-        for asset, pf in train_portfolio.items():
-            df = trade_data[asset].copy()
-            combined_metrics = pd.DataFrame({
-                'total_return': pf.total_return,
-                'total_orders': pf.orders.count(),
-                'sortino_ratio': pf.sortino_ratio
-            })
+        logger.info(f"Testing {len(selected_combinations)} parameter combinations")
+        
+        # Run backtests with progress tracking
+        results = []
+        total_combinations = len(selected_combinations)
+        
+        for i, values in enumerate(selected_combinations, 1):
+            try:
+                # Progress update
+                if i % 5 == 0:  # Show progress every 5 combinations
+                    logger.info(f"Progress: {i}/{total_combinations} combinations tested")
+                
+                # Create parameters dictionary
+                params = dict(zip(param_names, values))
+                params['conditions'] = conditions_str
+                
+                # Run backtest for each asset
+                portfolios = {}
+                for asset, df in trade_data.items():
+                    try:
+                        portfolio = from_signals_backtest(df.copy(), **params)
+                        if portfolio is not None:
+                            portfolios[asset] = portfolio
+                            
+                        # Clear memory
+                        gc.collect()
+                        
+                    except Exception as e:
+                        logger.warning(f"Error in backtest for {asset}: {str(e)}")
+                        continue
+                
+                if portfolios:
+                    stats = calculate_stats(portfolios, trade_data)
+                    if isinstance(stats, dict):
+                        stats['parameters'] = params
+                        results.append(stats)
+                    
+                # Clear memory after each iteration
+                portfolios.clear()
+                gc.collect()
+                    
+            except KeyboardInterrupt:
+                logger.warning("Optimization interrupted by user")
+                break
+                
+            except Exception as e:
+                logger.warning(f"Error in backtest iteration: {str(e)}")
+                continue
+                
+        if not results:
+            logger.error("No successful backtest results")
+            return None
             
-            combined_metrics['total_return'] = combined_metrics['total_return'] / len(df)
-            combined_metrics['score'] = combined_metrics['total_orders'] * combined_metrics['sortino_ratio'] * combined_metrics['total_return']
-            negative_returns = combined_metrics['total_return'] < 0
-            combined_metrics.loc[negative_returns, 'score'] *= 1 / combined_metrics.loc[negative_returns, 'sortino_ratio']    
-            portfolio[asset] = combined_metrics
-
-        portfolio_concat = pd.DataFrame()
-        for asset, metrics in portfolio.items():
-            portfolio_concat = pd.concat([portfolio_concat, metrics])
-
-        grouped = portfolio_concat.groupby(level=portfolio_concat.index.names)
-        result = grouped.agg({
-            'total_return': 'sum',
-            'total_orders': 'sum',
-            'sortino_ratio': 'mean',
-            'score': 'mean'
-        })
-        result.sort_values('score', ascending=False)
-        result_reset = result.reset_index()
-        best_score_params = result_reset.loc[result_reset['score'].idxmax()].to_dict()
-
-        updated_params = rand_test_params.copy()
-        for key, value in best_score_params.items():
-            if key in updated_params:
-                if isinstance(updated_params[key], vbt.Param):
-                    updated_params[key] = value
-                else:
-                    pass
-
-        updated_params.pop('score', None)
-        updated_params.pop('_random_subset', None)
-
-        # Convert float values ending in .0 to int
-        for key, value in updated_params.items():
-            if isinstance(value, float) and value.is_integer():
-                updated_params[key] = int(value)
-
-        logger.info("Updated parameters:")
-        logger.info(updated_params)
-
-        # Run tests on all assets
-        test_portfolio = {}
-        for asset, trade_data in trade_data.items():
-            trade_memory = None
-            trade_data = trade_data.copy()
-            
-            # Trim length
-            two_weeks_ago = trade_data['timestamp'].max() - pd.Timedelta(weeks=2)
-            trade_data = trade_data[trade_data['timestamp'] >= two_weeks_ago]
-
-            pf = from_signals_backtest(trade_data, **updated_params)
-            test_portfolio[asset] = pf
-
-        # Calculate stats
-        all_stats_df = calculate_stats(test_portfolio, trade_data)
+        # Find best performing parameter set
+        results_df = pd.DataFrame(results)
+        results_df['score'] = (
+            results_df['total_return'] * 0.4 +
+            results_df['sortino_ratio'] * 0.3 +
+            results_df['win_rate'] * 0.2 +
+            (1 - results_df['max_drawdown'].abs()) * 0.1
+        )
         
-        # Prepare trade memory stats
-        trade_memory_stats = {
-            'total_trades': int(all_stats_df['total_trades'].sum()),
-            'win_rate': float((all_stats_df['total_return'] > 0).mean()),
-            'avg_trade_return': float(all_stats_df['total_return'].mean()),
-            'avg_trade_duration': 0,  # Would need to calculate from actual trade records
-            'max_drawdown': 0,  # Would need to calculate from portfolio equity curve
-            'sharpe_ratio': 0,  # Would need to calculate from returns
-            'sortino_ratio': float(all_stats_df['sortino_ratio'].mean()),
-            'profit_factor': 0  # Would need to calculate from trade records
-        }
+        best_result = results_df.loc[results_df['score'].idxmax()]
         
-        # Prepare metrics
-        metrics = {
-            'total_return': float(all_stats_df['total_return'].sum()),
-            'total_pnl': float(all_stats_df['total_pnl'].sum()),
-            'avg_pnl_per_trade': float(all_stats_df['avg_pnl_per_trade'].mean()),
-            'total_trades': int(all_stats_df['total_trades'].sum()),
-            'win_rate': float((all_stats_df['total_return'] > 0).mean()),
-            'sortino_ratio': float(all_stats_df['sortino_ratio'].mean()),
-            'asset_count': len(all_stats_df),
-            'total_orders': int(all_stats_df['total_orders'].sum())
-        }
-
-        # Extract trades data from portfolios
-        trades_data = {}
-        for asset, pf in test_portfolio.items():
-            if pf is not None and hasattr(pf, 'trades'):
-                trades_data[asset] = {
-                    'records': pf.trades.records.to_dict(),
-                    'stats': {
-                        'total_trades': int(pf.trades.count().iloc[0]),
-                        'win_rate': float((pf.trades.records['pnl'] > 0).mean()),
-                        'avg_trade_return': float(pf.trades.records['return'].mean()),
-                        'total_pnl': float(pf.trades.records['pnl'].sum())
-                    }
-                }
-
-        # Create backtest results structure
-        backtest_results = {
-            'total_return': float(all_stats_df['total_return'].sum()),
-            'total_pnl': float(all_stats_df['total_pnl'].sum()),
-            'sortino_ratio': float(all_stats_df['sortino_ratio'].mean()),
-            'win_rate': float((all_stats_df['total_return'] > 0).mean()),
-            'total_trades': int(all_stats_df['total_trades'].sum()),
-            'trades': trades_data,
+        return {
+            'parameters': best_result['parameters'],
             'metrics': {
-                'avg_pnl_per_trade': float(all_stats_df['avg_pnl_per_trade'].mean()),
-                'asset_count': len(all_stats_df),
-                'total_orders': int(all_stats_df['total_orders'].sum()),
-                'trade_memory_stats': trade_memory_stats,
-                'per_asset_stats': {
-                    'total_return': all_stats_df['total_return'].to_dict(),
-                    'avg_pnl_per_trade': all_stats_df['avg_pnl_per_trade'].to_dict()
-                }
+                'total_return': float(best_result['total_return']),
+                'sortino_ratio': float(best_result['sortino_ratio']),
+                'win_rate': float(best_result['win_rate']),
+                'max_drawdown': float(best_result['max_drawdown']),
+                'score': float(best_result['score'])
             }
         }
-
-        # Save optimization results
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        results = {
-            'parameters': updated_params,
-            'backtest_results': backtest_results,  # Add backtest_results to the output
-            'metrics': metrics,
-            'trade_memory_stats': trade_memory_stats,
-            'stats': {
-                'total_return': all_stats_df['total_return'].to_dict(),
-                'avg_pnl_per_trade': all_stats_df['avg_pnl_per_trade'].to_dict()
-            },
-            'trades': trades_data
-        }
-        
-        with open(f'optimization_results_{timestamp}.json', 'w') as f:
-            json.dump(results, f, indent=2)
-            
-        logger.info(f"Optimization results saved to optimization_results_{timestamp}.json")
-        return results
         
     except Exception as e:
-        logger.error(f"Error in parameter optimization: {str(e)}")
+        logger.error(f"Parameter optimization failed: {str(e)}")
         logger.exception("Full traceback:")
         return None

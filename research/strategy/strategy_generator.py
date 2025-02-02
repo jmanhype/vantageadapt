@@ -153,35 +153,83 @@ class StrategicTrader:
             logger.error(f"Failed to generate strategy: {str(e)}")
             return None
 
-    async def generate_trading_rules(
-        self,
-        strategy_insights: StrategyInsight,
-        market_context: MarketContext,
-        performance_analysis: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[Dict[str, List[str]], Dict[str, Any]]:
-        """Generate trading rules and parameters.
-
+    async def generate_trading_rules(self, strategy: StrategyInsight, market_context: MarketContext) -> Dict[str, Any]:
+        """Generate trading rules based on strategy insights and market context.
+        
         Args:
-            strategy_insights: Strategy insights
-            market_context: Market context
-            performance_analysis: Optional performance analysis for strategy improvement
-
+            strategy: Strategy insights object
+            market_context: Market context object
+            
         Returns:
-            Tuple of (conditions dict, parameters dict)
+            Dictionary containing entry/exit conditions and parameters
         """
         try:
-            if not self.llm:
-                await self.initialize()
-
-            return await self.llm.generate_trading_rules(
-                strategy_insights,
-                market_context,
-                performance_analysis=performance_analysis,
-            )
-
+            # Generate rules using LLM
+            rules = await self.llm.generate_trading_rules(strategy, market_context)
+            if not rules:
+                logger.error("Failed to generate trading rules")
+                return {}
+                
+            conditions, parameters = rules
+            
+            # Ensure conditions is properly formatted for backtester
+            if not isinstance(conditions, dict):
+                logger.warning("Invalid conditions format from LLM, using defaults")
+                conditions = {
+                    'entry': ["(df_indicators['rsi'] < 30) & (df_indicators['price'] <= df_indicators['bb_lower'])"],
+                    'exit': ["(df_indicators['rsi'] > 70) | (df_indicators['price'] >= df_indicators['bb_upper'])"]
+                }
+                
+            # Validate and format conditions
+            formatted_conditions = {
+                'entry': [],
+                'exit': []
+            }
+            
+            # Process entry conditions
+            for condition in conditions.get('entry', []):
+                if isinstance(condition, str):
+                    # Replace any df[] references with df_indicators[]
+                    condition = condition.replace("df['", "df_indicators['").replace("data['", "df_indicators['")
+                    formatted_conditions['entry'].append(condition)
+                    
+            # Process exit conditions
+            for condition in conditions.get('exit', []):
+                if isinstance(condition, str):
+                    # Replace any df[] references with df_indicators[]
+                    condition = condition.replace("df['", "df_indicators['").replace("data['", "df_indicators['")
+                    formatted_conditions['exit'].append(condition)
+                    
+            # If no valid conditions found, use defaults
+            if not formatted_conditions['entry'] or not formatted_conditions['exit']:
+                logger.warning("No valid conditions found, using defaults")
+                formatted_conditions = {
+                    'entry': ["(df_indicators['rsi'] < 30) & (df_indicators['price'] <= df_indicators['bb_lower'])"],
+                    'exit': ["(df_indicators['rsi'] > 70) | (df_indicators['price'] >= df_indicators['bb_upper'])"]
+                }
+                
+            # Ensure parameters are properly formatted
+            formatted_parameters = {
+                'take_profit': float(parameters.get('take_profit', 0.05)),
+                'stop_loss': float(parameters.get('stop_loss', 0.03)),
+                'order_size': float(parameters.get('order_size', 0.1)),
+                'max_orders': int(parameters.get('max_orders', 3)),
+                'sl_window': int(parameters.get('sl_window', 400)),
+                'post_buy_delay': int(parameters.get('post_buy_delay', 2)),
+                'post_sell_delay': int(parameters.get('post_sell_delay', 5)),
+                'enable_sl_mod': bool(parameters.get('enable_sl_mod', False)),
+                'enable_tp_mod': bool(parameters.get('enable_tp_mod', False))
+            }
+            
+            # Add conditions to parameters for backtester
+            formatted_parameters['conditions'] = formatted_conditions
+            
+            return formatted_parameters
+            
         except Exception as e:
             logger.error(f"Error generating trading rules: {str(e)}")
-            return {}, {}
+            logger.exception("Full traceback:")
+            return {}
 
     async def improve_strategy(
         self, metrics: Dict[str, float], trade_memory_stats: Dict[str, Any]

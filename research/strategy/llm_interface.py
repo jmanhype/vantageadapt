@@ -492,72 +492,129 @@ You MUST respond with ONLY a JSON object containing improved strategy parameters
     async def generate_trading_rules(
         self,
         strategy_insights: StrategyInsight,
-        market_context: MarketContext,
-        performance_analysis: Optional[Dict[str, Any]] = None
+        market_context: MarketContext
     ) -> Tuple[Dict[str, List[str]], Dict[str, Any]]:
-        """Generate specific trading rules and parameters.
+        """Generate trading rules based on strategy insights and market context.
         
         Args:
             strategy_insights: Strategy insights object
             market_context: Market context object
-            performance_analysis: Optional performance analysis for strategy improvement
             
         Returns:
             Tuple of (conditions dict, parameters dict)
         """
         try:
-            # Get prompts from prompt manager
-            system_prompt = self.prompt_manager.get_prompt_content('trading/rules_generation', 'system')
-            user_prompt = self.prompt_manager.get_prompt_content('trading/rules_generation', 'user_template')
-            
-            if not system_prompt or not user_prompt:
-                raise ValueError("Failed to load rules generation prompts")
+            # Load rules generation prompt
+            prompt = self.prompt_manager.get_prompt_content('trading/rules_generation')
+            if not prompt:
+                logger.error("Rules generation prompt not found")
+                return {}, {}
                 
-            # Format user prompt with insights and context
-            user_prompt = user_prompt.format(
-                strategy=json.dumps(strategy_insights.to_dict(), indent=2),
-                market_context=json.dumps(market_context.to_dict(), indent=2)
-            )
+            # Create system message with explicit Python code requirements
+            system_prompt = """You are an expert trading rules generator.
+
+Your task is to generate specific trading rules that implement a given trading strategy.
+
+IMPORTANT: You must respond with ONLY a JSON object in the following format, where conditions MUST be valid Python code:
+{
+    "conditions": {
+        "entry": [
+            "(df_indicators['rsi'] < 30) & (df_indicators['price'] <= df_indicators['bb_lower'])"
+        ],
+        "exit": [
+            "(df_indicators['rsi'] > 70) | (df_indicators['price'] >= df_indicators['bb_upper'])"
+        ]
+    },
+    "parameters": {
+        "take_profit": 0.05,
+        "stop_loss": 0.03,
+        "order_size": 0.1,
+        "max_orders": 3,
+        "sl_window": 400,
+        "post_buy_delay": 2,
+        "post_sell_delay": 5,
+        "enable_sl_mod": false,
+        "enable_tp_mod": false
+    }
+}
+
+Available indicators in df_indicators:
+- price: Current price
+- rsi: Relative Strength Index
+- bb_upper: Bollinger Band Upper
+- bb_lower: Bollinger Band Lower
+- bb_mid: Bollinger Band Middle
+- macd: MACD Line
+- macd_signal: MACD Signal Line
+
+Rules:
+1. ALL conditions must be valid Python expressions using only the available indicators
+2. Use only mathematical and logical operators (>, <, >=, <=, &, |)
+3. NO natural language descriptions - only Python code
+4. Each condition must evaluate to a boolean value
+5. Parameters must be numeric values within reasonable ranges"""
+
+            # Create user message with strategy and market context
+            user_message = f"""Please generate specific trading rules as a JSON object based on the following strategy and market context:
+
+Strategy:
+{json.dumps(strategy_insights.to_dict(), indent=2)}
+
+Market Context:
+{json.dumps(market_context.to_dict(), indent=2)}
+
+Remember:
+1. Conditions must be valid Python code using available indicators
+2. Use support/resistance levels from market context to inform indicator thresholds
+3. Parameters should align with the strategy's risk/reward profile"""
+
+            # Generate rules
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ]
             
-            # Get LLM rules
-            response = self.chat_completion(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                response_format={"type": "json_object"}
-            )
-            
-            if not response:
-                raise ValueError("Failed to get trading rules from LLM")
+            response = await self.llm.agenerate(messages)
+            if not response or not response.generations:
+                logger.error("No response from LLM")
+                return {}, {}
                 
-            # Parse response
-            rules_data = self.parse_json_response(response)
-            if not rules_data:
-                raise ValueError("Failed to parse rules response")
+            # Extract the response text
+            response_text = response.generations[0].text
+            if not response_text:
+                logger.error("Empty response from LLM")
+                return {}, {}
                 
-            # Extract conditions and parameters
-            conditions = {
-                'entry': rules_data.get('entry_conditions', []),
-                'exit': rules_data.get('exit_conditions', [])
-            }
-            
-            parameters = {
-                'take_profit': float(rules_data.get('exit_conditions', {}).get('take_profit', 0.05)),
-                'stop_loss': float(rules_data.get('exit_conditions', {}).get('stop_loss', 0.03)),
-                'order_size': float(rules_data.get('position_sizing', {}).get('base_position', 0.1)),
-                'max_orders': int(rules_data.get('position_sizing', {}).get('max_position', 3)),
-                'sl_window': int(rules_data.get('risk_management', {}).get('sl_window', 400)),
-                'post_buy_delay': int(rules_data.get('risk_management', {}).get('post_buy_delay', 2)),
-                'post_sell_delay': int(rules_data.get('risk_management', {}).get('post_sell_delay', 5)),
-                'enable_sl_mod': bool(rules_data.get('risk_management', {}).get('enable_sl_mod', False)),
-                'enable_tp_mod': bool(rules_data.get('risk_management', {}).get('enable_tp_mod', False))
-            }
-            
-            return conditions, parameters
-            
+            try:
+                rules = json.loads(response_text)
+                conditions = rules.get('conditions', {})
+                parameters = rules.get('parameters', {})
+                
+                # Validate conditions are Python code
+                for condition_list in conditions.values():
+                    for condition in condition_list:
+                        if not isinstance(condition, str):
+                            continue
+                        # Check for natural language
+                        if any(word in condition.lower() for word in ['touches', 'level', 'signs', 'change', 'confidence']):
+                            logger.warning(f"Invalid condition format: {condition}")
+                            return {}, {}
+                        # Try to compile condition
+                        try:
+                            compile(condition, '<string>', 'eval')
+                        except SyntaxError:
+                            logger.warning(f"Invalid Python syntax in condition: {condition}")
+                            return {}, {}
+                            
+                return conditions, parameters
+                
+            except json.JSONDecodeError:
+                logger.error("Failed to parse LLM response as JSON")
+                return {}, {}
+                
         except Exception as e:
             logger.error(f"Error generating trading rules: {str(e)}")
+            logger.exception("Full traceback:")
             return {}, {}
 
     async def analyze_performance(self, metrics: Dict[str, float], trade_memory_stats: Dict[str, Any]) -> Dict[str, Any]:
