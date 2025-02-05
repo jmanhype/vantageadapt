@@ -18,7 +18,7 @@ from research.database import db
 from research.strategy.strategy_generator import StrategicTrader
 from research.analysis.trade_analyzer import TradeAnalyzer
 from research.visualization.trade_visualizer import TradeVisualizer
-from research.strategy.godel_agent import GodelAgent
+from research.strategy.godel_agent import GodelAgent as Agent
 from research.strategy.memory_manager import TradingMemoryManager
 from backtester import load_trade_data, calculate_stats, run_parameter_optimization
 
@@ -164,8 +164,8 @@ async def run_strategy(theme: str, trade_data: Dict[str, pd.DataFrame]) -> Optio
     if not memory_manager.enabled:
         logger.warning("Memory system not enabled, continuing without memory capabilities")
     
-    # Initialize Gödel Agent
-    agent = GodelAgent(improvement_threshold=0.1, max_iterations=5,
+    # Initialize Improvement Agent
+    agent = Agent(improvement_threshold=0.1, max_iterations=5,
                       backup_dir="backups", prompt_dir="prompts/trading")
     
     # Initialize trader using async factory method
@@ -414,7 +414,7 @@ async def main():
         logger.error("Failed to load trade data")
         return
     
-    # Run strategy with Gödel Agent
+    # Run strategy with Improvement Agent
     logger.info(f"\nRunning strategy with theme: {args.theme}")
     result = await run_strategy(args.theme, trade_data)
     
