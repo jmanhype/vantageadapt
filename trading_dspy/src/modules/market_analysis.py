@@ -1,6 +1,6 @@
 """Market analysis module using DSPy."""
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 import pandas as pd
 from loguru import logger
 import dspy
@@ -9,6 +9,8 @@ import time
 import json
 
 from ..utils.prompt_manager import PromptManager
+from ..utils.types import MarketRegime
+from .market_regime import MarketRegimeClassifier
 
 
 class MarketAnalyzer(ChainOfThought):
@@ -24,10 +26,11 @@ class MarketAnalyzer(ChainOfThought):
         
         # Define predictor with proper signature
         signature = dspy.Signature(
-            "market_data, timeframe -> market_context, analysis_text, risk_level",
+            "market_data: dict, timeframe: str, prompt: str -> "
+            "regime: str, confidence: float, risk_level: str, analysis: str",
             instructions=(
-                "Given the financial market data and timeframe, analyze the market conditions and provide detailed insights. "
-                "Return market_context as a JSON string containing 'regime' and 'confidence' fields."
+                "Given the financial market data, timeframe, and prompt, analyze the market conditions and provide detailed insights. "
+                "Return the market regime, confidence level, risk assessment, and detailed analysis."
             )
         )
         self.predictor = Predict(signature)
@@ -35,6 +38,10 @@ class MarketAnalyzer(ChainOfThought):
         # Initialize with signature
         super().__init__(signature)
         self.prompt_manager = prompt_manager
+        
+        # Initialize regime classifier
+        logger.info("Initializing regime classifier")
+        self.regime_classifier = MarketRegimeClassifier()
 
     def _prepare_market_data(self, market_data: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare market data for analysis by reducing data points.
@@ -69,119 +76,202 @@ class MarketAnalyzer(ChainOfThought):
         
         return recent_data
 
-    def _parse_market_context(self, context_str: str) -> Dict[str, Any]:
-        """Parse market context from string to dictionary.
-        
+    def _parse_market_context(self, result: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """Parse market context from predictor response.
+
         Args:
-            context_str: Market context as a string
-            
+            result: The response from the predictor, either as a string or dict.
+
         Returns:
-            Parsed market context dictionary
+            Dict containing the parsed market context with regime, confidence,
+            risk level and analysis text.
         """
         try:
-            # Try to parse as JSON first
-            return json.loads(context_str)
-        except json.JSONDecodeError:
-            # If not valid JSON, try to extract regime and confidence from text
-            logger.warning("Failed to parse market context as JSON, falling back to text extraction")
-            context = {"regime": "unknown", "confidence": 0.0}
+            # If result is already a dict with the expected fields, use it directly
+            if isinstance(result, dict):
+                return {
+                    "regime": result.get("regime", MarketRegime.UNKNOWN.value),
+                    "confidence": result.get("confidence", 0.0),
+                    "risk_level": result.get("risk_level", "unknown"),
+                    "analysis_text": result.get("analysis", "No analysis provided")
+                }
+
+            # Clean the text response
+            cleaned_text = result.strip()
             
-            # Look for regime in text
-            if "uptrend" in context_str.lower():
-                context["regime"] = "uptrend"
-            elif "downtrend" in context_str.lower():
-                context["regime"] = "downtrend"
-            elif "ranging" in context_str.lower():
-                context["regime"] = "ranging"
-            elif "high_volatility" in context_str.lower():
-                context["regime"] = "high_volatility"
+            # Remove code block markers if present
+            if cleaned_text.startswith("```json"):
+                cleaned_text = cleaned_text[7:]
+            if cleaned_text.endswith("```"):
+                cleaned_text = cleaned_text[:-3]
+            
+            # Parse JSON response
+            try:
+                parsed = json.loads(cleaned_text)
+                return {
+                    "regime": parsed.get("regime", MarketRegime.UNKNOWN.value),
+                    "confidence": parsed.get("confidence", 0.0),
+                    "risk_level": parsed.get("risk_level", "unknown"),
+                    "analysis_text": parsed.get("analysis", "No analysis provided")
+                }
+            except json.JSONDecodeError as e:
+                logger.error("Error parsing JSON response: {}", str(e))
+                return {
+                    "regime": MarketRegime.UNKNOWN.value,
+                    "confidence": 0.0,
+                    "risk_level": "unknown",
+                    "analysis_text": f"Error parsing response: {str(e)}"
+                }
                 
-            # Look for confidence value
-            import re
-            confidence_match = re.search(r'confidence[:\s]+(\d+\.?\d*)', context_str.lower())
-            if confidence_match:
-                context["confidence"] = float(confidence_match.group(1))
-                
-            return context
+        except Exception as e:
+            logger.error("Error parsing market context: {}", str(e))
+            return {
+                "regime": MarketRegime.UNKNOWN.value,
+                "confidence": 0.0,
+                "risk_level": "unknown",
+                "analysis_text": f"Error in analysis: {str(e)}"
+            }
 
     def forward(self, market_data: Dict[str, Any], timeframe: str) -> Dict[str, Any]:
         """Analyze market data and generate context.
-        
+
         Args:
-            market_data: Dictionary containing market data
-            timeframe: Analysis timeframe
-            
+            market_data: Dictionary containing market data.
+            timeframe: Timeframe for analysis.
+
         Returns:
-            Dictionary containing market analysis results
+            Dictionary containing market context and analysis.
         """
         try:
-            start_time = time.time()
+            # Get market analysis prompt template
             logger.info("Starting market analysis for timeframe: {}", timeframe)
-            
-            # Get and format the prompt
             logger.info("Fetching market analysis prompt template")
-            prompt = self.prompt_manager.get_prompt("market_analysis")
-            if not prompt:
-                raise ValueError("Market analysis prompt not found")
-                
-            # Extract and prepare recent data
+            prompt_template = self.prompt_manager.get_prompt("market_analysis")
+            if not prompt_template:
+                raise ValueError("Market analysis prompt template not found")
+            
+            # Extract and prepare recent market data
             logger.info("Extracting and preparing recent market data")
-            prepared_data = self._prepare_market_data(market_data)
-            logger.debug("Prepared data summary: price_change={:.2f}%, avg_volume={:.2f}",
-                        prepared_data['summary']['price_change_pct'],
-                        prepared_data['summary']['avg_volume'])
-                
-            # Format prompt with reduced data
+            recent_data = self._prepare_market_data(market_data)
+            logger.debug("Prepared data summary: price_change={:.2f}%, avg_volume={:.2f}", 
+                        recent_data["summary"]["price_change_pct"],
+                        recent_data["summary"]["avg_volume"])
+            
+            # Get initial regime classification
+            logger.info("Getting initial regime classification")
+            regime_result = self.regime_classifier.forward(market_data=market_data, timeframe=timeframe)
+            regime_context = regime_result.get("market_context", {})
+            
+            # Format prompt with prepared market data and regime
             logger.info("Formatting prompt with prepared market data")
-            formatted_prompt = self.prompt_manager.format_prompt(
-                prompt,
-                prices=prepared_data['prices'],
-                volumes=prepared_data['volumes'],
-                indicators=prepared_data['indicators'],
-                summary=prepared_data['summary'],
-                timeframe=timeframe
-            )
-            logger.debug("Formatted prompt length: {} characters", len(formatted_prompt))
-
-            # Generate analysis using predictor
-            logger.info("Making API call to GPT for market analysis...")
-            api_start_time = time.time()
+            try:
+                formatted_prompt = self.prompt_manager.format_prompt(
+                    template=prompt_template,
+                    timeframe=timeframe,
+                    current_regime=regime_context.get("regime", MarketRegime.UNKNOWN.value),
+                    prices=recent_data['prices'],
+                    volumes=recent_data['volumes'],
+                    indicators=recent_data['indicators'],
+                    price_change_pct=recent_data['summary']['price_change_pct'],
+                    avg_volume=recent_data['summary']['avg_volume'],
+                    current_price=recent_data['summary']['current_price'],
+                    current_volume=recent_data['summary']['current_volume']
+                )
+            except KeyError as e:
+                logger.error(f"Error formatting prompt: {e}")
+                logger.error("Recent data keys: {}", list(recent_data.keys()))
+                logger.error("Summary keys: {}", list(recent_data.get('summary', {}).keys()))
+                raise
+            
+            # Log prompt length for debugging
+            logger.debug("Formatted prompt length: {}", len(formatted_prompt))
+            
+            # Call predictor with formatted prompt
+            logger.info("Calling predictor with formatted prompt")
             result = self.predictor(
-                market_data=prepared_data,
-                timeframe=timeframe
+                market_data=recent_data,
+                timeframe=timeframe,
+                prompt=formatted_prompt
             )
-            api_duration = time.time() - api_start_time
-            logger.info("API call completed in {:.2f} seconds", api_duration)
-
-            # Extract results from prediction
-            logger.info("Processing API response")
             
-            # Parse market context from string
-            market_context = self._parse_market_context(result.market_context)
+            # Get the response text from the result
+            if hasattr(result, 'regime'):
+                # Result is already in the expected format
+                market_context = {
+                    "regime": result.regime,
+                    "confidence": float(result.confidence),
+                    "risk_level": result.risk_level,
+                    "analysis_text": result.analysis
+                }
+                return {
+                    "market_context": {
+                        "regime": market_context["regime"],
+                        "confidence": market_context["confidence"],
+                        "risk_level": market_context["risk_level"]
+                    },
+                    "analysis_text": market_context["analysis_text"]
+                }
+            elif hasattr(result, 'text'):
+                response_text = result.text
+            elif hasattr(result, 'analysis_text'):
+                response_text = result.analysis_text
+            elif isinstance(result, str):
+                response_text = result
+            elif isinstance(result, dict):
+                # If result is already a dict with the expected fields, use it directly
+                market_context = {
+                    "regime": result.get("regime", MarketRegime.UNKNOWN.value),
+                    "confidence": result.get("confidence", 0.0),
+                    "risk_level": result.get("risk_level", "unknown"),
+                    "analysis_text": result.get("analysis", "No analysis provided")
+                }
+                return {
+                    "market_context": {
+                        "regime": market_context["regime"],
+                        "confidence": market_context["confidence"],
+                        "risk_level": market_context["risk_level"]
+                    },
+                    "analysis_text": market_context["analysis_text"]
+                }
+            else:
+                response_text = json.dumps({
+                    "regime": MarketRegime.UNKNOWN.value,
+                    "confidence": 0.0,
+                    "risk_level": "unknown",
+                    "analysis": "Failed to get response text from predictor"
+                })
             
-            # Create response using parsed results
+            # Parse market context from response text
+            market_context = self._parse_market_context(response_text)
+            
+            # Create response
             response = {
-                "market_context": market_context,
-                "analysis_text": result.analysis_text,
-                "risk_level": result.risk_level or "unknown"
+                "market_context": {
+                    "regime": market_context["regime"],
+                    "confidence": market_context["confidence"],
+                    "risk_level": market_context["risk_level"]
+                },
+                "analysis_text": market_context["analysis_text"]
             }
             
-            total_duration = time.time() - start_time
-            logger.info("Market analysis completed in {:.2f} seconds", total_duration)
-            logger.info("Analysis results: regime={}, risk_level={}, confidence={}",
+            logger.info("Market analysis completed successfully")
+            logger.info("Regime: {}, Confidence: {:.2f}, Risk Level: {}", 
                        response["market_context"]["regime"],
-                       response["risk_level"],
-                       response["market_context"]["confidence"])
+                       response["market_context"]["confidence"],
+                       response["market_context"]["risk_level"])
             
             return response
-
+            
         except Exception as e:
             logger.error("Error in market analysis: {}", str(e))
             logger.exception("Full traceback:")
             return {
-                "market_context": {},
-                "analysis_text": f"Analysis failed: {str(e)}",
-                "risk_level": "unknown"
+                "market_context": {
+                    "regime": MarketRegime.UNKNOWN.value,
+                    "confidence": 0.0,
+                    "risk_level": "unknown"
+                },
+                "analysis_text": f"Analysis failed: {str(e)}"
             }
 
 
@@ -226,16 +316,16 @@ class MarketRegimeClassifier(Module):
             # Determine regime
             logger.info("Determining market regime")
             if volatility and volatility > 0.02:  # High volatility threshold
-                regime = "high_volatility"
+                regime = MarketRegime.RANGING_HIGH_VOL.value
                 confidence = min(volatility * 50, 1.0)  # Scale confidence with volatility
             elif current_price > sma_20 and sma_20 > sma_50:
-                regime = "uptrend"
+                regime = MarketRegime.TRENDING_BULLISH.value
                 confidence = min((current_price - sma_50) / sma_50 * 5, 1.0)
             elif current_price < sma_20 and sma_20 < sma_50:
-                regime = "downtrend"
+                regime = MarketRegime.TRENDING_BEARISH.value
                 confidence = min((sma_50 - current_price) / sma_50 * 5, 1.0)
             else:
-                regime = "ranging"
+                regime = MarketRegime.RANGING_LOW_VOL.value
                 confidence = 0.6  # Default confidence for ranging market
 
             response = {
@@ -244,7 +334,7 @@ class MarketRegimeClassifier(Module):
                     "confidence": float(confidence)
                 },
                 "analysis_text": f"Market is in {regime} regime with {confidence:.2f} confidence",
-                "risk_level": "high" if regime == "high_volatility" else "moderate"
+                "risk_level": "high" if regime == MarketRegime.RANGING_HIGH_VOL.value else "moderate"
             }
             
             total_duration = time.time() - start_time
@@ -260,7 +350,7 @@ class MarketRegimeClassifier(Module):
             logger.error("Error in regime classification: {}", str(e))
             logger.exception("Full traceback:")
             return {
-                "market_context": {"regime": "unknown", "confidence": 0.0},
+                "market_context": {"regime": MarketRegime.UNKNOWN.value, "confidence": 0.0},
                 "analysis_text": f"Classification failed: {str(e)}",
                 "risk_level": "unknown"
             } 

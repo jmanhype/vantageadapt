@@ -7,13 +7,17 @@ import pandas as pd
 from loguru import logger
 import dspy
 import time
+import os
+from dotenv import load_dotenv
 
-from .modules.market_analysis import MarketAnalyzer, MarketRegimeClassifier
+from .modules.market_analysis import MarketAnalyzer
+from .modules.market_regime import MarketRegimeClassifier
 from .modules.strategy_generator import StrategyGenerator
 from .modules.trading_rules import TradingRulesGenerator
 from .modules.backtester import Backtester
 from .utils.prompt_manager import PromptManager
 from .utils.memory_manager import TradingMemoryManager
+from .utils.types import StrategyContext, MarketRegime, BacktestResults
 
 
 class TradingPipeline:
@@ -36,6 +40,9 @@ class TradingPipeline:
             prompts_dir: Directory for prompts
             performance_thresholds: Optional performance thresholds
         """
+        # Load environment variables
+        load_dotenv()
+        
         logger.info("Initializing TradingPipeline with model: {}", model)
         
         # Initialize DSPy with OpenAI
@@ -46,7 +53,16 @@ class TradingPipeline:
         # Initialize managers
         logger.info("Initializing managers")
         self.prompt_manager = PromptManager(prompts_dir)
-        self.memory_manager = TradingMemoryManager(memory_dir)
+        # Use MEM0_API_KEY from environment for memory manager
+        self.memory_manager = TradingMemoryManager(api_key=os.getenv("MEM0_API_KEY"))
+        
+        # Set default performance thresholds if not provided
+        if performance_thresholds is None:
+            performance_thresholds = {
+                'min_return': 0.10,
+                'min_trades': 10,
+                'max_drawdown': 0.20
+            }
         
         # Initialize modules
         logger.info("Initializing pipeline modules")
@@ -54,177 +70,109 @@ class TradingPipeline:
         self.regime_classifier = MarketRegimeClassifier()
         self.strategy_generator = StrategyGenerator(self.prompt_manager, self.memory_manager)
         self.trading_rules_generator = TradingRulesGenerator(self.prompt_manager)
-        self.backtester = Backtester(performance_thresholds)
+        self.backtester = Backtester(performance_thresholds=performance_thresholds)
+        
+        # Store configuration
+        self.model = model
+        self.performance_thresholds = performance_thresholds
         
         logger.info("Trading pipeline initialized successfully")
 
-    def run(
-        self,
-        market_data: Dict[str, Any],
-        timeframe: str,
-        trading_theme: str,
-        max_iterations: int = 5
-    ) -> Dict[str, Any]:
+    def run(self, market_data: Dict[str, Any], num_iterations: int = 5, timeframe: str = "1min") -> Dict[str, Any]:
         """Run the trading pipeline.
         
         Args:
-            market_data: Dictionary containing market data
-            timeframe: Timeframe for analysis
-            trading_theme: Theme for strategy generation
-            max_iterations: Maximum optimization iterations
+            market_data: Market data dictionary containing preprocessed data
+            num_iterations: Number of iterations to run
+            timeframe: Timeframe for analysis (default: "1min")
             
         Returns:
-            Dictionary containing final results
+            Dictionary containing pipeline results
         """
         try:
-            pipeline_start_time = time.time()
             logger.info("Starting trading pipeline execution")
-            logger.info("Market data summary: {} data points from {} to {}",
-                       len(market_data['prices']),
-                       market_data.get('dates', ['unknown'])[0],
-                       market_data.get('dates', ['unknown'])[-1])
+            raw_data = market_data.get('raw_data')
+            if raw_data is not None:
+                logger.info("Market data summary: {} data points from {} to {}", 
+                           len(raw_data),
+                           raw_data.index[0],
+                           raw_data.index[-1])
             
-            best_result = None
-            best_metrics = None
+            # Query memory for recent performance
+            recent_performance = self.memory_manager.get_recent_performance()
+            if recent_performance:
+                logger.info("Current system performance:")
+                logger.info("  Total Strategies: {}", recent_performance.get("strategies_analyzed", 0))
+                logger.info("  Total Trades: {}", recent_performance.get("total_trades", 0))
+                logger.info("  Overall Win Rate: {:.2f}", recent_performance.get("overall_win_rate", 0))
             
-            for iteration in range(max_iterations):
-                iteration_start_time = time.time()
-                logger.info("\nStarting iteration {} of {}", iteration + 1, max_iterations)
+            results = []
+            for i in range(num_iterations):
+                logger.info("\nStarting iteration {} of {}", i + 1, num_iterations)
                 
-                # 1. Market Analysis
+                # Step 1: Market Analysis
                 logger.info("Step 1: Market Analysis")
                 market_context = self.analyze_market(market_data, timeframe)
-                if not market_context:
-                    logger.warning("Market analysis failed, skipping iteration")
-                    continue
+                logger.info("Market regime: {}", market_context.get("regime", "UNKNOWN"))
+                logger.info("Risk level: {}", market_context.get("risk_level", "unknown"))
                 
-                logger.info("Market regime: {}", market_context.get('regime'))
-                logger.info("Risk level: {}", market_context.get('risk_level'))
-                
-                # 2. Strategy Generation
+                # Step 2: Strategy Generation
                 logger.info("Step 2: Strategy Generation")
-                strategy = self.generate_strategy(market_context, trading_theme)
-                if not strategy:
-                    logger.warning("Strategy generation failed, skipping iteration")
-                    continue
+                strategy_insights = self.generate_strategy(market_context, recent_performance)
+                logger.info("Generated strategy with confidence: {:.2f}", strategy_insights.get("confidence", 0))
                 
-                logger.info("Generated strategy with confidence: {:.2f}", strategy.get('confidence', 0.0))
-                
-                # 3. Trading Rules Generation
+                # Step 3: Trading Rules Generation
                 logger.info("Step 3: Trading Rules Generation")
-                # Ensure strategy has parameters
-                if 'parameters' not in strategy:
-                    strategy['parameters'] = {}
-                    
-                # Set default parameters if not provided
-                default_params = {
-                    'stop_loss': 0.02,
-                    'take_profit': 0.04,
-                    'position_size': 0.1
-                }
-                
-                # Update strategy parameters with defaults if missing
-                for param, default_value in default_params.items():
-                    if param not in strategy['parameters']:
-                        strategy['parameters'][param] = default_value
-                    # Ensure parameters are floats
-                    else:
-                        try:
-                            strategy['parameters'][param] = float(strategy['parameters'][param])
-                        except (ValueError, TypeError):
-                            strategy['parameters'][param] = default_value
-                
-                # Create strategy insights with parameters
-                strategy_insights = {
-                    'reasoning': strategy.get('reasoning', ''),
-                    'trade_signal': strategy.get('trade_signal', ''),
-                    'parameters': strategy['parameters'],
-                    'confidence': strategy.get('confidence', 0.0),
-                    'entry_conditions': strategy.get('entry_conditions', []) if isinstance(strategy.get('entry_conditions'), list) else strategy.get('parameters', {}).get('entry_conditions', []),
-                    'exit_conditions': strategy.get('exit_conditions', []) if isinstance(strategy.get('exit_conditions'), list) else strategy.get('parameters', {}).get('exit_conditions', [])
-                }
-                
-                # Log parameters for debugging
-                logger.debug("Strategy parameters: {}", strategy['parameters'])
-                logger.debug("Entry conditions: {}", strategy_insights['entry_conditions'])
-                logger.debug("Exit conditions: {}", strategy_insights['exit_conditions'])
-                
                 rules = self.generate_trading_rules(strategy_insights, market_context)
-                if not rules:
-                    logger.warning("Trading rules generation failed, skipping iteration")
-                    continue
                 
-                # 4. Backtesting
+                # Debug log the strategy parameters and conditions
+                if "parameters" in strategy_insights:
+                    logger.debug("Strategy parameters: {}", strategy_insights["parameters"])
+                if "entry_conditions" in strategy_insights:
+                    logger.debug("Entry conditions: {}", strategy_insights["entry_conditions"])
+                if "exit_conditions" in strategy_insights:
+                    logger.debug("Exit conditions: {}", strategy_insights["exit_conditions"])
+                
+                # Step 4: Backtesting
                 logger.info("Step 4: Backtesting")
-                result = self.backtest(
-                    market_data,
-                    rules['parameters'],
-                    rules['conditions']
-                )
-                
-                if not result:
-                    logger.warning("Backtesting failed, skipping iteration")
-                    continue
-                
-                metrics = result.get('metrics', {})
-                
-                # Track best result
-                if (best_metrics is None or 
-                    metrics.get('total_return', 0) > best_metrics.get('total_return', 0)):
-                    best_metrics = metrics
-                    best_result = {
-                        'strategy': strategy,
-                        'rules': rules,
-                        'performance': metrics
-                    }
-                    
-                    # Store successful strategy
-                    logger.info("New best strategy found")
-                    logger.info("Performance metrics:")
-                    for metric, value in metrics.items():
-                        logger.info("  {}: {:.4f}", metric, value)
-                    
-                    self.memory_manager.store_strategy_results(
-                        context={
-                            'market_regime': market_context.get('regime'),
-                            'parameters': rules['parameters']
-                        },
-                        results=result,
-                        iteration=iteration
+                if rules and "conditions" in rules:
+                    backtest_results = self.backtest(
+                        market_data,
+                        strategy_insights.get("parameters", {}),
+                        rules["conditions"]
                     )
-                    logger.info("New best strategy found with return: {:.4f}", metrics.get('total_return') or 0.0)
+                    
+                    if backtest_results:
+                        results.append({
+                            "market_context": market_context,
+                            "strategy": strategy_insights,
+                            "rules": rules,
+                            "performance": backtest_results
+                        })
                 
-                # Check if performance meets requirements
-                if result.get('validation_passed'):
-                    logger.info("Strategy meets performance requirements!")
-                    break
-                
-                iteration_duration = time.time() - iteration_start_time
-                logger.info("Iteration {} completed in {:.2f} seconds", iteration + 1, iteration_duration)
+                # Update memory with results
+                if results:
+                    # Store the last iteration's results
+                    last_result = results[-1]
+                    self.memory_manager.store_strategy_results(
+                        context=last_result["market_context"],
+                        results=last_result["performance"],
+                        iteration=len(results)
+                    )
             
-            if best_result is None:
-                logger.warning("No successful strategy found")
-                return {'error': 'No valid strategy found'}
-                
-            pipeline_duration = time.time() - pipeline_start_time
-            logger.info("\nStrategy generation completed in {:.2f} seconds", pipeline_duration)
-            logger.info("Best metrics:")
-            for metric, value in best_metrics.items():
-                logger.info("  {}: {:.4f}", metric, value)
+            return {"iterations": results} if results else {}
             
-            return best_result
-
         except Exception as e:
             logger.error("Error in pipeline execution: {}", str(e))
             logger.exception("Full traceback:")
-            return {'error': str(e)}
+            return {}
 
-    def analyze_market(self, market_data: Dict[str, Any], timeframe: str) -> Dict[str, Any]:
+    def analyze_market(self, market_data: Dict[str, Any], timeframe: str = "1min") -> Dict[str, Any]:
         """Run market analysis.
         
         Args:
-            market_data: Market data
-            timeframe: Analysis timeframe
+            market_data: Market data dictionary containing preprocessed data
+            timeframe: Timeframe for analysis (default: "1min")
             
         Returns:
             Market context dictionary
@@ -236,14 +184,14 @@ class TradingPipeline:
             # Get initial regime classification
             logger.info("Running regime classification")
             regime = self.regime_classifier.forward(
-                market_data=market_data,
+                market_data=market_data,  # Pass the preprocessed dictionary
                 timeframe=timeframe
             )
             
             # Get detailed analysis
             logger.info("Running detailed market analysis")
             analysis = self.market_analyzer.forward(
-                market_data=market_data,
+                market_data=market_data,  # Pass the preprocessed dictionary
                 timeframe=timeframe
             )
             
@@ -267,35 +215,80 @@ class TradingPipeline:
     def generate_strategy(
         self,
         market_context: Dict[str, Any],
-        trading_theme: str
+        recent_performance: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Generate trading strategy.
         
         Args:
             market_context: Market context
-            trading_theme: Strategy theme
+            recent_performance: Recent performance metrics
             
         Returns:
-            Strategy dictionary
+            Strategy insights dictionary
         """
         try:
             start_time = time.time()
             logger.info("Starting strategy generation phase")
             
-            # Query similar strategies from memory
+            # Query similar strategies from memory with pagination
             logger.info("Querying similar strategies from memory")
+            page = 1
+            page_size = 5
             similar_strategies = self.memory_manager.query_similar_strategies(
-                market_context.get('regime', 'unknown')
+                market_context.get('regime', 'unknown'),
+                page=page,
+                page_size=page_size
             )
-            logger.info("Found {} similar strategies", len(similar_strategies))
+            
+            total_strategies = len(similar_strategies)
+            logger.info(f"Found {total_strategies} similar strategies on page {page}")
+            
+            # If we have strategies, log their performance
+            if similar_strategies:
+                logger.info("Top performing similar strategies:")
+                for i, strat in enumerate(similar_strategies[:3], 1):
+                    logger.info(
+                        f"{i}. Return: {strat['performance']['total_return']:.2f}, "
+                        f"Win Rate: {strat['performance']['win_rate']:.2f}, "
+                        f"Score: {strat['score']:.2f}"
+                    )
+            
+            # Get recent performance metrics
+            recent_performance = self.memory_manager.get_recent_performance(lookback_days=7)
+            logger.info("Recent strategy performance (7 days):")
+            logger.info(f"  Total Trades: {recent_performance['total_trades']}")
+            logger.info(f"  Avg Return: {recent_performance['avg_return']:.2f}")
+            logger.info(f"  Win Rate: {recent_performance['overall_win_rate']:.2f}")
             
             # Generate strategy
             logger.info("Generating new strategy")
             strategy = self.strategy_generator.forward(
                 market_context=market_context,
-                theme=trading_theme,
-                base_parameters=similar_strategies[0]['context'].get('parameters') if similar_strategies else None
+                theme="default",
+                base_parameters=similar_strategies[0]['parameters'] if similar_strategies else None
             )
+            
+            # Create StrategyContext object
+            if strategy:
+                # Extract parameters for StrategyContext
+                parameters = {
+                    **strategy.get('parameters', {}),
+                    'entry_conditions': strategy.get('entry_conditions', []),
+                    'exit_conditions': strategy.get('exit_conditions', []),
+                    'indicators': strategy.get('indicators', []),
+                    'strategy_type': strategy.get('strategy_type', 'default')
+                }
+                
+                strategy_context = StrategyContext(
+                    regime=MarketRegime(market_context.get('regime', 'UNKNOWN')),
+                    confidence=strategy.get('confidence', 0.0),
+                    risk_level=market_context.get('risk_level', 'unknown'),
+                    parameters=parameters,
+                    opportunity_score=0.0
+                )
+                
+                # Store the strategy context
+                self.memory_manager.store_strategy(strategy_context)
             
             # Validate strategy
             logger.info("Validating generated strategy")
@@ -336,6 +329,13 @@ class TradingPipeline:
                 market_context=market_context
             )
             
+            # Restructure the conditions if needed
+            if rules and ('entry_conditions' in rules or 'exit_conditions' in rules):
+                rules['conditions'] = {
+                    'entry': rules.get('entry_conditions', []),
+                    'exit': rules.get('exit_conditions', [])
+                }
+            
             duration = time.time() - start_time
             logger.info("Trading rules generation completed in {:.2f} seconds", duration)
             return rules
@@ -351,67 +351,53 @@ class TradingPipeline:
         parameters: Dict[str, Any],
         conditions: Dict[str, List[str]]
     ) -> Dict[str, Any]:
-        """Run backtest.
+        """Run backtesting.
         
         Args:
-            market_data: Market data
+            market_data: Market data dictionary containing preprocessed data
             parameters: Strategy parameters
-            conditions: Trading conditions
+            conditions: Dictionary containing entry/exit conditions
             
         Returns:
-            Backtest results
+            Dictionary containing backtest results
         """
         try:
-            start_time = time.time()
-            logger.info("Starting backtesting phase")
-            logger.info("Testing {} entry conditions and {} exit conditions",
-                       len(conditions.get('entry', [])),
-                       len(conditions.get('exit', [])))
+            # Ensure conditions are in the correct format
+            if not isinstance(conditions, dict) or 'entry' not in conditions or 'exit' not in conditions:
+                logger.error("Invalid conditions format")
+                return {}
             
-            # Extract trade data
-            if isinstance(market_data, dict):
-                if "raw_data" in market_data:
-                    trade_data = market_data["raw_data"]
-                else:
-                    # Create trade data from market data components
-                    trade_data = pd.DataFrame({
-                        'timestamp': pd.date_range(start='2024-01-01', periods=len(market_data['prices']), freq='1min'),
-                        'dex_price': market_data['prices'],
-                        'sol_pool': market_data.get('volumes', [1] * len(market_data['prices'])),  # Default to 1 if not provided
-                        'coin_pool': [1] * len(market_data['prices'])  # Default to 1
-                    })
-            else:
-                trade_data = market_data
-                
-            # Ensure required columns exist
-            required_columns = ['timestamp', 'dex_price', 'sol_pool', 'coin_pool']
-            for col in required_columns:
-                if col not in trade_data.columns:
-                    if col == 'timestamp':
-                        trade_data[col] = pd.date_range(start='2024-01-01', periods=len(trade_data), freq='1min')
-                    elif col == 'dex_price' and 'close' in trade_data.columns:
-                        trade_data[col] = trade_data['close']
-                    else:
-                        trade_data[col] = 1.0  # Default value for missing columns
+            # Use the raw DataFrame directly
+            df = market_data['raw_data'].copy()
             
-            # Format trade data for backtester
-            formatted_trade_data = {
-                'default': trade_data
-            }
-            
-            result = self.backtester.forward(
-                trade_data=formatted_trade_data,
+            # Run backtesting with the prepared DataFrame
+            raw_results = self.backtester.forward(
+                trade_data={'$MICHI': df},  # Wrap in dict as backtester expects multiple assets
                 parameters=parameters,
                 conditions=conditions
             )
             
-            duration = time.time() - start_time
-            logger.info("Backtesting completed in {:.2f} seconds", duration)
-            if result:
-                logger.info("Backtest metrics:")
-                for metric, value in result.get('metrics', {}).items():
-                    logger.info("  {}: {:.4f}", metric, value)
-            return result
+            # Convert raw results to BacktestResults object
+            if raw_results and 'backtest_results' in raw_results:
+                br = raw_results['backtest_results']
+                metrics = br.get('metrics', {})
+                
+                # Extract stats from the first (and only) asset
+                stats_df = metrics.get('per_asset_stats', {})
+                total_return = sum(stats_df.get('total_return', {}).values())
+                
+                results = BacktestResults(
+                    total_return=float(total_return),
+                    total_pnl=float(br.get('total_pnl', 0.0)),
+                    sortino_ratio=float(metrics.get('trade_memory_stats', {}).get('sortino_ratio', 0.0)),
+                    win_rate=float(metrics.get('trade_memory_stats', {}).get('win_rate', 0.0)),
+                    total_trades=int(metrics.get('trade_memory_stats', {}).get('total_trades', 0)),
+                    trades=br.get('trades', {}),
+                    metrics=metrics
+                )
+                return {'backtest_results': results.to_dict()}
+            
+            return raw_results
 
         except Exception as e:
             logger.error("Error in backtesting: {}", str(e))

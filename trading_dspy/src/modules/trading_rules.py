@@ -106,7 +106,9 @@ class TradingRulesGenerator:
                 'reasoning': strategy_insights.get("reasoning", ""),
                 'available_indicators': json.dumps(available_indicators, indent=2),
                 'strategy_insights': strategy_insights_str,
-                'market_context': market_context_str
+                'market_context': market_context_str,
+                'entry_conditions': json.dumps(strategy_insights.get("entry_conditions", []), indent=2),
+                'exit_conditions': json.dumps(strategy_insights.get("exit_conditions", []), indent=2)
             }
 
             # Format the prompt with available indicators

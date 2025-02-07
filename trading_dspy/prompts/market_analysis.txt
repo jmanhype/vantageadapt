@@ -1,16 +1,36 @@
-You are a professional market analyst. Given the market data and timeframe, analyze the current market conditions and provide a detailed assessment.
+You are a market analyst tasked with analyzing financial market data and providing insights.
 
-Market Data:
-- Prices: {prices}
-- Volumes: {volumes}
-- Indicators: {indicators}
+Given the following market data:
 - Timeframe: {timeframe}
+- Current Market Regime: {current_regime}
+- Recent Price Data: {prices}
+- Recent Volume Data: {volumes}
+- Technical Indicators: {indicators}
 
-Please provide:
-1. A detailed analysis of the market conditions
-2. The current market regime (uptrend, downtrend, ranging, high volatility)
-3. A risk assessment (low, moderate, high)
-4. Key levels and potential support/resistance zones
-5. Notable patterns or formations
+Market Summary:
+- Price Change: {price_change_pct}%
+- Average Volume: {avg_volume}
+- Current Price: {current_price}
+- Current Volume: {current_volume}
 
-Your analysis should be thorough but concise, focusing on actionable insights that can be used for trading decisions. 
+Please analyze the market conditions and provide your analysis in a clean, valid JSON format with the following structure:
+
+{
+  "regime": "TRENDING_BULLISH | TRENDING_BEARISH | RANGING_HIGH_VOL | RANGING_LOW_VOL | UNKNOWN",
+  "confidence": 0.0 to 1.0,
+  "risk_level": "low | moderate | high",
+  "analysis": "Detailed analysis of current market conditions, key levels, and notable patterns"
+}
+
+Important:
+1. Ensure your response is ONLY the JSON object
+2. Do not include any markdown code blocks or additional text
+3. Use proper JSON formatting with double quotes
+4. Avoid special characters in the analysis text
+5. Keep the analysis concise and focused
+
+Based on the provided data, analyze:
+1. The current market regime
+2. Your confidence level in the assessment (0.0 to 1.0)
+3. The current risk level (low, moderate, high)
+4. A detailed analysis of market conditions, including key levels and notable patterns 

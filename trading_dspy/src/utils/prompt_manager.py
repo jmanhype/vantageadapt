@@ -77,54 +77,42 @@ class PromptManager:
             logger.error(f"Examples for prompt '{name}' not found")
             return []
             
-    def format_prompt(self, template: str, parameters: Any = "", reasoning: Any = "", entry_conditions: Any = "", exit_conditions: Any = "", **kwargs: Any) -> str:
+    def format_prompt(self, template: str, **kwargs: Any) -> str:
         """Format a prompt template with provided values.
         
         Args:
             template: Prompt template string
-            parameters: Value for parameters placeholder
-            reasoning: Value for reasoning placeholder
-            entry_conditions: Value for entry_conditions placeholder
-            exit_conditions: Value for exit_conditions placeholder
-            **kwargs: Additional values to format the template with
+            **kwargs: Values to format the template with
             
         Returns:
             Formatted prompt string
         """
         try:
-            combined_args = {"parameters": parameters, "reasoning": reasoning, "entry_conditions": entry_conditions, "exit_conditions": exit_conditions}
-            combined_args.update(kwargs)
-            # Convert any set to a list to avoid JSON serialization issues
-            for key, value in combined_args.items():
-                if isinstance(value, set):
-                    combined_args[key] = list(value)
-            logger.debug(f"format_prompt called with combined_args: {combined_args}")
+            logger.debug(f"format_prompt called with kwargs: {kwargs}")
 
-            # Updated version: force recompile
-            # Clean up any newlines in the values and escape literal curly braces
-            cleaned_kwargs = {
-                k: str(v).replace('\n', ' ').replace('{', '{{').replace('}', '}}').strip()
-                for k, v in combined_args.items()
-            }
-
-            if "'''json" in template:
-                start = template.find("'''json")
-                end = template.find("'''", start+7)
-                if start != -1 and end != -1:
-                    json_block_raw = template[start:end+3]
-                    formatted_json_block = json_block_raw.format(**combined_args)
-
-                    preamble = template[:start]
-                    remainder = template[end+3:]
-
-                    formatted_preamble = preamble.format(**cleaned_kwargs)
-                    formatted_remainder = remainder.format(**cleaned_kwargs)
-
-                    return formatted_preamble + formatted_json_block + formatted_remainder
+            # Clean up any newlines in the values and handle JSON formatting
+            cleaned_kwargs = {}
+            for k, v in kwargs.items():
+                if isinstance(v, (list, dict)):
+                    # Convert to JSON string with proper escaping
+                    json_str = json.dumps(v, indent=2)
+                    cleaned_kwargs[k] = json_str
                 else:
-                    return template.format(**cleaned_kwargs)
-            else:
-                return template.format(**cleaned_kwargs)
+                    cleaned_kwargs[k] = str(v).replace('\n', ' ').strip()
+
+            # Format the template with cleaned kwargs
+            template = template.replace('{', '{{').replace('}', '}}')  # Escape all braces
+            
+            # Unescape template variables for market analysis
+            variables = [
+                'timeframe', 'current_regime', 'prices', 'volumes', 'indicators',
+                'price_change_pct', 'avg_volume', 'current_price', 'current_volume'
+            ]
+            for var in variables:
+                template = template.replace('{{' + var + '}}', '{' + var + '}')
+            
+            return template.format(**cleaned_kwargs)
+            
         except KeyError as e:
             error_key = str(e).strip('"').strip()
             logger.error(f"Missing required value for prompt formatting: {error_key}")
