@@ -77,7 +77,7 @@ class TradingMemoryManager:
             logger.debug("Exception details:", exc_info=True)
             self.client = None
 
-    def store_strategy_results(self, context: StrategyContext, results: BacktestResults, iteration: Optional[int] = None) -> bool:
+    def store_strategy_results(self, context: StrategyContext, results: Dict[str, Any], iteration: Optional[int] = None) -> bool:
         """Store strategy results in memory.
         
         Args:
@@ -94,29 +94,61 @@ class TradingMemoryManager:
                 return False
                 
             # Calculate a weighted score for the strategy
+            backtest_results = results.get('backtest_results', {})
             score = (
-                (0.4 * (1 + float(results.total_return))) +  # Normalize to prevent negative scores
-                (0.3 * (1 + float(results.sortino_ratio))) +
-                (0.3 * float(results.win_rate))
+                (0.4 * (1 + float(backtest_results.get('total_return', 0)))) +  # Normalize to prevent negative scores
+                (0.3 * (1 + float(backtest_results.get('sortino_ratio', 0)))) +
+                (0.3 * float(backtest_results.get('win_rate', 0)))
             )
             
             # More lenient success criteria based on composite score
             success = score > 0.8  # Lower threshold to allow more strategies to be stored
             
+            # Handle both dict and StrategyContext types
+            if isinstance(context, dict):
+                market_regime = context.get('market_regime')
+                # Try to get regime_confidence, fall back to confidence if not found
+                regime_confidence = context.get('regime_confidence')
+                if regime_confidence is None:
+                    regime_confidence = context.get('confidence')
+                    if regime_confidence is not None:
+                        logger.debug("Using 'confidence' field instead of 'regime_confidence' from dict")
+                risk_profile = context.get('risk_profile')
+                constraints = context.get('constraints', {})
+            else:
+                # Assume StrategyContext object
+                market_regime = getattr(context, 'market_regime', None)
+                # Try to get regime_confidence, fall back to confidence if not found
+                regime_confidence = getattr(context, 'regime_confidence', None)
+                if regime_confidence is None:
+                    regime_confidence = getattr(context, 'confidence', None)
+                    if regime_confidence is not None:
+                        logger.debug("Using 'confidence' field instead of 'regime_confidence'")
+                risk_profile = getattr(context, 'risk_profile', None)
+                constraints = getattr(context, 'constraints', {})
+
+            # Validate required fields
+            if not market_regime:
+                logger.warning("Missing market regime in context")
+                market_regime = "UNKNOWN"
+            if regime_confidence is None:
+                logger.warning("Missing confidence value in context")
+                regime_confidence = 0.0  # Provide a default value
+
             # Create strategy content
             strategy_content = {
                 "strategy": {
-                    "regime": context.regime.value,
-                    "confidence": context.confidence,
-                    "risk_level": context.risk_level,
-                    "parameters": context.parameters,
+                    "regime": market_regime,
+                    "confidence": regime_confidence,
+                    "risk_level": risk_profile,
+                    "parameters": constraints,
                     "performance": {
-                        "total_return": float(results.total_return),
-                        "total_pnl": float(results.total_pnl),
-                        "sortino_ratio": float(results.sortino_ratio),
-                        "win_rate": float(results.win_rate),
-                        "total_trades": results.total_trades,
-                        "trades": results.trades[:5] if results.trades else []  # Store only first 5 trades as example
+                        "total_return": float(backtest_results.get('total_return', 0)),
+                        "total_pnl": float(backtest_results.get('total_pnl', 0)),
+                        "sortino_ratio": float(backtest_results.get('sortino_ratio', 0)),
+                        "win_rate": float(backtest_results.get('win_rate', 0)),
+                        "total_trades": backtest_results.get('total_trades', 0),
+                        "trades": list(backtest_results.get('trades', {}).values())[:5]  # Store only first 5 trades
                     },
                     "score": score,
                     "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -129,10 +161,11 @@ class TradingMemoryManager:
                 {
                     "role": "user",
                     "content": (
-                        f"Store trading strategy results for {context.regime.value} market regime:\n"
-                        f"- Confidence: {context.confidence}\n"
-                        f"- Risk Level: {context.risk_level}\n"
-                        f"- Parameters: {json.dumps(context.parameters, indent=2)}"
+                        f"Store trading strategy results for {market_regime} market regime:\n"
+                        f"- Confidence: {regime_confidence}\n"
+                        f"- Risk Level: {risk_profile}\n"
+                        f"- Parameters: {json.dumps(constraints, indent=2)}\n"
+                        f"- Performance: {json.dumps(strategy_content['strategy']['performance'], indent=2)}"
                     )
                 },
                 {
@@ -146,22 +179,22 @@ class TradingMemoryManager:
                 messages=messages,
                 user_id=MEM0_CONFIG["user_id"],
                 content=strategy_content,  # Add structured content
-                categories=["trading_strategy", context.regime.value.lower()],  # Add categories for better filtering
+                categories=["trading_strategy", market_regime.lower() if isinstance(market_regime, str) else market_regime.value.lower()],  # Add categories for better filtering
                 metadata={
                     "type": MEM0_CONFIG["metadata_types"]["strategy_results"],
-                    "regime": context.regime.value,
+                    "regime": market_regime,
                     "success": success,
                     "score": score,
                     "iteration": iteration,
-                    "confidence": context.confidence,
-                    "risk_level": context.risk_level,
-                    "total_return": float(results.total_return),
-                    "total_pnl": float(results.total_pnl),
-                    "sortino_ratio": float(results.sortino_ratio),
-                    "win_rate": float(results.win_rate),
-                    "total_trades": results.total_trades,
+                    "confidence": regime_confidence,
+                    "risk_level": risk_profile,
+                    "total_return": float(backtest_results.get('total_return', 0)),
+                    "total_pnl": float(backtest_results.get('total_pnl', 0)), 
+                    "sortino_ratio": float(backtest_results.get('sortino_ratio', 0)),
+                    "win_rate": float(backtest_results.get('win_rate', 0)),
+                    "total_trades": backtest_results.get('total_trades', 0),
                     "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "parameters": context.parameters  # Include parameters in metadata for filtering
+                    "parameters": constraints  # Include parameters in metadata for filtering
                 },
                 output_format="v1.1"  # Use latest format
             )
@@ -439,11 +472,11 @@ class TradingMemoryManager:
             logger.debug("Exception details:", exc_info=True)
             return {"results": [], "total": 0, "page": page, "page_size": page_size}
 
-    def store_strategy(self, strategy: StrategyContext) -> bool:
+    def store_strategy(self, strategy: Union[StrategyContext, Dict[str, Any]]) -> bool:
         """Store a generated trading strategy in memory.
         
         Args:
-            strategy: StrategyContext object containing the strategy details
+            strategy: StrategyContext object or dictionary containing the strategy details
             
         Returns:
             bool: True if storage was successful
@@ -453,9 +486,53 @@ class TradingMemoryManager:
             return False
             
         try:
-            # Convert strategy to dictionary
-            strategy_dict = strategy.to_dict()
+            # Convert to dictionary if StrategyContext object
+            strategy_dict = dict(strategy) if not isinstance(strategy, dict) else strategy
             
+            # Handle confidence field naming
+            if 'regime_confidence' not in strategy_dict and 'confidence' in strategy_dict:
+                strategy_dict['regime_confidence'] = strategy_dict['confidence']
+                logger.debug("Using 'confidence' field as 'regime_confidence'")
+            
+            # Validate strategy data structure
+            required_fields = {
+                'market_regime': str,
+                'regime_confidence': (float, int),  # Allow both float and int
+                'timeframe': str,
+                'asset_type': str,
+                'risk_profile': str,
+                'constraints': dict
+            }
+            
+            # Validate required fields and types
+            for field, field_type in required_fields.items():
+                if field not in strategy_dict:
+                    logger.error(f"Missing required field: {field}")
+                    return False
+                if isinstance(field_type, tuple):
+                    if not isinstance(strategy_dict[field], field_type):
+                        try:
+                            # Try to convert to float for numeric fields
+                            strategy_dict[field] = float(strategy_dict[field])
+                        except (ValueError, TypeError):
+                            logger.error(f"Invalid type for {field}: expected {field_type}, got {type(strategy_dict[field])}")
+                            return False
+                elif not isinstance(strategy_dict[field], field_type):
+                    try:
+                        # Try type conversion for basic types
+                        strategy_dict[field] = field_type(strategy_dict[field])
+                    except (ValueError, TypeError):
+                        logger.error(f"Invalid type for {field}: expected {field_type}, got {type(strategy_dict[field])}")
+                        return False
+            
+            # Log strategy details before storage
+            logger.debug("Storing strategy with details:")
+            logger.debug(f"Market Regime: {strategy_dict['market_regime']}")
+            logger.debug(f"Confidence: {strategy_dict['regime_confidence']}")
+            logger.debug(f"Timeframe: {strategy_dict['timeframe']}")
+            logger.debug(f"Risk Profile: {strategy_dict['risk_profile']}")
+            logger.debug(f"Constraints: {json.dumps(strategy_dict['constraints'], indent=2)}")
+
             # Create a descriptive conversation about the strategy
             messages = [
                 {
@@ -586,4 +663,4 @@ class TradingMemoryManager:
                 "overall_win_rate": 0.0,
                 "strategies_analyzed": 0,
                 "lookback_days": lookback_days
-            } 
+            }

@@ -107,6 +107,7 @@ class TradingPipeline:
                 logger.info("  Overall Win Rate: {:.2f}", recent_performance.get("overall_win_rate", 0))
             
             results = []
+            optimization_history = []  # Track optimization progress
             for i in range(num_iterations):
                 logger.info("\nStarting iteration {} of {}", i + 1, num_iterations)
                 
@@ -118,49 +119,69 @@ class TradingPipeline:
                 
                 # Step 2: Strategy Generation
                 logger.info("Step 2: Strategy Generation")
-                strategy_insights = self.generate_strategy(market_context, recent_performance)
-                logger.info("Generated strategy with confidence: {:.2f}", strategy_insights.get("confidence", 0))
+                strategy_insights = self.generate_strategy(market_context, recent_performance, timeframe)
+                logger.info("Generated strategy with confidence: {:.2f}", strategy_insights.get('confidence', 0.0))
                 
                 # Step 3: Trading Rules Generation
                 logger.info("Step 3: Trading Rules Generation")
                 rules = self.generate_trading_rules(strategy_insights, market_context)
                 
                 # Debug log the strategy parameters and conditions
-                if "parameters" in strategy_insights:
-                    logger.debug("Strategy parameters: {}", strategy_insights["parameters"])
-                if "entry_conditions" in strategy_insights:
-                    logger.debug("Entry conditions: {}", strategy_insights["entry_conditions"])
-                if "exit_conditions" in strategy_insights:
-                    logger.debug("Exit conditions: {}", strategy_insights["exit_conditions"])
+                logger.debug("Strategy parameters: {}", strategy_insights.get('parameters', {}))
+                parameters = strategy_insights.get('parameters', {})
+                if 'entry_conditions' in parameters:
+                    logger.debug("Entry conditions: {}", parameters['entry_conditions'])
+                if 'exit_conditions' in parameters:
+                    logger.debug("Exit conditions: {}", parameters['exit_conditions'])
                 
                 # Step 4: Backtesting
                 logger.info("Step 4: Backtesting")
                 if rules and "conditions" in rules:
                     backtest_results = self.backtest(
                         market_data,
-                        strategy_insights.get("parameters", {}),
+                        strategy_insights.get('parameters', {}),
                         rules["conditions"]
                     )
                     
                     if backtest_results:
+                        # Convert StrategyContext to dict for storage
+                        strategy_dict = strategy_insights
                         results.append({
                             "market_context": market_context,
-                            "strategy": strategy_insights,
+                            "strategy": strategy_dict,
                             "rules": rules,
                             "performance": backtest_results
                         })
                 
                 # Update memory with results
                 if results:
-                    # Store the last iteration's results
+                    # Store the last iteration's results and optimization progress
                     last_result = results[-1]
+                    # Create a strategy context dictionary
+                    context = {
+                        "market_regime": last_result["market_context"].get("regime", "UNKNOWN"),
+                        "regime_confidence": last_result["strategy"].get("confidence", 0.0),
+                        "timeframe": timeframe,
+                        "asset_type": "crypto",  # Default to crypto since we're dealing with crypto data
+                        "risk_profile": last_result["market_context"].get("risk_level", "unknown"),
+                        "performance_history": recent_performance,
+                        "constraints": last_result["strategy"].get("parameters", {})
+                    }
                     self.memory_manager.store_strategy_results(
-                        context=last_result["market_context"],
+                        context=context,
                         results=last_result["performance"],
                         iteration=len(results)
                     )
+                    
+                    # Track optimization progress
+                    if 'optimization_history' in last_result.get('performance', {}):
+                        optimization_history.extend(last_result['performance']['optimization_history'])
             
-            return {"iterations": results} if results else {}
+            return {
+                "iterations": results,
+                "optimization_history": optimization_history,
+                "final_performance_targets": self.backtester.policy_optimizer.performance_targets
+            } if results else {}
             
         except Exception as e:
             logger.error("Error in pipeline execution: {}", str(e))
@@ -215,7 +236,8 @@ class TradingPipeline:
     def generate_strategy(
         self,
         market_context: Dict[str, Any],
-        recent_performance: Dict[str, Any]
+        recent_performance: Dict[str, Any],
+        timeframe: str
     ) -> Dict[str, Any]:
         """Generate trading strategy.
         
@@ -265,30 +287,28 @@ class TradingPipeline:
             strategy = self.strategy_generator.forward(
                 market_context=market_context,
                 theme="default",
-                base_parameters=similar_strategies[0]['parameters'] if similar_strategies else None
+                base_parameters=similar_strategies[0]['parameters'] if similar_strategies else None,
+                timeframe=timeframe
             )
             
-            # Create StrategyContext object
+            # Create strategy context dictionary
             if strategy:
-                # Extract parameters for StrategyContext
-                parameters = {
-                    **strategy.get('parameters', {}),
-                    'entry_conditions': strategy.get('entry_conditions', []),
-                    'exit_conditions': strategy.get('exit_conditions', []),
-                    'indicators': strategy.get('indicators', []),
-                    'strategy_type': strategy.get('strategy_type', 'default')
+                # Create strategy context with proper structure matching TypedDict
+                strategy_context = {
+                    'market_regime': market_context.get('regime', 'UNKNOWN'),
+                    'regime_confidence': market_context.get('confidence', 0.0),  # Use market context confidence
+                    'timeframe': market_context.get('timeframe', '1h'),
+                    'asset_type': 'crypto',  # Default to crypto since we're dealing with crypto data
+                    'risk_profile': market_context.get('risk_level', 'unknown'),
+                    'performance_history': recent_performance,
+                    'constraints': {
+                        **strategy.get('parameters', {}),
+                        'entry_conditions': strategy.get('entry_conditions', []),
+                        'exit_conditions': strategy.get('exit_conditions', []),
+                        'indicators': strategy.get('indicators', []),
+                        'strategy_type': strategy.get('strategy_type', 'default')
+                    }
                 }
-                
-                strategy_context = StrategyContext(
-                    regime=MarketRegime(market_context.get('regime', 'UNKNOWN')),
-                    confidence=strategy.get('confidence', 0.0),
-                    risk_level=market_context.get('risk_level', 'unknown'),
-                    parameters=parameters,
-                    opportunity_score=0.0
-                )
-                
-                # Store the strategy context
-                self.memory_manager.store_strategy(strategy_context)
             
             # Validate strategy
             logger.info("Validating generated strategy")
@@ -297,9 +317,15 @@ class TradingPipeline:
                 logger.warning("Invalid strategy: {}", reason)
                 return {}
             
+            # Store strategy in memory manager
+            logger.info("Storing strategy in memory manager")
+            success = self.memory_manager.store_strategy(strategy_context)
+            if not success:
+                logger.warning("Failed to store strategy in memory manager")
+            
             duration = time.time() - start_time
             logger.info("Strategy generation completed in {:.2f} seconds", duration)    
-            return strategy
+            return strategy_context
 
         except Exception as e:
             logger.error("Error in strategy generation: {}", str(e))
@@ -381,21 +407,23 @@ class TradingPipeline:
             if raw_results and 'backtest_results' in raw_results:
                 br = raw_results['backtest_results']
                 metrics = br.get('metrics', {})
+                trade_memory_stats = metrics.get('trade_memory_stats', {})
                 
-                # Extract stats from the first (and only) asset
-                stats_df = metrics.get('per_asset_stats', {})
-                total_return = sum(stats_df.get('total_return', {}).values())
+                # Use total_orders as fallback for total_trades
+                total_trades = metrics.get('total_orders', 0)
                 
-                results = BacktestResults(
-                    total_return=float(total_return),
-                    total_pnl=float(br.get('total_pnl', 0.0)),
-                    sortino_ratio=float(metrics.get('trade_memory_stats', {}).get('sortino_ratio', 0.0)),
-                    win_rate=float(metrics.get('trade_memory_stats', {}).get('win_rate', 0.0)),
-                    total_trades=int(metrics.get('trade_memory_stats', {}).get('total_trades', 0)),
-                    trades=br.get('trades', {}),
-                    metrics=metrics
-                )
-                return {'backtest_results': results.to_dict()}
+                results = {
+                    'backtest_results': {
+                        'total_return': float(br.get('total_return', 0.0)),
+                        'total_pnl': float(br.get('total_pnl', 0.0)),
+                        'sortino_ratio': float(trade_memory_stats.get('sortino_ratio', 0.0)),
+                        'win_rate': float(trade_memory_stats.get('win_rate', 0.0)),
+                        'total_trades': total_trades,
+                        'trades': br.get('trades', {}),
+                        'metrics': metrics
+                    }
+                }
+                return results
             
             return raw_results
 
@@ -459,4 +487,4 @@ def run_backtest() -> None:
 if __name__ == '__main__':
     # Existing pipeline execution, if any
     # run_pipeline()  # Uncomment if run_pipeline() exists
-    run_backtest() 
+    run_backtest()
