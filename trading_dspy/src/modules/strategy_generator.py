@@ -49,8 +49,7 @@ class StrategyGenerator(Module):
         self,
         market_context: Dict[str, Any],
         theme: str,
-        base_parameters: Optional[Dict[str, Any]] = None,
-        timeframe: str = "1h"
+        base_parameters: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Generate trading strategy with autonomous improvements.
         
@@ -58,7 +57,6 @@ class StrategyGenerator(Module):
             market_context: Market context from analysis
             theme: Trading strategy theme
             base_parameters: Optional base parameters
-            timeframe: Trading timeframe
             
         Returns:
             Dictionary containing strategy details
@@ -130,33 +128,26 @@ class StrategyGenerator(Module):
                 )
                 
                 # Extract result fields with parameter ranges
-                # Create strategy context matching StrategyContext type
                 strategy = {
-                    "market_regime": context_summary['regime'],
-                    "regime_confidence": result.confidence,
-                    "timeframe": timeframe,
-                    "asset_type": "crypto",
-                    "risk_profile": context_summary.get('risk_level', 'unknown'),
-                    "performance_history": self._get_recent_performance(),
-                    "constraints": {
-                        **result.parameters,
-                        "parameter_ranges": result.parameter_ranges,
-                        "entry_conditions": result.entry_conditions,
-                        "exit_conditions": result.exit_conditions,
-                        "indicators": result.indicators,
-                        "strategy_type": theme,
-                        "reasoning": result.reasoning,
-                        "trade_signal": result.trade_signal
-                    }
+                    "reasoning": result.reasoning,
+                    "trade_signal": result.trade_signal,
+                    "parameters": result.parameters,
+                    "parameter_ranges": result.parameter_ranges,
+                    "confidence": result.confidence,
+                    "entry_conditions": result.entry_conditions,
+                    "exit_conditions": result.exit_conditions,
+                    "indicators": result.indicators,
+                    "strategy_type": theme,
+                    "market_regime": context_summary['regime']
                 }
                 
                 # Format the strategy for prompt
                 default_values.update({
-                    "reasoning": strategy["constraints"]["reasoning"],
-                    "parameters": json.dumps(strategy["constraints"]),
-                    "parameter_ranges": json.dumps(strategy["constraints"]["parameter_ranges"]),
-                    "entry_conditions": json.dumps(strategy["constraints"]["entry_conditions"]),
-                    "exit_conditions": json.dumps(strategy["constraints"]["exit_conditions"])
+                    "reasoning": strategy["reasoning"],
+                    "parameters": json.dumps(strategy["parameters"]),
+                    "parameter_ranges": json.dumps(strategy["parameter_ranges"]),
+                    "entry_conditions": json.dumps(strategy["entry_conditions"]),
+                    "exit_conditions": json.dumps(strategy["exit_conditions"])
                 })
                 
                 # Store the strategy
@@ -166,12 +157,12 @@ class StrategyGenerator(Module):
                 
             except Exception as e:
                 logger.error(f"Error in DSPy predictor: {str(e)}")
-                return self._get_default_strategy(theme, base_parameters, context_summary['regime'], timeframe)
+                return self._get_default_strategy(theme, base_parameters, context_summary['regime'])
 
         except Exception as e:
             logger.error(f"Error in strategy generation: {str(e)}")
             logger.exception("Full traceback:")
-            return self._get_default_strategy(theme, base_parameters, "unknown", timeframe)
+            return self._get_default_strategy(theme, base_parameters, "unknown")
 
     def validate_strategy(self, strategy: Dict[str, Any]) -> Tuple[bool, str]:
         """Validate generated strategy.
@@ -186,59 +177,66 @@ class StrategyGenerator(Module):
             if not strategy:
                 return False, "Empty strategy"
                 
-            # Validate required fields for StrategyContext
             required_fields = [
-                'market_regime', 'regime_confidence', 'timeframe', 'asset_type',
-                'risk_profile', 'constraints'
+                'reasoning', 'trade_signal', 'parameters', 'parameter_ranges',
+                'confidence', 'entry_conditions', 'exit_conditions', 'indicators'
             ]
             missing_fields = [f for f in required_fields if f not in strategy]
             if missing_fields:
                 return False, f"Missing required fields: {', '.join(missing_fields)}"
-
-            # Validate regime confidence
-            confidence = float(strategy['regime_confidence'])
+                
+            # Validate trade signal
+            valid_signals = ['BUY', 'SELL', 'HOLD']
+            if strategy['trade_signal'] not in valid_signals:
+                return False, f"Invalid trade signal: {strategy['trade_signal']}"
+                
+            # Validate confidence
+            confidence = float(strategy['confidence'])
             if not 0 <= confidence <= 1:
-                return False, f"Invalid regime confidence value: {confidence}"
-
-            # Get constraints
-            constraints = strategy['constraints']
-            if not isinstance(constraints, dict):
-                return False, "Constraints must be a dictionary"
-
-            # Validate parameters in constraints
+                return False, f"Invalid confidence value: {confidence}"
+                
+            # Validate parameters
+            params = strategy['parameters']
+            if not isinstance(params, dict):
+                params = json.loads(params) if isinstance(params, str) else None
+                if not isinstance(params, dict):
+                    return False, "Parameters must be a dictionary"
+                
             required_params = ['stop_loss', 'take_profit', 'position_size']
-            missing_params = [p for p in required_params if p not in constraints]
+            missing_params = [p for p in required_params if p not in params]
             if missing_params:
-                return False, f"Missing required parameters in constraints: {', '.join(missing_params)}"
-
+                return False, f"Missing required parameters: {', '.join(missing_params)}"
+                
             # Validate parameter values
             try:
-                stop_loss = float(constraints['stop_loss'])
-                take_profit = float(constraints['take_profit'])
-                position_size = float(constraints['position_size'])
-
+                stop_loss = float(params['stop_loss'])
+                take_profit = float(params['take_profit'])
+                position_size = float(params['position_size'])
+                
                 if not 0 < stop_loss < 1:
                     return False, f"Invalid stop loss: {stop_loss}"
-
+                    
                 if not 0 < take_profit < 5:
                     return False, f"Invalid take profit: {take_profit}"
-
+                    
                 if not 0 < position_size <= 1:
                     return False, f"Invalid position size: {position_size}"
             except (ValueError, TypeError) as e:
                 return False, f"Invalid parameter value format: {str(e)}"
-
-            # Validate parameter ranges in constraints
-            ranges = constraints.get('parameter_ranges', {})
+                
+            # Validate parameter ranges
+            ranges = strategy['parameter_ranges']
             if not isinstance(ranges, dict):
-                return False, "Parameter ranges must be a dictionary"
-
+                ranges = json.loads(ranges) if isinstance(ranges, str) else None
+                if not isinstance(ranges, dict):
+                    return False, "Parameter ranges must be a dictionary"
+                
             required_ranges = {
                 'stop_loss': (0.02, 0.15),
                 'take_profit': (0.04, 0.30),
                 'position_size': (0.1, 1.0)
             }
-
+            
             for param, (min_val, max_val) in required_ranges.items():
                 if param not in ranges:
                     ranges[param] = [min_val, max_val]
@@ -248,33 +246,32 @@ class StrategyGenerator(Module):
                         ranges[param] = [min_val, max_val]
                     elif range_values[0] >= range_values[1] or range_values[0] < min_val or range_values[1] > max_val:
                         ranges[param] = [min_val, max_val]
-
-            # Update ranges in constraints
-            constraints['parameter_ranges'] = ranges
-
-            # Validate trade signal
-            valid_signals = ['BUY', 'SELL', 'HOLD']
-            if constraints.get('trade_signal') not in valid_signals:
-                return False, f"Invalid trade signal: {constraints.get('trade_signal')}"
-
+            
+            # Update strategy with validated ranges
+            strategy['parameter_ranges'] = ranges
+                
             # Validate conditions
-            entry_conditions = constraints.get('entry_conditions', [])
-            if not isinstance(entry_conditions, list) or not entry_conditions:
-                return False, "Entry conditions must be a non-empty list"
-
-            exit_conditions = constraints.get('exit_conditions', [])
-            if not isinstance(exit_conditions, list) or not exit_conditions:
-                return False, "Exit conditions must be a non-empty list"
-
+            entry_conditions = strategy['entry_conditions']
+            if not isinstance(entry_conditions, list):
+                entry_conditions = json.loads(entry_conditions) if isinstance(entry_conditions, str) else None
+                if not isinstance(entry_conditions, list) or not entry_conditions:
+                    return False, "Entry conditions must be a non-empty list"
+            strategy['entry_conditions'] = entry_conditions
+                
+            exit_conditions = strategy['exit_conditions']
+            if not isinstance(exit_conditions, list):
+                exit_conditions = json.loads(exit_conditions) if isinstance(exit_conditions, str) else None
+                if not isinstance(exit_conditions, list) or not exit_conditions:
+                    return False, "Exit conditions must be a non-empty list"
+            strategy['exit_conditions'] = exit_conditions
+                
             # Validate indicators
-            indicators = constraints.get('indicators', [])
-            if not isinstance(indicators, list) or not indicators:
-                return False, "Indicators must be a non-empty list"
-
-            # Update validated conditions and indicators
-            constraints['entry_conditions'] = entry_conditions
-            constraints['exit_conditions'] = exit_conditions
-            constraints['indicators'] = indicators
+            indicators = strategy['indicators']
+            if not isinstance(indicators, list):
+                indicators = json.loads(indicators) if isinstance(indicators, str) else None
+                if not isinstance(indicators, list) or not indicators:
+                    return False, "Indicators must be a non-empty list"
+            strategy['indicators'] = indicators
                 
             return True, "Strategy is valid"
 
@@ -322,141 +319,41 @@ class StrategyGenerator(Module):
             strategy: Strategy to store
         """
         try:
-            # Get constraints with defaults
-            constraints = strategy.get("constraints", {})
-            
-            # Default values for required fields
-            default_entry_conditions = [
-                "df_indicators['rsi'] < 70",
-                "df_indicators['sma_20'] > df_indicators['sma_50']"
-            ]
-            default_exit_conditions = [
-                "df_indicators['rsi'] > 30",
-                "df_indicators['sma_20'] < df_indicators['sma_50']"
-            ]
-            default_indicators = [
-                "rsi",
-                "sma_20",
-                "sma_50",
-                "macd"
-            ]
-            
-            # Ensure constraints has all required fields with non-empty values
-            constraints["entry_conditions"] = (
-                constraints.get("entry_conditions", []) or default_entry_conditions
-            )
-            constraints["exit_conditions"] = (
-                constraints.get("exit_conditions", []) or default_exit_conditions
-            )
-            constraints["indicators"] = (
-                constraints.get("indicators", []) or default_indicators
-            )
-            constraints["trade_signal"] = constraints.get("trade_signal", "HOLD")
-            
-            # Validate constraints first
-            if not isinstance(constraints.get("entry_conditions"), list) or not constraints["entry_conditions"]:
-                logger.error("Entry conditions must be a non-empty list")
-                return
-            if not isinstance(constraints.get("exit_conditions"), list) or not constraints["exit_conditions"]:
-                logger.error("Exit conditions must be a non-empty list")
-                return
-            if not isinstance(constraints.get("indicators"), list) or not constraints["indicators"]:
-                logger.error("Indicators must be a non-empty list")
-                return
-
-            try:
-                # Format strategy to match StrategyContext requirements with explicit type conversion
-                formatted_strategy = {
-                    "market_regime": str(strategy.get("market_regime", "UNKNOWN")),
-                    "regime_confidence": float(strategy.get("regime_confidence", 0.0)),
-                    "timeframe": str(strategy.get("timeframe", "1h")),
-                    "asset_type": str(strategy.get("asset_type", "crypto")),
-                    "risk_profile": str(strategy.get("risk_profile", "unknown")),
-                    "performance_history": strategy.get("performance_history", {}),
-                    "constraints": constraints
-                }
-
-                # Log the formatted strategy for debugging
-                logger.debug("Formatted strategy:")
-                logger.debug(f"Market Regime: {formatted_strategy['market_regime']}")
-                logger.debug(f"Confidence: {formatted_strategy['regime_confidence']}")
-                logger.debug(f"Timeframe: {formatted_strategy['timeframe']}")
-                logger.debug(f"Asset Type: {formatted_strategy['asset_type']}")
-                logger.debug(f"Risk Profile: {formatted_strategy['risk_profile']}")
-                logger.debug(f"Constraints: {json.dumps(formatted_strategy['constraints'], indent=2)}")
-
-                # Store the formatted strategy
-                success = self.memory_manager.store_strategy(formatted_strategy)
-                if not success:
-                    logger.error("Failed to store strategy in memory manager")
-                    return
-                logger.info("Successfully stored strategy in memory")
-
-            except (ValueError, TypeError) as e:
-                logger.error(f"Error formatting strategy: {str(e)}")
-                logger.debug("Strategy content:", strategy)
-                return
-                
+            self.memory_manager.store_strategy(strategy)
         except Exception as e:
             logger.error(f"Error storing strategy: {str(e)}")
-            logger.debug("Strategy content:", strategy)
 
-    def _get_default_strategy(
-        self,
-        theme: str,
-        base_parameters: Optional[Dict[str, Any]],
-        regime: str,
-        timeframe: str = "1h"
-    ) -> Dict[str, Any]:
+    def _get_default_strategy(self, theme: str, base_parameters: Optional[Dict[str, Any]], regime: str) -> Dict[str, Any]:
         """Get default strategy when generation fails.
         
         Args:
             theme: Strategy theme
             base_parameters: Optional base parameters
             regime: Market regime
-            timeframe: Trading timeframe
             
         Returns:
             Default strategy dictionary
         """
-        # Create default strategy matching StrategyContext type
         return {
-            "market_regime": regime,
-            "regime_confidence": 0.0,
-            "timeframe": timeframe,
-            "asset_type": "crypto",
-            "risk_profile": "unknown",
-            "performance_history": self._get_recent_performance(),
-            "constraints": {
-                **(base_parameters if base_parameters is not None else {
-                    "stop_loss": 0.02,
-                    "take_profit": 0.04,
-                    "position_size": 0.1
-                }),
-                "parameter_ranges": {
-                    "stop_loss": [0.02, 0.15],
-                    "take_profit": [0.04, 0.30],
-                    "position_size": [0.1, 1.0],
-                    "sl_window": [200, 600],
-                    "max_orders": [1, 5],
-                    "order_size": [0.001, 0.005]
-                },
-                "entry_conditions": [
-                    "df_indicators['rsi'] < 70",
-                    "df_indicators['sma_20'] > df_indicators['sma_50']"
-                ],
-                "exit_conditions": [
-                    "df_indicators['rsi'] > 30",
-                    "df_indicators['sma_20'] < df_indicators['sma_50']"
-                ],
-                "indicators": [
-                    "rsi",
-                    "sma_20",
-                    "sma_50",
-                    "macd"
-                ],
-                "strategy_type": theme,
-                "reasoning": "Error in strategy generation",
-                "trade_signal": "HOLD"
-            }
-        }
+            "reasoning": "Error in strategy generation",
+            "trade_signal": "HOLD",
+            "parameters": base_parameters or {
+                "stop_loss": 0.02,
+                "take_profit": 0.04,
+                "position_size": 0.1
+            },
+            "parameter_ranges": {
+                "stop_loss": [0.02, 0.15],
+                "take_profit": [0.04, 0.30],
+                "position_size": [0.1, 1.0],
+                "sl_window": [200, 600],
+                "max_orders": [1, 5],
+                "order_size": [0.001, 0.005]
+            },
+            "confidence": 0.0,
+            "entry_conditions": [],
+            "exit_conditions": [],
+            "indicators": [],
+            "strategy_type": theme,
+            "market_regime": regime
+        } 

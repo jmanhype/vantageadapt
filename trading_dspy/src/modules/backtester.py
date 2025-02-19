@@ -383,54 +383,12 @@ def from_signals_backtest(trade_data_df: pd.DataFrame, **p) -> Any:
         return None
 
 def calculate_stats(test_portfolio: Dict[str, Any], trade_data_dict: Dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """Calculate enhanced performance statistics for backtested portfolios."""
+    """Calculate performance statistics for backtested portfolios."""
     try:
         stats_list = []
         for asset, pf in test_portfolio.items():
             if pf is not None:
                 try:
-                    # Calculate total trades first to ensure it's always available
-                    total_trades = int(pf.trades.count().iloc[0] if isinstance(pf.trades.count(), pd.Series) else pf.trades.count())
-                    
-                    # Calculate trade durations with proper type handling
-                    trade_durations = []
-                    if hasattr(pf.trades.records, 'exit_time'):
-                        for trade in pf.trades.records.itertuples():
-                            try:
-                                # Handle different timestamp types
-                                if isinstance(trade.exit_time, (int, np.int64)):
-                                    exit_time = pd.Timestamp(trade.exit_time)
-                                    entry_time = pd.Timestamp(trade.entry_time)
-                                else:
-                                    exit_time = trade.exit_time
-                                    entry_time = trade.entry_time
-                                
-                                duration = (exit_time - entry_time).total_seconds() / 3600  # Convert to hours
-                                trade_durations.append(duration)
-                            except (AttributeError, TypeError) as e:
-                                logger.warning(f"Error calculating trade duration: {e}")
-                                continue
-                    
-                    avg_duration = np.mean(trade_durations) if trade_durations else 0.0
-                    
-                    # Calculate trade frequency with error handling
-                    try:
-                        if isinstance(pf.wrapper.index[-1], (int, np.int64)):
-                            end_time = pd.Timestamp(pf.wrapper.index[-1])
-                            start_time = pd.Timestamp(pf.wrapper.index[0])
-                        else:
-                            end_time = pf.wrapper.index[-1]
-                            start_time = pf.wrapper.index[0]
-                        
-                        total_time = (end_time - start_time).total_seconds() / (24 * 3600)  # Convert to days
-                        trade_frequency = len(trade_durations) / total_time if total_time > 0 else 0
-                    except (AttributeError, TypeError) as e:
-                        logger.warning(f"Error calculating trade frequency: {e}")
-                        trade_frequency = 0
-                    
-                    # Calculate max drawdown
-                    max_drawdown = float(pf.drawdown.max())
-                    
                     stats = {
                         'asset': asset,
                         'total_return': float(pf.total_return.iloc[0] if isinstance(pf.total_return, pd.Series) else pf.total_return),
@@ -439,11 +397,6 @@ def calculate_stats(test_portfolio: Dict[str, Any], trade_data_dict: Dict[str, p
                         'total_orders': int(pf.orders.count().iloc[0] if isinstance(pf.orders.count(), pd.Series) else pf.orders.count()),
                         'total_trades': int(pf.trades.count().iloc[0] if isinstance(pf.trades.count(), pd.Series) else pf.trades.count()),
                         'sortino_ratio': float(pf.sortino_ratio.iloc[0] if isinstance(pf.sortino_ratio, pd.Series) else pf.sortino_ratio),
-                        'sharpe_ratio': float(pf.sharpe_ratio.iloc[0] if isinstance(pf.sharpe_ratio, pd.Series) else pf.sharpe_ratio),
-                        'max_drawdown': max_drawdown,
-                        'avg_trade_duration': avg_duration,
-                        'trade_frequency': trade_frequency,
-                        'win_rate': float((pf.trades.records.pnl > 0).mean())
                     }
                     stats_list.append(stats)
                 except Exception as e:
@@ -542,6 +495,8 @@ class Backtester:
                 "macd_signal_fast": vbt.Param(np.arange(50, 500, 50)),  # Shorter ranges for faster signals
                 "macd_signal_slow": vbt.Param(np.arange(100, 1000, 100)), # More moderate slow period
                 "macd_signal_signal": vbt.Param(np.arange(20, 200, 20)),  # Faster signal line
+                "post_buy_delay": params["post_buy_delay"],  # Keep original value
+                "post_sell_delay": params["post_sell_delay"], # Keep original value
                 "_random_subset": 200
             }
             
@@ -601,13 +556,31 @@ class Backtester:
             updated_params.pop('score', None)
             updated_params.pop('_random_subset', None)
 
+            # Convert float values ending in .0 to int and ensure all required parameters are included
+            final_params = {
+                'take_profit': updated_params['take_profit'],
+                'stop_loss': updated_params['stop_loss'],
+                'sl_window': updated_params['sl_window'],
+                'max_orders': updated_params['max_orders'],
+                'order_size': updated_params['order_size'],
+                'post_buy_delay': updated_params['post_buy_delay'],
+                'post_sell_delay': updated_params['post_sell_delay'],
+                'macd_signal_fast': updated_params['macd_signal_fast'],
+                'macd_signal_slow': updated_params['macd_signal_slow'],
+                'macd_signal_signal': updated_params['macd_signal_signal'],
+                'min_macd_signal_threshold': updated_params['min_macd_signal_threshold'],
+                'max_macd_signal_threshold': updated_params['max_macd_signal_threshold'],
+                'enable_sl_mod': updated_params['enable_sl_mod'],
+                'enable_tp_mod': updated_params['enable_tp_mod']
+            }
+
             # Convert float values ending in .0 to int
-            for key, value in updated_params.items():
+            for key, value in final_params.items():
                 if isinstance(value, float) and value.is_integer():
-                    updated_params[key] = int(value)
+                    final_params[key] = int(value)
 
             logger.info("Updated parameters:")
-            logger.info(updated_params)
+            logger.info(final_params)
 
             # Run tests on all assets
             test_portfolio = {}
@@ -619,25 +592,22 @@ class Backtester:
                 two_weeks_ago = trade_data_df['timestamp'].max() - pd.Timedelta(weeks=2)
                 trade_data_df = trade_data_df[trade_data_df['timestamp'] >= two_weeks_ago]
 
-                pf = from_signals_backtest(trade_data_df, **updated_params)
+                pf = from_signals_backtest(trade_data_df, **final_params)
                 test_portfolio[asset] = pf
 
             # Calculate stats
             all_stats_df = calculate_stats(test_portfolio, trade_data)
             
-            # Prepare trade memory stats with proper error handling
-            total_orders = int(all_stats_df['total_orders'].sum()) if 'total_orders' in all_stats_df.columns else 0
-            total_trades = int(all_stats_df['total_trades'].sum()) if 'total_trades' in all_stats_df.columns else total_orders
-            
+            # Prepare trade memory stats
             trade_memory_stats = {
-                'total_trades': total_trades,
+                'total_trades': int(all_stats_df['total_trades'].sum()),
                 'win_rate': float((all_stats_df['total_return'] > 0).mean()),
                 'avg_trade_return': float(all_stats_df['total_return'].mean()),
-                'avg_trade_duration': float(all_stats_df['avg_trade_duration'].mean()) if 'avg_trade_duration' in all_stats_df.columns else 0.0,
-                'max_drawdown': float(all_stats_df['max_drawdown'].mean()) if 'max_drawdown' in all_stats_df.columns else 0.0,
-                'sharpe_ratio': float(all_stats_df['sharpe_ratio'].mean()) if 'sharpe_ratio' in all_stats_df.columns else 0.0,
-                'sortino_ratio': float(all_stats_df['sortino_ratio'].mean()) if 'sortino_ratio' in all_stats_df.columns else 0.0,
-                'profit_factor': float(all_stats_df['total_pnl'].sum() / abs(all_stats_df[all_stats_df['total_pnl'] < 0]['total_pnl'].sum())) if len(all_stats_df[all_stats_df['total_pnl'] < 0]) > 0 else 0.0
+                'avg_trade_duration': 0,  # Would need to calculate from actual trade records
+                'max_drawdown': 0,  # Would need to calculate from portfolio equity curve
+                'sharpe_ratio': 0,  # Would need to calculate from returns
+                'sortino_ratio': float(all_stats_df['sortino_ratio'].mean()),
+                'profit_factor': 0  # Would need to calculate from trade records
             }
             
             # Prepare metrics
@@ -645,7 +615,7 @@ class Backtester:
                 'total_return': float(all_stats_df['total_return'].sum()),
                 'total_pnl': float(all_stats_df['total_pnl'].sum()),
                 'avg_pnl_per_trade': float(all_stats_df['avg_pnl_per_trade'].mean()),
-                'total_trades': int(all_stats_df['total_orders'].sum()),  # Use total_orders instead of total_trades
+                'total_trades': int(all_stats_df['total_trades'].sum()),
                 'win_rate': float((all_stats_df['total_return'] > 0).mean()),
                 'sortino_ratio': float(all_stats_df['sortino_ratio'].mean()),
                 'asset_count': len(all_stats_df),
@@ -666,17 +636,13 @@ class Backtester:
                         }
                     }
 
-            # Create enhanced backtest results structure
+            # Create backtest results structure
             backtest_results = {
                 'total_return': float(all_stats_df['total_return'].sum()),
                 'total_pnl': float(all_stats_df['total_pnl'].sum()),
                 'sortino_ratio': float(all_stats_df['sortino_ratio'].mean()),
-                'sharpe_ratio': float(all_stats_df['sharpe_ratio'].mean()),
-                'max_drawdown': float(all_stats_df['max_drawdown'].mean()),
-                'win_rate': float(all_stats_df['win_rate'].mean()),
-                'total_trades': int(all_stats_df['total_orders'].sum()),  # Use total_orders instead of total_trades
-                'avg_trade_duration': float(all_stats_df['avg_trade_duration'].mean()),
-                'trade_frequency': float(all_stats_df['trade_frequency'].mean()),
+                'win_rate': float((all_stats_df['total_return'] > 0).mean()),
+                'total_trades': int(all_stats_df['total_trades'].sum()),
                 'trades': trades_data,
                 'metrics': {
                     'avg_pnl_per_trade': float(all_stats_df['avg_pnl_per_trade'].mean()),
@@ -685,22 +651,15 @@ class Backtester:
                     'trade_memory_stats': trade_memory_stats,
                     'per_asset_stats': {
                         'total_return': all_stats_df['total_return'].to_dict(),
-                        'avg_pnl_per_trade': all_stats_df['avg_pnl_per_trade'].to_dict(),
-                        'sortino_ratio': all_stats_df['sortino_ratio'].to_dict(),
-                        'sharpe_ratio': all_stats_df['sharpe_ratio'].to_dict(),
-                        'max_drawdown': all_stats_df['max_drawdown'].to_dict(),
-                        'win_rate': all_stats_df['win_rate'].to_dict(),
-                        'trade_frequency': all_stats_df['trade_frequency'].to_dict()
+                        'avg_pnl_per_trade': all_stats_df['avg_pnl_per_trade'].to_dict()
                     }
                 },
-                'performance_thresholds': self.performance_thresholds,
-                'market_regime': trade_data_df.get('market_regime', 'RANGING'),
-                'regime_confidence': trade_data_df.get('regime_confidence', 0.5)
+                'performance_thresholds': self.performance_thresholds
             }
 
-            # Prepare final results
+            # Save optimization results
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            final_results = {
+            results = {
                 'parameters': updated_params,
                 'backtest_results': backtest_results,
                 'metrics': metrics,
@@ -712,13 +671,11 @@ class Backtester:
                 'trades': trades_data
             }
             
-            # Save optimization results
-            results_path = f'optimization_results_{timestamp}.json'
-            with open(results_path, 'w') as f:
-                json.dump(final_results, f, indent=2)
+            with open(f'optimization_results_{timestamp}.json', 'w') as f:
+                json.dump(results, f, indent=2)
             
-            logger.info(f"Optimization results saved to {results_path}")
-            return final_results
+            logger.info(f"Optimization results saved to optimization_results_{timestamp}.json")
+            return results
             
         except Exception as e:
             logger.error(f"Error in parameter optimization: {str(e)}")
@@ -746,10 +703,19 @@ class Backtester:
             
             backtest_results = results['backtest_results']
             
+            # Get the final parameters from the results
+            final_params = results.get('parameters', {})
+            if not final_params:
+                logger.error("No parameters found in optimization results")
+                return {}
+                
+            # Store final params as class variable
+            self.current_params = final_params
+            
             # Use policy optimizer to adjust parameters and rules
             adjusted_params, adjusted_rules = self.policy_optimizer.feedback_loop(
                 backtest_results,
-                parameters,
+                self.current_params,
                 conditions
             )
             

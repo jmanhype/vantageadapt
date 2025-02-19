@@ -49,16 +49,16 @@ class MarketRegimeClassifier(Module):
             # Determine regime
             logger.info("Determining market regime")
             if volatility and volatility > 0.02:  # High volatility threshold
-                regime = MarketRegime.RANGING_HIGH_VOL
+                regime = MarketRegime.RANGING_HIGH_VOL.value
                 confidence = min(volatility * 50, 1.0)  # Scale confidence with volatility
             elif current_price > sma_20 and sma_20 > sma_50:
-                regime = MarketRegime.TRENDING_UP
+                regime = MarketRegime.TRENDING_BULLISH.value
                 confidence = min((current_price - sma_50) / sma_50 * 5, 1.0)
             elif current_price < sma_20 and sma_20 < sma_50:
-                regime = MarketRegime.TRENDING_DOWN
+                regime = MarketRegime.TRENDING_BEARISH.value
                 confidence = min((sma_50 - current_price) / sma_50 * 5, 1.0)
             else:
-                regime = MarketRegime.RANGING
+                regime = MarketRegime.RANGING_LOW_VOL.value
                 confidence = 0.6  # Default confidence for ranging market
 
             response = {
@@ -67,7 +67,7 @@ class MarketRegimeClassifier(Module):
                     "confidence": float(confidence)
                 },
                 "analysis_text": f"Market is in {regime} regime with {confidence:.2f} confidence",
-                "risk_level": "high" if regime == MarketRegime.RANGING_HIGH_VOL else "moderate"
+                "risk_level": "high" if regime == MarketRegime.RANGING_HIGH_VOL.value else "moderate"
             }
             
             total_duration = time.time() - start_time
@@ -83,7 +83,7 @@ class MarketRegimeClassifier(Module):
             logger.error("Error in regime classification: {}", str(e))
             logger.exception("Full traceback:")
             return {
-                "market_context": {"regime": MarketRegime.UNKNOWN, "confidence": 0.0},
+                "market_context": {"regime": MarketRegime.UNKNOWN.value, "confidence": 0.0},
                 "analysis_text": f"Classification failed: {str(e)}",
                 "risk_level": "unknown"
-            }
+            } 

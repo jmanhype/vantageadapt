@@ -1,47 +1,99 @@
-"""Type definitions for the trading system."""
-
-from typing import Dict, List, Any, TypedDict, Literal, Optional
-from datetime import datetime
-
-class StrategyContext(TypedDict):
-    """Type definition for strategy generation context."""
-    market_regime: str
-    regime_confidence: float
-    timeframe: str
-    asset_type: str
-    risk_profile: str
-    performance_history: Optional[Dict[str, float]]
-    constraints: Dict[str, Any]
+"""Type definitions for the trading strategy system."""
 
 from enum import Enum
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass
+from datetime import datetime
 
-class MarketRegime(str, Enum):
-    """Enum for different market regimes."""
-    TRENDING = 'TRENDING'
-    RANGING = 'RANGING'
-    RANGING_LOW_VOL = 'RANGING_LOW_VOL'
-    RANGING_HIGH_VOL = 'RANGING_HIGH_VOL'
-    TRENDING_UP = 'TRENDING_UP'
-    TRENDING_DOWN = 'TRENDING_DOWN'
-    UNKNOWN = 'UNKNOWN'
+class MarketRegime(Enum):
+    """Market regime enumeration."""
+    TRENDING_BULLISH = "TRENDING_BULLISH"
+    TRENDING_BEARISH = "TRENDING_BEARISH"
+    RANGING_HIGH_VOL = "RANGING_HIGH_VOL"
+    RANGING_LOW_VOL = "RANGING_LOW_VOL"
+    BREAKOUT = "BREAKOUT"
+    BREAKDOWN = "BREAKDOWN"
+    UNKNOWN = "UNKNOWN"
 
-class MarketContext(TypedDict):
-    """Type definition for market analysis context."""
+@dataclass
+class StrategyContext:
+    """Context information for strategy generation."""
     regime: MarketRegime
     confidence: float
-    timestamp: datetime
-    metrics: Dict[str, float]
+    risk_level: str
+    parameters: Dict[str, Any]
+    opportunity_score: float = 0.0
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
+        # Convert parameters to be JSON serializable
+        serializable_params = {}
+        for key, value in self.parameters.items():
+            if isinstance(value, (list, dict, str, int, float, bool)):
+                serializable_params[key] = value
+            elif value is None:
+                serializable_params[key] = None
+            else:
+                # Convert any other type to string representation
+                serializable_params[key] = str(value)
+        
+        return {
+            "regime": self.regime.value,
+            "confidence": float(self.confidence),
+            "risk_level": str(self.risk_level),
+            "parameters": serializable_params,
+            "opportunity_score": float(self.opportunity_score)
+        }
+        
+    @classmethod
+    def from_market_context(cls, market_context: Any, parameters: Optional[Dict[str, Any]] = None) -> 'StrategyContext':
+        """Create a StrategyContext from a MarketContext.
+        
+        Args:
+            market_context: The MarketContext object to convert
+            parameters: Optional parameters dictionary. If not provided, will create from market_context attributes
+            
+        Returns:
+            A new StrategyContext object
+        """
+        if parameters is None:
+            parameters = {
+                "volatility_level": market_context.volatility_level,
+                "trend_strength": market_context.trend_strength,
+                "volume_profile": market_context.volume_profile,
+                "key_levels": market_context.key_levels,
+                "analysis": market_context.analysis
+            }
+            
+        return cls(
+            regime=market_context.regime,
+            confidence=market_context.confidence,
+            risk_level=market_context.risk_level,
+            parameters=parameters,
+            opportunity_score=0.0  # Default since MarketContext doesn't have this
+        )
 
-class BacktestResults(TypedDict):
-    """Type definition for backtesting results."""
+@dataclass
+class BacktestResults:
+    """Results from strategy backtesting."""
     total_return: float
     total_pnl: float
-    total_trades: int
-    win_rate: float
     sortino_ratio: float
-    sharpe_ratio: float
-    max_drawdown: float
-    avg_trade_duration: float
-    trade_frequency: float
-    trades: Dict[str, List[Dict[str, Any]]]
-    timestamp: datetime
+    win_rate: float
+    total_trades: int
+    trades: List[Dict[str, Any]]
+    metrics: Dict[str, Any]
+    timestamp: datetime = datetime.now()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "total_return": self.total_return,
+            "total_pnl": self.total_pnl,
+            "sortino_ratio": self.sortino_ratio,
+            "win_rate": self.win_rate,
+            "total_trades": self.total_trades,
+            "trades": self.trades,
+            "metrics": self.metrics,
+            "timestamp": self.timestamp.isoformat()
+        } 

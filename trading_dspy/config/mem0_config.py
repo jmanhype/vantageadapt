@@ -16,7 +16,6 @@ MEM0_CONFIG = {
     "user_id": os.getenv("MEM0_USER_ID", "trading_system"),
     "search_limit": 10,  # Maximum number of similar strategies to retrieve
     "metadata_types": {
-        "strategy": "strategy",
         "strategy_results": "strategy_results",
         "market_analysis": "market_analysis",
         "performance_metrics": "performance_metrics"
@@ -120,4 +119,4 @@ def update_config(updates: Dict[str, Any]) -> bool:
         
     except Exception as e:
         logger.error(f"Error updating configuration: {str(e)}")
-        return False
+        return False 
