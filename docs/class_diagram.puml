@@ -1,0 +1,143 @@
+@startuml Trading System Class Diagram
+title Trading System Class Structure
+
+' Enums and Data Classes
+enum MarketRegime {
+    TRENDING_BULLISH
+    TRENDING_BEARISH
+    RANGING_HIGH_VOL
+    RANGING_LOW_VOL
+    BREAKOUT
+    BREAKDOWN
+    REVERSAL
+    UNKNOWN
+}
+
+class MarketContext {
+    +regime: MarketRegime
+    +confidence: float
+    +volatility_level: float
+    +trend_strength: float
+    +volume_profile: str
+    +risk_level: str
+    +key_levels: Dict
+    +analysis: Dict
+    +to_dict(): Dict
+    +{static} from_dict(data: Dict): MarketContext
+}
+
+class StrategyInsight {
+    +regime_change_probability: float
+    +suggested_position_size: float
+    +risk_reward_target: float
+    +entry_zones: List[Dict]
+    +exit_zones: List[Dict]
+    +stop_loss_zones: List[Dict]
+    +trade_frequency: str
+    +position_sizing_advice: str
+    +risk_management_notes: List[str]
+    +opportunity_description: str
+    +to_dict(): Dict
+}
+
+' Core Components
+class StrategicTrader {
+    -llm: TeachableLLMInterface
+    -market_context: MarketContext
+    -strategy_insights: StrategyInsight
+    +{static} create(): StrategicTrader
+    +analyze_market(market_data: DataFrame): MarketContext
+    +generate_strategy(theme: str): StrategyInsight
+    +generate_trading_rules(): Tuple[Dict, Dict]
+    +improve_strategy(metrics: Dict): Dict
+    +analyze_performance(metrics: Dict): Dict
+    +save_strategy_results()
+}
+
+class LLMInterface {
+    -client: ChatOpenAI
+    -prompt_manager: PromptManager
+    +{static} create(): LLMInterface
+    +chat_completion(messages: List): Any
+    +analyze_market(market_data: DataFrame): MarketContext
+    +generate_strategy(theme: str): StrategyInsight
+    +generate_trading_rules(): Tuple[Dict, Dict]
+    +improve_strategy(metrics: Dict): Dict
+}
+
+class TeachableLLMInterface {
+    -teachability: Teachability
+    +{static} create(): TeachableLLMInterface
+    +analyze_market(market_data: DataFrame): MarketContext
+    +generate_strategy(theme: str): StrategyInsight
+}
+
+class GodelAgent {
+    -improvement_threshold: float
+    -max_iterations: int
+    -parameter_history: List
+    -success_patterns: Dict
+    +track_performance(metrics: Dict): bool
+    +propose_patch(module_code: str): List[Dict]
+    +modify_prompts(context: Dict): bool
+    +optimize_strategy(module_code: str): str
+    +parallel_strategy_optimization()
+}
+
+class MemoryManager {
+    -client: MemoryClient
+    -enabled: bool
+    +store_strategy_results(context: StrategyContext): bool
+    +query_similar_strategies(regime: MarketRegime): List[Dict]
+    +reset(): bool
+}
+
+' Analysis Components
+class TradeAnalyzer {
+    -trades_df: DataFrame
+    -price_data: DataFrame
+    +analyze_trade_patterns(): List[TradePattern]
+    +analyze_market_context(): Dict[datetime, MarketContext]
+    +analyze_entries_exits(): Dict
+    +analyze_risk_metrics(): Dict
+    +analyze_behavioral_patterns(): Dict
+    +get_comprehensive_analysis(): TradeAnalysis
+}
+
+class Backtester {
+    +from_signals_backtest(trade_data: DataFrame): Any
+    +calculate_stats(portfolio: Dict): DataFrame
+    +run_parameter_optimization(trade_data: Dict): Dict
+}
+
+class TradeVisualizer {
+    -price_data: DataFrame
+    -trades_df: DataFrame
+    +plot_trades(title: str)
+    +plot_returns(title: str)
+    +plot_market_context(context: MarketContext)
+    +plot_pattern_analysis(patterns: List[TradePattern])
+}
+
+' Relationships
+StrategicTrader --> TeachableLLMInterface
+TeachableLLMInterface --|> LLMInterface
+StrategicTrader --> GodelAgent
+StrategicTrader --> MemoryManager
+StrategicTrader --> Backtester
+StrategicTrader --> TradeAnalyzer
+
+LLMInterface --> MarketContext
+LLMInterface --> StrategyInsight
+MarketContext --> MarketRegime
+
+TradeAnalyzer --> TradeVisualizer
+TradeAnalyzer --> MarketContext
+
+MemoryManager --> MarketContext
+MemoryManager --> StrategyInsight
+
+GodelAgent --> MemoryManager
+GodelAgent --> LLMInterface
+
+@enduml

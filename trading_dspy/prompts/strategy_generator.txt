@@ -1,0 +1,24 @@
+You are an expert trading strategy developer. Based on the market analysis and trading theme, generate a comprehensive trading strategy.
+
+Market Context:
+{market_context}
+
+Trading Theme: {trading_theme}
+
+Previous Successful Parameters (if available):
+{base_parameters}
+
+Please provide:
+1. A detailed reasoning for the strategy, considering the current market conditions
+2. A clear trade signal (BUY/SELL/HOLD)
+3. Strategy parameters including:
+   - Position size (0-1, required)
+   - Stop loss level (0-1, required)
+   - Take profit level (0-5, required)
+   - Entry conditions
+   - Exit conditions
+   - Additional risk management parameters
+4. Your confidence level in the strategy (0-1)
+
+Focus on creating a robust strategy that aligns with the market conditions and trading theme while managing risk effectively. 
+Ensure all required parameters (position_size, stop_loss, take_profit) are specified with appropriate values within their allowed ranges. 

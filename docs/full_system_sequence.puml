@@ -1,0 +1,104 @@
+@startuml Full Trading System with Self-Improvement
+title Full Trading System with Self-Improvement Flow
+
+participant "Main" as Main
+participant "StrategicTrader" as ST
+participant "TeachableLLM" as TLLM
+participant "LLMInterface" as LLM
+participant "GodelAgent" as GA
+participant "MemoryManager" as MM
+participant "Backtester" as BT
+participant "TradeAnalyzer" as TA
+participant "TradeVisualizer" as TV
+participant "Database" as DB
+participant "PromptManager" as PM
+
+== System Initialization ==
+Main -> GA: create(improvement_threshold, max_iterations)
+activate GA
+Main -> ST: create()
+activate ST
+ST -> TLLM: create()
+activate TLLM
+TLLM -> LLM: initialize()
+LLM -> PM: get_prompt_content()
+PM --> LLM: prompts
+TLLM -> TLLM: initialize_teachability()
+LLM --> TLLM: initialized
+TLLM --> ST: interface
+deactivate TLLM
+ST --> Main: trader instance
+deactivate ST
+
+== Strategy Generation Loop ==
+loop for iteration in max_iterations
+    Main -> ST: analyze_market(market_data)
+    activate ST
+    ST -> TLLM: analyze_market()
+    TLLM -> LLM: analyze_market()
+    LLM -> LLM: chat_completion()
+    LLM --> TLLM: base_analysis
+    TLLM -> TLLM: enhance_with_teachability()
+    TLLM --> ST: MarketContext
+    deactivate ST
+
+    Main -> MM: query_similar_strategies(market_regime)
+    MM --> Main: similar_strategies
+
+    Main -> ST: generate_strategy(theme)
+    activate ST
+    ST -> TLLM: generate_strategy()
+    TLLM -> LLM: generate_strategy()
+    LLM -> LLM: chat_completion()
+    LLM --> TLLM: base_strategy
+    TLLM -> TLLM: enhance_with_teachability()
+    TLLM --> ST: StrategyInsight
+    deactivate ST
+
+    == Backtesting & Analysis ==
+    Main -> BT: run_parameter_optimization()
+    activate BT
+    BT -> BT: from_signals_backtest()
+    BT -> BT: calculate_stats()
+    BT --> Main: BacktestResults
+    deactivate BT
+
+    Main -> TA: analyze_trades(trades_df)
+    activate TA
+    TA -> TA: analyze_patterns()
+    TA -> TA: analyze_performance()
+    TA --> Main: TradeAnalysis
+    deactivate TA
+
+    == Self-Improvement ==
+    Main -> GA: track_performance(metrics)
+    activate GA
+    GA -> GA: evaluate_strategy()
+    GA -> GA: analyze_parameter_trends()
+    alt needs improvement
+        GA -> GA: propose_patch()
+        GA -> GA: modify_prompts()
+        GA -> GA: optimize_strategy()
+    end
+    GA --> Main: improvement_status
+    deactivate GA
+
+    == Memory & Storage ==
+    Main -> MM: store_strategy_results()
+    activate MM
+    MM -> MM: validate_success_criteria()
+    MM -> DB: save_strategy()
+    DB --> MM: confirmation
+    MM --> Main: storage_status
+    deactivate MM
+
+    == Visualization ==
+    Main -> TV: plot_trades()
+    activate TV
+    TV -> TV: create_subplots()
+    TV -> TV: plot_analysis()
+    TV --> Main: visualization
+    deactivate TV
+end
+
+@enduml

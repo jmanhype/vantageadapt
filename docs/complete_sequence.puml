@@ -1,0 +1,101 @@
+@startuml Complete Trading System Flow
+title Complete Trading System Flow
+
+participant "Main" as Main
+participant "StrategicTrader" as ST
+participant "TeachableLLM" as TLLM
+participant "LLMInterface" as LLM
+participant "MemoryManager" as MM
+participant "Backtester" as BT
+participant "Database" as DB
+participant "PromptManager" as PM
+
+== Initialization ==
+Main -> ST: create()
+activate ST
+ST -> TLLM: create()
+activate TLLM
+TLLM -> LLM: initialize()
+LLM -> PM: get_prompt_content()
+PM --> LLM: prompts
+LLM --> TLLM: initialized
+TLLM --> ST: interface
+deactivate TLLM
+ST --> Main: trader instance
+deactivate ST
+
+== Market Analysis & Strategy Generation ==
+Main -> ST: analyze_market(market_data)
+activate ST
+ST -> LLM: analyze_market(market_data)
+activate LLM
+LLM -> LLM: chat_completion(market_analysis_prompt)
+LLM --> ST: MarketContext
+deactivate LLM
+ST --> Main: market_context
+deactivate ST
+
+Main -> ST: generate_strategy(theme)
+activate ST
+ST -> LLM: generate_strategy(theme, market_context)
+activate LLM
+LLM -> LLM: chat_completion(strategy_prompt)
+LLM --> ST: StrategyInsight
+deactivate LLM
+ST --> Main: strategy_insights
+deactivate ST
+
+== Trading Rules Generation ==
+Main -> ST: generate_trading_rules(insights, context)
+activate ST
+ST -> LLM: generate_trading_rules()
+activate LLM
+LLM -> PM: get_prompt_content('trading/rules_generation')
+PM --> LLM: rules_prompt
+LLM -> LLM: chat_completion(rules_prompt)
+LLM --> ST: conditions, parameters
+deactivate LLM
+ST --> Main: trading_rules
+deactivate ST
+
+== Backtesting & Optimization ==
+Main -> BT: run_parameter_optimization(trade_data, conditions)
+activate BT
+BT -> BT: from_signals_backtest()
+BT -> BT: calculate_stats()
+BT --> Main: BacktestResults
+deactivate BT
+
+== Performance Analysis ==
+Main -> ST: analyze_performance(metrics, trade_stats)
+activate ST
+ST -> LLM: analyze_performance()
+activate LLM
+LLM -> PM: get_prompt_content('evaluation/performance_analysis')
+PM --> LLM: analysis_prompt
+LLM -> LLM: chat_completion(analysis_prompt)
+LLM --> ST: performance_analysis
+deactivate LLM
+ST --> Main: analysis
+deactivate ST
+
+== Strategy Improvement ==
+Main -> ST: improve_strategy(metrics, trade_stats)
+activate ST
+ST -> LLM: analyze_performance()
+LLM --> ST: analysis
+ST -> LLM: generate_trading_rules(with_analysis)
+LLM --> ST: improved_rules
+ST --> Main: improved_strategy
+deactivate ST
+
+== Memory & Storage ==
+Main -> MM: store_strategy_results(context, results)
+activate MM
+MM -> MM: validate_success_criteria()
+MM -> DB: save_strategy()
+DB --> MM: confirmation
+MM --> Main: storage_status
+deactivate MM
+
+@enduml

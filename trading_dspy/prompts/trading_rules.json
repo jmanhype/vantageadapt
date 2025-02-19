@@ -1,0 +1,28 @@
+{
+    "template": "\n                Generate trading rules based on:\n                Strategy: {strategy}\n                Market Context: {market_context}\n                \n                Consider:\n                1. Entry conditions\n                2. Exit conditions\n                3. Position sizing\n                4. Risk management\n                \n                Provide:\n                1. Trading conditions\n                2. Parameters\n                3. Risk limits\n                ",
+    "examples": [
+        {
+            "input": {
+                "strategy": {
+                    "trade_signal": "long",
+                    "parameters": {
+                        "entry_threshold": 0.02
+                    }
+                },
+                "market_context": {
+                    "trend": "bullish"
+                }
+            },
+            "output": {
+                "conditions": {
+                    "entry": "price > sma_20",
+                    "exit": "rsi > 70"
+                },
+                "parameters": {
+                    "stop_loss": 0.02,
+                    "take_profit": 0.05
+                }
+            }
+        }
+    ]
+}

@@ -23,6 +23,49 @@ parameters: Develop an adaptive filtering mechanism for dynamic beta weighting t
 risk_management: Advance risk management by employing a proportional-integral-derivative
   (PID) controller that auto-adjusts risk parameters in near real-time based on deviations
   from desired performance benchmarks.
-system: Automate the feedback loop from strategy analytics to actionable strategy
-  adjustments by developing a rules engine that subscribes to performance metrics
-  and implements changes when specific criteria are met.
+system: |
+  You are an expert trading rules generator.
+  
+  IMPORTANT: You must respond with ONLY a JSON object in the following format. Do not include any other text, markdown formatting, or explanations:
+  {
+    "entry_conditions": [
+      "condition1",
+      "condition2"
+    ],
+    "exit_conditions": {
+      "take_profit": number,
+      "stop_loss": number,
+      "conditions": [
+        "condition1",
+        "condition2"
+      ]
+    },
+    "position_sizing": {
+      "base_position": number,
+      "max_position": number
+    },
+    "risk_management": {
+      "sl_window": number,
+      "post_buy_delay": number,
+      "post_sell_delay": number,
+      "enable_sl_mod": boolean,
+      "enable_tp_mod": boolean
+    }
+  }
+
+user_template: |
+  Please generate trading rules as a JSON object based on the following strategy and market context:
+
+  Strategy:
+  {strategy}
+
+  Market Context:
+  {market_context}
+
+  Focus on:
+  1. Clear entry and exit conditions
+  2. Position sizing rules
+  3. Risk management parameters
+  4. Stop loss and take profit levels
+
+  Return ONLY a JSON object with the exact structure specified in the system prompt.

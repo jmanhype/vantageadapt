@@ -1,0 +1,119 @@
+@startuml Trading System Component Diagram
+title Trading System Architecture and Data Flow
+
+' Style settings
+skinparam componentStyle uml2
+skinparam component {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+
+package "Core Trading System" {
+    [StrategicTrader] as ST
+    [TeachableLLM] as TLLM
+    [GodelAgent] as GA
+    [MemoryManager] as MM
+}
+
+package "Analysis & Backtesting" {
+    [TradeAnalyzer] as TA
+    [Backtester] as BT
+    [TradeVisualizer] as TV
+}
+
+package "Data Management" {
+    database "Database" as DB
+    [PromptManager] as PM
+    folder "Trading Data" as TD
+    folder "Market Data" as MD
+}
+
+package "External Services" {
+    [OpenAI API] as API
+    [mem0ai] as MEM0
+    [VectorBT] as VBT
+}
+
+package "Configuration" {
+    [Config Files] as CF {
+        file "mem0_config.py"
+        file "rules_generation.yaml"
+        file "strategy_generation.yaml"
+    }
+}
+
+' Interfaces
+interface "Market Analysis" as MA
+interface "Strategy Generation" as SG
+interface "Performance Analysis" as PA
+interface "Memory Storage" as MS
+interface "Visualization" as VIS
+interface "Self-Improvement" as SI
+
+' Core System Connections
+ST -- MA
+ST -- SG
+ST -- PA
+
+TLLM -up- MA
+TLLM -up- SG
+TLLM -- API
+
+GA -- SI
+GA -- PM
+GA -- MM
+
+MM -- MS
+MM -- MEM0
+
+' Analysis Connections
+TA -- PA
+TA -- VIS
+TV -- VIS
+BT -- VBT
+BT -- PA
+
+' Data Flow
+TD --> BT
+MD --> ST
+DB --> MM
+DB --> ST
+
+' Configuration
+CF --> ST
+CF --> MM
+CF --> GA
+PM --> TLLM
+
+' External Service Dependencies
+API --> TLLM : "LLM Requests"
+MEM0 --> MM : "Memory Storage"
+VBT --> BT : "Backtesting"
+
+' Data Flow Notes
+note right of MA
+    Market regime analysis
+    Volatility assessment
+    Risk evaluation
+end note
+
+note right of SG
+    Strategy generation
+    Trading rules
+    Parameter optimization
+end note
+
+note right of SI
+    Code improvements
+    Prompt modifications
+    Performance tracking
+end note
+
+note right of MS
+    Strategy storage
+    Pattern recognition
+    Experience retrieval
+end note
+
+@enduml

@@ -1,0 +1,29 @@
+{
+    "template": "\n                Analyze the following market data and provide insights:\n                Market Data: {market_data}\n                Timeframe: {timeframe}\n                \n                Consider:\n                1. Current market trends\n                2. Support and resistance levels\n                3. Volume analysis\n                4. Technical indicators\n                \n                Provide:\n                1. Market context\n                2. Analysis text\n                3. Risk level (low/medium/high)\n                ",
+    "examples": [
+        {
+            "input": {
+                "market_data": {
+                    "prices": [
+                        100,
+                        101,
+                        102
+                    ],
+                    "volumes": [
+                        1000,
+                        1100,
+                        900
+                    ]
+                },
+                "timeframe": "1h"
+            },
+            "output": {
+                "market_context": {
+                    "trend": "bullish"
+                },
+                "analysis_text": "Market showing upward momentum",
+                "risk_level": "medium"
+            }
+        }
+    ]
+}

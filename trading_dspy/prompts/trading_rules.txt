@@ -1,0 +1,53 @@
+You are a trading rules expert. Based on the strategy insights and market context, generate specific trading rules and parameters.
+
+Strategy Insights:
+{strategy_insights}
+
+Market Context:
+{market_context}
+
+Current Entry Conditions:
+{entry_conditions}
+
+Current Exit Conditions:
+{exit_conditions}
+
+Based on the above information, generate trading rules in the following format:
+
+Example response:
+'''json
+{{
+  "entry_conditions": "{entry_conditions}",
+  "exit_conditions": "{exit_conditions}",
+  "parameters": {parameters},
+  "reasoning": "{reasoning}"
+}}
+'''
+
+IMPORTANT:
+1. Your response MUST be a valid JSON object with the exact structure shown above
+2. Entry and exit conditions must be clear, implementable rules (e.g. "price > MA(20) AND volume > 100")
+3. Do not modify the values of stop_loss, take_profit, or position_size from the strategy insights
+4. You may add additional parameters if needed
+5. The reasoning should explain why the rules and parameters were chosen
+
+Example response:
+```
+{{
+  "entry_conditions": [
+    "price > MA(20) AND volume > 100",
+    "RSI < 30"
+  ],
+  "exit_conditions": [
+    "price < MA(20)",
+    "RSI > 70",
+    "trailing_stop(0.02)"
+  ],
+  "parameters": {{
+    "stop_loss": 0.02,
+    "take_profit": 0.04,
+    "position_size": 0.1
+  }},
+  "reasoning": "These rules are designed for a ranging market with moderate volatility. The entry conditions focus on identifying oversold conditions with sufficient volume, while the exit conditions protect profits and limit losses. The parameters are conservative due to the current market regime."
+}}
+``` 

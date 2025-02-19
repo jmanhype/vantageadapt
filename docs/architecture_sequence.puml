@@ -1,0 +1,40 @@
+@startuml
+' Strategy Generation Sequence Diagram
+title Strategy Generation Flow
+participant User
+participant StrategyGenerator
+participant LLMInterface
+participant Backtester
+participant Database
+
+User -> StrategyGenerator: generate_strategy(market_data)
+activate StrategyGenerator
+StrategyGenerator -> LLMInterface: get_llm_response(prompts/rules_generation.yaml)
+LLMInterface --> StrategyGenerator: raw_strategy_rules
+StrategyGenerator -> Backtester: validate_strategy(rules)
+Backtester --> StrategyGenerator: backtest_results
+StrategyGenerator -> Database: save_strategy(rules, results)
+Database --> StrategyGenerator: storage_confirmation
+StrategyGenerator --> User: formatted_strategy_report
+deactivate StrategyGenerator
+
+' Backtesting Sequence Diagram
+divide Backtesting Process
+User -> Backtester: run_backtest(strategy_id)
+activate Backtester
+Backtester -> Database: load_historical_data()
+Database --> Backtester: market_data
+Backtester -> MemoryManager: get_learned_parameters()
+MemoryManager --> Backtester: adaptive_rules
+Backtester -> Backtester: execute_simulation()
+Backtester --> User: performance_metrics
+deactivate Backtester
+
+' Data Flow Diagram
+divide Data Flow
+note left of Database: Stores:\n- Market Data\n- Strategy Configs\n- Backtest Results
+Database -> MemoryManager: historical_patterns
+MemoryManager -> LLMInterface: learned_parameters
+LLMInterface -> StrategyGenerator: enhanced_prompts
+StrategyGenerator -> Backtester: validated_strategies
+@enduml
