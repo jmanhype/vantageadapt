@@ -53,10 +53,16 @@ class MarketRegimeClassifier(Module):
                 confidence = min(volatility * 50, 1.0)  # Scale confidence with volatility
             elif current_price > sma_20 and sma_20 > sma_50:
                 regime = MarketRegime.TRENDING_BULLISH.value
-                confidence = min((current_price - sma_50) / sma_50 * 5, 1.0)
+                # Increase confidence based on price distance from SMAs and their alignment
+                price_sma20_diff = (current_price - sma_20) / sma_20
+                sma20_sma50_diff = (sma_20 - sma_50) / sma_50
+                confidence = min((price_sma20_diff + sma20_sma50_diff) * 10 + 0.6, 1.0)
             elif current_price < sma_20 and sma_20 < sma_50:
                 regime = MarketRegime.TRENDING_BEARISH.value
-                confidence = min((sma_50 - current_price) / sma_50 * 5, 1.0)
+                # Increase confidence based on price distance from SMAs and their alignment
+                price_sma20_diff = (sma_20 - current_price) / sma_20
+                sma20_sma50_diff = (sma_50 - sma_20) / sma_50
+                confidence = min((price_sma20_diff + sma20_sma50_diff) * 10 + 0.6, 1.0)
             else:
                 regime = MarketRegime.RANGING_LOW_VOL.value
                 confidence = 0.6  # Default confidence for ranging market
