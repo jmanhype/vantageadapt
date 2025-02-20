@@ -1,5 +1,13 @@
 # Trading System Optimization Roadmap
 
+## System Vision
+
+The system aims to create an autonomous LLM-powered pipeline that:
+1. Accepts high-level trading themes/directions (e.g., volume-based indicators, predictive models)
+2. Generates and optimizes trading logic through iterative improvement
+3. Maintains benchmark-driven evaluation
+4. Operates continuously and autonomously
+
 ## Current System Analysis (As of Feb 2024)
 
 ### Performance Metrics
@@ -43,6 +51,8 @@
    - Optimize prompt templates
    - Add multi-timeframe analysis
    - Implement adaptive indicator selection
+   - Store all portfolio-level statistics in database
+   - Track individual asset performance
 
 ### Phase 2: KNN Few-Shot Implementation - Q2 2024
 **Objective**: Enhance trade frequency and market matching
@@ -69,6 +79,7 @@
    - Implement Bayesian optimization
    - Add multi-objective optimization
    - Develop parameter correlation analysis
+   - Integrate Optuna for efficient search space reduction
 
 2. Performance Tuning
    - Add dynamic stop-loss adjustment
@@ -82,23 +93,38 @@
 
 ## Success Metrics
 
-### Short-term Goals (Q1-Q2 2024)
-- Reduce strategy generation time to <10s
-- Increase trade frequency to >10 trades/day
-- Achieve market regime confidence >0.90
+### Strategy Requirements
+- Minimum 100% return
+- 1000+ trades executed
+- 100+ assets traded
 - Maintain Sortino ratio >15
+- Achieve market regime confidence >0.90
 
-### Mid-term Goals (Q3-Q4 2024)
-- Achieve consistent >8% monthly returns
-- Maintain win rate >75%
-- Reduce maximum drawdown to <10%
-- Implement full parameter optimization
+### System Requirements
+- Autonomous operation
+- Efficient parameter optimization
+- Reduced search space vs human optimization
+- Continuous improvement capability
+- Generation time <10s
 
-### Long-term Goals (2025)
-- Scale to multiple assets
-- Achieve fully automated optimization
-- Implement real-time adaptation
-- Develop comprehensive risk management
+## Implementation Requirements
+
+### Core Infrastructure
+1. **Centralized Prompt Management**
+   - Single location for all prompts
+   - Easy modification interface
+   - Version control integration
+
+2. **Performance Tracking**
+   - Database for strategy results
+   - Parameter effectiveness logging
+   - Portfolio statistics storage
+   - Asset-level performance tracking
+
+3. **Monitoring System**
+   - LangSmith integration
+   - Performance visualization
+   - Strategy evolution tracking
 
 ## Implementation Timeline
 
@@ -146,6 +172,7 @@
 - System performance degradation
 - Memory system failures
 - Optimization convergence issues
+- Prompt version control issues
 
 ### Market Risks
 - Regime misclassification
@@ -153,18 +180,29 @@
 - Excessive trade frequency
 
 ### Mitigation Strategies
-- Regular performance monitoring
+- Regular benchmark evaluation
 - Automated failover systems
 - Gradual parameter updates
 - Conservative position sizing
+- Comprehensive error handling
 
-## Future Considerations
+## Future Enhancements
 
-### Potential Enhancements
-- Deep learning integration
-- Real-time news analysis
-- Multi-exchange support
-- Advanced risk modeling
+### Advanced Features
+1. **Vector Store Integration**
+   - Research article storage
+   - Market context database
+   - Historical pattern matching
+
+2. **Visual Analysis**
+   - Price action plots with entries/exits
+   - Return over time visualization
+   - Parameter effectiveness charts
+
+3. **Enhanced Analytics**
+   - Best/worst trade analysis
+   - Market condition correlation
+   - Performance attribution
 
 ### Research Areas
 - Alternative data sources
