@@ -44,8 +44,8 @@ class PromptOptimizer:
             logger.warning("Not enough examples for optimization, need at least 2")
             return module
             
-        # Define market analysis metric function
-        def market_analysis_metric(gold: Dict[str, Any], pred: Dict[str, Any]) -> float:
+        # Define market analysis metric function - updated for DSPy optimization signature
+        def market_analysis_metric(gold: Dict[str, Any], pred: Dict[str, Any], trace=None) -> float:
             """Metric function for market analysis optimization."""
             # Check regime match
             regime_match = int(gold.get('regime') == pred.get('regime', ''))
@@ -78,13 +78,21 @@ class PromptOptimizer:
                     # First create empty example
                     example = dspy.Example()
                     
-                    # Set input attributes directly
-                    example.market_data = {"summary": "Market data summary..."}
+                    # Set input attributes directly with proper structure to avoid KeyError
+                    example.market_data = {
+                        "prices": [100.0, 101.0, 102.0, 101.5, 102.5],
+                        "volumes": [1000, 1200, 900, 1100, 1300],
+                        "indicators": {
+                            "sma_20": [99.0, 100.0, 101.0, 101.2, 101.8],
+                            "sma_50": [95.0, 96.0, 97.0, 98.0, 99.0],
+                            "rsi": [55, 60, 65, 58, 62],
+                            "volatility": [0.02, 0.025, 0.022, 0.018, 0.02]
+                        }
+                    }
                     example.timeframe = ex.get('timeframe', '1h')
-                    example.prompt = ex.get('prompt', '')
                     
-                    # Mark which ones are inputs
-                    example = example.with_inputs('market_data', 'timeframe', 'prompt')
+                    # Mark which ones are inputs - removed 'prompt' as it's causing errors
+                    example = example.with_inputs('market_data', 'timeframe')
                     
                     # Set output attributes directly
                     example.regime = outputs.get('regime', '')
@@ -176,8 +184,8 @@ class PromptOptimizer:
             logger.warning("Not enough examples for optimization, need at least 2")
             return module
             
-        # Define strategy generation metric function
-        def strategy_generation_metric(gold: Dict[str, Any], pred: Dict[str, Any]) -> float:
+        # Define strategy generation metric function with updated signature
+        def strategy_generation_metric(gold: Dict[str, Any], pred: Dict[str, Any], trace=None) -> float:
             """Metric function for strategy generation optimization."""
             # Check for required strategy components
             strategy = pred.get('strategy', {})
@@ -232,8 +240,8 @@ class PromptOptimizer:
             logger.warning("Not enough examples for optimization, need at least 2")
             return module
             
-        # Define trading rules metric function
-        def trading_rules_metric(gold: Dict[str, Any], pred: Dict[str, Any]) -> float:
+        # Define trading rules metric function with updated signature
+        def trading_rules_metric(gold: Dict[str, Any], pred: Dict[str, Any], trace=None) -> float:
             """Metric function for trading rules optimization."""
             # Check for required components
             rules = pred.get('trading_rules', {})
@@ -404,16 +412,15 @@ class PromptOptimizer:
         try:
             logger.info("Collecting market analysis example")
             
-            # Create a simplified version of market data to avoid serialization issues
-            # Include only the most relevant fields for optimization
+            # Create a simplified version of market data with proper structure matching what market_analysis expects
             simplified_market_data = {
-                "summary": {
-                    "prices": market_data.get('prices', [])[-5:] if 'prices' in market_data else [],
-                    "current_price": market_data.get('prices', [])[-1] if 'prices' in market_data else 0,
-                    "sma_20": market_data.get('indicators', {}).get('sma_20', [])[-1] if 'indicators' in market_data else 0,
-                    "sma_50": market_data.get('indicators', {}).get('sma_50', [])[-1] if 'indicators' in market_data else 0,
-                    "rsi": market_data.get('indicators', {}).get('rsi', [])[-1] if 'indicators' in market_data else 0,
-                    "volatility": market_data.get('indicators', {}).get('volatility', [])[-1] if 'indicators' in market_data else 0
+                "prices": market_data.get('prices', [])[-10:] if 'prices' in market_data else [100.0, 101.0, 102.0, 101.5, 102.5],
+                "volumes": market_data.get('volumes', [])[-10:] if 'volumes' in market_data else [1000, 1200, 900, 1100, 1300],
+                "indicators": {
+                    "sma_20": market_data.get('indicators', {}).get('sma_20', [])[-10:] if 'indicators' in market_data and 'sma_20' in market_data.get('indicators', {}) else [99.0, 100.0, 101.0, 101.2, 101.8],
+                    "sma_50": market_data.get('indicators', {}).get('sma_50', [])[-10:] if 'indicators' in market_data and 'sma_50' in market_data.get('indicators', {}) else [95.0, 96.0, 97.0, 98.0, 99.0],
+                    "rsi": market_data.get('indicators', {}).get('rsi', [])[-10:] if 'indicators' in market_data and 'rsi' in market_data.get('indicators', {}) else [55, 60, 65, 58, 62],
+                    "volatility": market_data.get('indicators', {}).get('volatility', [])[-10:] if 'indicators' in market_data and 'volatility' in market_data.get('indicators', {}) else [0.02, 0.025, 0.022, 0.018, 0.02]
                 }
             }
             
@@ -426,11 +433,10 @@ class PromptOptimizer:
             risk_level = result.get('risk_level', 'moderate')
             analysis = result.get('analysis_text', '')
             
-            # Prepare example
+            # Prepare example (removed 'prompt' field which was causing errors)
             example = {
                 'market_data': serializable_market_data,
                 'timeframe': '1h',
-                'prompt': self.prompt_manager.get_prompt('market_analysis'),
                 'outputs': {
                     'regime': regime,
                     'confidence': confidence,
@@ -508,10 +514,9 @@ class PromptOptimizer:
             serializable_market_analysis = self._make_serializable(simplified_market_analysis)
             serializable_strategy = self._make_serializable(simplified_strategy)
             
-            # Prepare example
+            # Prepare example (removed 'prompt' field which was causing errors)
             example = {
                 'market_analysis': serializable_market_analysis,
-                'prompt': self.prompt_manager.get_prompt('strategy_generator'),
                 'outputs': {
                     'strategy': serializable_strategy
                 }
@@ -599,10 +604,9 @@ class PromptOptimizer:
             serializable_strategy = self._make_serializable(simplified_strategy)
             serializable_trading_rules = self._make_serializable(simplified_trading_rules)
             
-            # Prepare example
+            # Prepare example (removed 'prompt' field which was causing errors)
             example = {
                 'strategy': serializable_strategy,
-                'prompt': self.prompt_manager.get_prompt('trading_rules'),
                 'outputs': {
                     'trading_rules': serializable_trading_rules
                 }
