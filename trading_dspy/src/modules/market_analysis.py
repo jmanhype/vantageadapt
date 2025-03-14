@@ -89,42 +89,148 @@ class MarketAnalyzer(ChainOfThought):
         try:
             # If result is already a dict with the expected fields, use it directly
             if isinstance(result, dict):
+                # Extract the fields, ensuring proper types
+                regime = result.get("regime", MarketRegime.UNKNOWN.value)
+                
+                # Handle confidence as float
+                try:
+                    confidence = float(result.get("confidence", 0.0))
+                except (ValueError, TypeError):
+                    logger.warning("Invalid confidence value, defaulting to 0.0")
+                    confidence = 0.0
+                
+                risk_level = result.get("risk_level", "unknown")
+                analysis = result.get("analysis", "No analysis provided")
+                
                 return {
-                    "regime": result.get("regime", MarketRegime.UNKNOWN.value),
-                    "confidence": result.get("confidence", 0.0),
-                    "risk_level": result.get("risk_level", "unknown"),
-                    "analysis_text": result.get("analysis", "No analysis provided")
+                    "regime": regime,
+                    "confidence": confidence,
+                    "risk_level": risk_level,
+                    "analysis_text": analysis
                 }
 
+            # If result is not a dict, process it as a string
+            if not isinstance(result, str):
+                # Convert to string if it's some other type
+                result = str(result)
+                
             # Clean the text response
             cleaned_text = result.strip()
             
-            # Remove code block markers if present
-            if cleaned_text.startswith("```json"):
-                cleaned_text = cleaned_text[7:]
-            if cleaned_text.endswith("```"):
-                cleaned_text = cleaned_text[:-3]
+            # Try to extract JSON from various formats
+            json_content = None
             
-            # Parse JSON response
-            try:
-                parsed = json.loads(cleaned_text)
-                return {
-                    "regime": parsed.get("regime", MarketRegime.UNKNOWN.value),
-                    "confidence": parsed.get("confidence", 0.0),
-                    "risk_level": parsed.get("risk_level", "unknown"),
-                    "analysis_text": parsed.get("analysis", "No analysis provided")
-                }
-            except json.JSONDecodeError as e:
-                logger.error("Error parsing JSON response: {}", str(e))
-                return {
-                    "regime": MarketRegime.UNKNOWN.value,
-                    "confidence": 0.0,
-                    "risk_level": "unknown",
-                    "analysis_text": f"Error parsing response: {str(e)}"
-                }
+            # Check for code blocks with JSON
+            if "```json" in cleaned_text:
+                # Extract content between ```json and ```
+                parts = cleaned_text.split("```json", 1)[1].split("```", 1)
+                if parts:
+                    json_content = parts[0].strip()
+            elif "```" in cleaned_text:
+                # Extract content between ``` and ```
+                parts = cleaned_text.split("```", 2)
+                if len(parts) >= 2:
+                    json_content = parts[1].strip()
+            
+            # If no code blocks found, try to find JSON objects directly
+            if not json_content and cleaned_text.strip().startswith("{") and cleaned_text.strip().endswith("}"):
+                # The entire text might be JSON
+                json_content = cleaned_text
+            
+            # Try to find JSON object anywhere in the text using regex
+            if not json_content:
+                import re
+                json_pattern = r'\{(?:[^{}]|(?:\{(?:[^{}]|(?:\{[^{}]*\}))*\}))*\}'
+                matches = re.findall(json_pattern, cleaned_text)
+                if matches:
+                    # Use the largest JSON object found
+                    json_content = max(matches, key=len)
+            
+            # Parse JSON response if found
+            if json_content:
+                try:
+                    parsed = json.loads(json_content)
+                    
+                    # Extract fields with type checking
+                    regime = parsed.get("regime", MarketRegime.UNKNOWN.value)
+                    
+                    # Handle confidence as float
+                    try:
+                        confidence = float(parsed.get("confidence", 0.0))
+                    except (ValueError, TypeError):
+                        logger.warning("Invalid confidence value in JSON, defaulting to 0.0")
+                        confidence = 0.0
+                    
+                    risk_level = parsed.get("risk_level", "unknown")
+                    analysis = parsed.get("analysis", "No analysis provided")
+                    
+                    return {
+                        "regime": regime,
+                        "confidence": confidence,
+                        "risk_level": risk_level,
+                        "analysis_text": analysis
+                    }
+                except json.JSONDecodeError as e:
+                    logger.error("Error parsing JSON response: {}", str(e))
+                    # Fall through to text parsing as backup
+            
+            # If JSON parsing failed or no JSON found, try to extract information from text
+            logger.warning("Falling back to text parsing")
+            
+            # Try to extract regime from text
+            regime = MarketRegime.UNKNOWN.value
+            for r in [r.value for r in MarketRegime]:
+                if r in cleaned_text:
+                    regime = r
+                    break
+            
+            # Try to extract confidence from text
+            confidence = 0.0
+            confidence_patterns = [
+                r'confidence[:\s]+([0-9]*\.?[0-9]+)',
+                r'confidence[:\s]+(high|medium|low)',
+                r'([0-9]*\.?[0-9]+)[:\s]+confidence'
+            ]
+            
+            for pattern in confidence_patterns:
+                match = re.search(pattern, cleaned_text, re.IGNORECASE)
+                if match:
+                    value = match.group(1)
+                    if value.lower() == 'high':
+                        confidence = 0.8
+                    elif value.lower() == 'medium':
+                        confidence = 0.5
+                    elif value.lower() == 'low':
+                        confidence = 0.2
+                    else:
+                        try:
+                            confidence = float(value)
+                            # Ensure confidence is in [0, 1]
+                            confidence = max(0.0, min(1.0, confidence))
+                        except ValueError:
+                            pass
+                    break
+            
+            # Try to extract risk level from text
+            risk_level = "unknown"
+            if 'risk' in cleaned_text.lower():
+                if 'high risk' in cleaned_text.lower():
+                    risk_level = "high"
+                elif 'medium risk' in cleaned_text.lower() or 'moderate risk' in cleaned_text.lower():
+                    risk_level = "moderate"
+                elif 'low risk' in cleaned_text.lower():
+                    risk_level = "low"
+            
+            return {
+                "regime": regime,
+                "confidence": confidence,
+                "risk_level": risk_level,
+                "analysis_text": cleaned_text[:500]  # Truncate analysis to avoid very long text
+            }
                 
         except Exception as e:
             logger.error("Error parsing market context: {}", str(e))
+            logger.exception("Full traceback:")
             return {
                 "regime": MarketRegime.UNKNOWN.value,
                 "confidence": 0.0,
@@ -188,11 +294,50 @@ class MarketAnalyzer(ChainOfThought):
             
             # Call predictor with formatted prompt
             logger.info("Calling predictor with formatted prompt")
-            result = self.predictor(
-                market_data=recent_data,
-                timeframe=timeframe,
-                prompt=formatted_prompt
-            )
+            try:
+                # Try using the predictor directly
+                result = self.predictor(
+                    market_data=recent_data,
+                    timeframe=timeframe,
+                    prompt=formatted_prompt
+                )
+                
+                # Check if result has expected attributes
+                logger.debug(f"Predictor returned result: {result}")
+                if isinstance(result, dict):
+                    logger.debug(f"Result is a dict with keys: {result.keys()}")
+                
+                # If we get a result but it's empty or doesn't have the expected keys, provide fallback analysis
+                if (isinstance(result, dict) and (not result or set(result.keys()) != {'regime', 'confidence', 'risk_level', 'analysis'})) or \
+                   (not isinstance(result, dict) and (not hasattr(result, 'regime') or not result.regime)):
+                    logger.warning("LLM returned empty or invalid response, using fallback from regime classifier")
+                    # Use the regime classifier result as fallback
+                    regime_type = regime_result["market_context"]["regime"]
+                    confidence = regime_result["market_context"]["confidence"]
+                    risk_level = regime_result["risk_level"]
+                    
+                    # Create a fallback response
+                    result = type('obj', (object,), {
+                        'regime': regime_type,
+                        'confidence': confidence,
+                        'risk_level': risk_level,
+                        'analysis': f"Market is in {regime_type} regime with {confidence:.2f} confidence. Risk level is {risk_level}."
+                    })
+            except Exception as e:
+                logger.error(f"Error calling predictor: {str(e)}")
+                # Fallback to regime classifier result
+                logger.warning("Using fallback analysis from regime classifier")
+                regime_type = regime_result["market_context"]["regime"]
+                confidence = regime_result["market_context"]["confidence"]
+                risk_level = regime_result["risk_level"]
+                
+                # Create a fallback response
+                result = type('obj', (object,), {
+                    'regime': regime_type,
+                    'confidence': confidence,
+                    'risk_level': risk_level,
+                    'analysis': f"Market is in {regime_type} regime with {confidence:.2f} confidence. Risk level is {risk_level}."
+                })
             
             # Get the response text from the result
             if hasattr(result, 'regime'):

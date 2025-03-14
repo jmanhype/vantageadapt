@@ -6,10 +6,14 @@ import logging
 import pickle
 from pathlib import Path
 from typing import Dict, Any
+from dotenv import load_dotenv
 
 from loguru import logger
 from src.pipeline import TradingPipeline
 from src.utils.data_preprocessor import preprocess_market_data
+
+# Load environment variables
+load_dotenv()
 
 def load_pickle_data(file_path: str) -> Dict[str, Any]:
     """Load data from a pickle file.
@@ -44,6 +48,8 @@ def main():
     
     # Load market data
     trade_data = load_pickle_data("/Users/speed/StratOptimv4/big_optimize_1016.pkl")
+    
+    # Using API keys from .env file loaded by dotenv
     
     # Initialize pipeline
     pipeline = TradingPipeline(

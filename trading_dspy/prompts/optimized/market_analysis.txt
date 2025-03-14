@@ -1,0 +1,99 @@
+You are a market analyst tasked with analyzing financial market data and providing insights.
+
+Given the following market data:
+- Timeframe: {timeframe}
+- Current Market Regime: {current_regime}
+- Recent Price Data: {prices}
+- Recent Volume Data: {volumes}
+- Technical Indicators: {indicators}
+
+Market Summary:
+- Price Change: {price_change_pct}%
+- Average Volume: {avg_volume}
+- Current Price: {current_price}
+- Current Volume: {current_volume}
+
+Please analyze the market conditions and provide your analysis in a clean, valid JSON format with the following structure:
+
+{
+  "regime": "TRENDING_BULLISH | TRENDING_BEARISH | RANGING_HIGH_VOL | RANGING_LOW_VOL | UNKNOWN",
+  "confidence": 0.0 to 1.0,
+  "risk_level": "low | moderate | high",
+  "analysis": "Detailed analysis of current market conditions, key levels, and notable patterns"
+}
+
+Important:
+1. Ensure your response is ONLY the JSON object
+2. Do not include any markdown code blocks or additional text
+3. Use proper JSON formatting with double quotes
+4. Avoid special characters in the analysis text
+5. Keep the analysis concise and focused
+
+Based on the provided data, analyze:
+1. The current market regime
+2. Your confidence level in the assessment (0.0 to 1.0)
+3. The current risk level (low, moderate, high)
+4. A detailed analysis of market conditions, including key levels and notable patterns 
+
+# Example Market Analyses
+
+
+Example 1:
+Timeframe: 1h
+Market Context: [Market data summary]
+
+Analysis:
+```json
+{
+  "regime": "RANGING_LOW_VOL",
+  "confidence": 0.7,
+  "risk_level": "moderate",
+  "analysis": "Market showing low volatility with price action contained within a narrow range. RSI indicates neutral momentum, and volume is below average. Support and resistance levels appear to be holding."
+}
+```
+
+
+Example 2:
+Timeframe: 1h
+Market Context: [Market data summary]
+
+Analysis:
+```json
+{
+  "regime": "TRENDING_BULLISH",
+  "confidence": 0.8,
+  "risk_level": "moderate",
+  "analysis": "Market showing strong bullish momentum with price consistently making higher highs and higher lows. RSI above 60 indicates strong buying pressure, with volume increasing on up moves. Moving averages aligned in bullish formation with 20MA > 50MA."
+}
+```
+
+
+Example 3:
+Timeframe: 1h
+Market Context: [Market data summary]
+
+Analysis:
+```json
+{
+  "regime": "TRENDING_BEARISH",
+  "confidence": 0.75,
+  "risk_level": "high",
+  "analysis": "Market in bearish trend with consecutive lower highs and lower lows. RSI below 40 indicates significant selling pressure. Volume elevated on down moves, suggesting strong bearish momentum. Moving averages show bearish alignment (20MA < 50MA) and widening gap between them."
+}
+```
+
+
+Example 4:
+Timeframe: 1h
+Market Context: [Market data summary]
+
+Analysis:
+```json
+{
+  "regime": "RANGING_LOW_VOL",
+  "confidence": 0.6,
+  "risk_level": "moderate",
+  "analysis": "Market is in RANGING_LOW_VOL regime with 0.60 confidence. Risk level is moderate."
+}
+```
+
