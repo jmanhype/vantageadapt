@@ -1,6 +1,7 @@
 """Strategy generation module using DSPy for autonomous trading strategy creation."""
 
 from typing import Dict, Any, Optional, Tuple, List
+import copy
 from loguru import logger
 import dspy
 from dspy import Module
@@ -44,6 +45,29 @@ class StrategyGenerator(Module):
             )
         )
         self.predictor = dspy.Predict(signature)
+        
+    def __deepcopy__(self, memo):
+        """Custom deepcopy implementation.
+        
+        This is needed to properly handle non-copyable objects like memory_manager.
+        """
+        # Create a new instance without calling __init__
+        cls = self.__class__
+        result = cls.__new__(cls)
+        
+        # Add instance to memo to handle circular references
+        memo[id(self)] = result
+        
+        # Copy all attributes
+        for k, v in self.__dict__.items():
+            if k == 'memory_manager':
+                # Special case for memory_manager - use reference instead of deep copy
+                setattr(result, k, self.memory_manager)
+            else:
+                # Normal deep copy for other attributes
+                setattr(result, k, copy.deepcopy(v, memo))
+                
+        return result
 
     def forward(
         self,

@@ -157,29 +157,62 @@ class TradingMemoryManager:
             ]
             
             # Add memory with metadata and categories
-            response = self.client.add(
-                messages=messages,
-                user_id=MEM0_CONFIG["user_id"],
-                content=strategy_content,  # Add structured content
-                categories=["trading_strategy", context.regime.value.lower()],  # Add categories for better filtering
-                metadata={
+            try:
+                # Prepare metadata with proper error handling
+                metadata = {
                     "type": MEM0_CONFIG["metadata_types"]["strategy_results"],
-                    "regime": context.regime.value,
-                    "success": success,
-                    "score": score,
-                    "iteration": iteration,
-                    "confidence": context.confidence,
-                    "risk_level": context.risk_level,
+                    "regime": str(context.regime.value),
+                    "success": bool(success),
+                    "score": float(score),
+                    "iteration": iteration if iteration is not None else 0,
+                    "confidence": float(context.confidence),
+                    "risk_level": str(context.risk_level),
                     "total_return": float(results.total_return),
                     "total_pnl": float(results.total_pnl),
                     "sortino_ratio": float(results.sortino_ratio),
                     "win_rate": float(results.win_rate),
-                    "total_trades": results.total_trades,
+                    "total_trades": int(results.total_trades),
                     "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "parameters": context.parameters  # Include parameters in metadata for filtering
-                },
-                output_format="v1.1"  # Use latest format
-            )
+                }
+                
+                # Parameters might be complex, convert to string
+                params_str = json.dumps(context.parameters)
+                metadata["parameters_json"] = params_str
+                
+                # Ensure all metadata is JSON serializable
+                for k, v in metadata.items():
+                    if not isinstance(v, (str, int, float, bool, type(None))):
+                        metadata[k] = str(v)
+                
+                # Convert categories to strings
+                categories = ["trading_strategy"]
+                if hasattr(context.regime, 'value') and context.regime.value:
+                    categories.append(str(context.regime.value).lower())
+                
+                # Serialize content to JSON string
+                content_json = json.dumps(strategy_content)
+                
+                # Add memory
+                response = self.client.add(
+                    messages=messages,
+                    user_id=MEM0_CONFIG["user_id"],
+                    content=content_json,  # Add structured content as JSON string
+                    categories=categories,  # Add categories for better filtering
+                    metadata=metadata,
+                    output_format="v1.1"  # Use latest format
+                )
+            except Exception as add_err:
+                logger.error(f"Error in client.add for strategy results: {add_err}")
+                # Try without content as fallback
+                try:
+                    response = self.client.add(
+                        messages=messages,
+                        user_id=MEM0_CONFIG["user_id"],
+                        metadata=metadata
+                    )
+                except Exception as fallback_err:
+                    logger.error(f"Fallback also failed: {fallback_err}")
+                    return False
 
             # Check if the response is valid
             if response is not None:
@@ -468,45 +501,182 @@ class TradingMemoryManager:
             return False
             
         try:
-            # Convert dictionary to StrategyContext if needed
-            if isinstance(strategy, dict):
-                strategy_dict = strategy
-                strategy = StrategyContext(
-                    regime=MarketRegime(strategy_dict.get('regime', 'UNKNOWN')),
-                    confidence=float(strategy_dict.get('confidence', 0.0)),
-                    risk_level=str(strategy_dict.get('risk_level', 'unknown')),
-                    parameters=strategy_dict.get('parameters', {}),
-                    opportunity_score=float(strategy_dict.get('opportunity_score', 0.0))
-                )
+            # Create a strategy dictionary that will work regardless of input type
+            final_strategy_dict = {}
             
-            # Convert strategy to dictionary for storage
-            strategy_dict = strategy.to_dict()
+            # Handle the case when strategy might be a dspy.Prediction object
+            if hasattr(strategy, '__dict__') and not isinstance(strategy, dict) and not isinstance(strategy, StrategyContext):
+                # First, log what we're dealing with to help debug
+                logger.debug(f"Converting object of type {type(strategy)} to dict")
+                
+                # Convert dspy.Prediction to dict by getting all attributes
+                for key in dir(strategy):
+                    # Skip private and special methods/attributes
+                    if key.startswith('_') or callable(getattr(strategy, key)):
+                        continue
+                    
+                    # Get the attribute value
+                    value = getattr(strategy, key)
+                    logger.debug(f"Found attribute {key} with value type {type(value)}")
+                    
+                    # Store in our dict
+                    final_strategy_dict[key] = value
+                
+                # Add essential fields if missing
+                if 'regime' not in final_strategy_dict:
+                    final_strategy_dict['regime'] = 'UNKNOWN'
+                
+                if 'confidence' not in final_strategy_dict:
+                    if hasattr(strategy, 'confidence') and getattr(strategy, 'confidence') is not None:
+                        final_strategy_dict['confidence'] = float(getattr(strategy, 'confidence'))
+                    else:
+                        final_strategy_dict['confidence'] = 0.0
+                
+                if 'risk_level' not in final_strategy_dict:
+                    final_strategy_dict['risk_level'] = 'moderate'
+                
+                # Convert parameters if it's a string
+                if 'parameters' in final_strategy_dict and isinstance(final_strategy_dict['parameters'], str):
+                    try:
+                        final_strategy_dict['parameters'] = json.loads(final_strategy_dict['parameters'])
+                    except json.JSONDecodeError:
+                        final_strategy_dict['parameters'] = {'raw': final_strategy_dict['parameters']}
+                elif 'parameters' not in final_strategy_dict:
+                    # Create default parameters
+                    final_strategy_dict['parameters'] = {}
+                    
+                    # Try to extract relevant info from other fields 
+                    if hasattr(strategy, 'trade_signal'):
+                        final_strategy_dict['parameters']['trade_signal'] = getattr(strategy, 'trade_signal')
+                    
+                    if hasattr(strategy, 'reasoning'):
+                        final_strategy_dict['parameters']['reasoning'] = getattr(strategy, 'reasoning')
+                    
+                    # Add strategy-specific parameters that might be useful
+                    for param_name in ['stop_loss', 'take_profit', 'position_size', 'indicators']:
+                        if hasattr(strategy, param_name):
+                            value = getattr(strategy, param_name)
+                            # Handle different data types appropriately
+                            if isinstance(value, str):
+                                try:
+                                    # Try to parse JSON strings
+                                    final_strategy_dict['parameters'][param_name] = json.loads(value)
+                                except json.JSONDecodeError:
+                                    final_strategy_dict['parameters'][param_name] = value
+                            else:
+                                final_strategy_dict['parameters'][param_name] = value
+            
+            # Handle dictionary input 
+            elif isinstance(strategy, dict):
+                final_strategy_dict = strategy.copy()
+                
+                # Ensure required fields exist
+                if 'regime' not in final_strategy_dict:
+                    final_strategy_dict['regime'] = 'UNKNOWN'
+                
+                if 'confidence' not in final_strategy_dict:
+                    final_strategy_dict['confidence'] = 0.0
+                
+                if 'risk_level' not in final_strategy_dict:
+                    final_strategy_dict['risk_level'] = 'moderate'
+                
+                if 'parameters' not in final_strategy_dict:
+                    final_strategy_dict['parameters'] = {}
+                
+                # Convert parameters if it's a string
+                if isinstance(final_strategy_dict.get('parameters'), str):
+                    try:
+                        final_strategy_dict['parameters'] = json.loads(final_strategy_dict['parameters'])
+                    except json.JSONDecodeError:
+                        final_strategy_dict['parameters'] = {'raw': final_strategy_dict['parameters']}
+            
+            # Handle StrategyContext object
+            elif isinstance(strategy, StrategyContext):
+                final_strategy_dict = strategy.to_dict()
+            
+            # Create a StrategyContext object for consistent handling
+            try:
+                # Convert regime string to enum
+                regime_value = final_strategy_dict.get('regime', 'UNKNOWN')
+                if isinstance(regime_value, str):
+                    try:
+                        regime = MarketRegime(regime_value)
+                    except ValueError:
+                        regime = MarketRegime.UNKNOWN
+                else:
+                    regime = MarketRegime.UNKNOWN
+                
+                # Create StrategyContext
+                strategy_context = StrategyContext(
+                    regime=regime,
+                    confidence=float(final_strategy_dict.get('confidence', 0.0)),
+                    risk_level=str(final_strategy_dict.get('risk_level', 'unknown')),
+                    parameters=final_strategy_dict.get('parameters', {}),
+                    opportunity_score=float(final_strategy_dict.get('opportunity_score', 0.0))
+                )
+                
+                # Convert back to dict for storage
+                final_strategy_dict = strategy_context.to_dict()
+            except Exception as e:
+                logger.error(f"Error creating StrategyContext: {e}, using dictionary directly")
+                # Ensure dict has required fields
+                if 'regime' in final_strategy_dict and isinstance(final_strategy_dict['regime'], MarketRegime):
+                    final_strategy_dict['regime'] = final_strategy_dict['regime'].value
             
             # Create a descriptive conversation about the strategy
             messages = [
                 {
                     "role": "user",
-                    "content": f"Store trading strategy:\n{json.dumps(strategy_dict, indent=2)}"
+                    "content": f"Store trading strategy:\n{json.dumps(final_strategy_dict, indent=2)}"
                 },
                 {
                     "role": "assistant", 
                     "content": json.dumps({
-                        "strategy": strategy_dict,
+                        "strategy": final_strategy_dict,
                         "timestamp": datetime.now(timezone.utc).isoformat()
                     }, indent=2)
                 }
             ]
             
+            # Debug what we're trying to store
+            logger.debug(f"Storing strategy with keys: {list(final_strategy_dict.keys())}")
+            
             # Add to memory with metadata
-            response = self.client.add(
-                messages=messages,
-                user_id=MEM0_CONFIG["user_id"],
-                metadata={
+            try:
+                strategy_content = {"strategy": final_strategy_dict}
+                logger.debug(f"Final content type: {type(strategy_content)}")
+                
+                metadata = {
                     "type": MEM0_CONFIG["metadata_types"]["strategy"],
                     "timestamp": datetime.now(timezone.utc).isoformat(),
-                    **strategy_dict  # Include all strategy fields in metadata
+                    "regime": str(final_strategy_dict.get('regime', 'UNKNOWN')),
+                    "confidence": float(final_strategy_dict.get('confidence', 0.0)),
+                    "risk_level": str(final_strategy_dict.get('risk_level', 'unknown'))
                 }
-            )
+                
+                # Ensure all metadata values are strings or basic types
+                for k, v in metadata.items():
+                    if not isinstance(v, (str, int, float, bool)):
+                        metadata[k] = str(v)
+                
+                response = self.client.add(
+                    messages=messages,
+                    user_id=MEM0_CONFIG["user_id"],
+                    content=json.dumps(strategy_content),  # Force JSON serialization
+                    metadata=metadata
+                )
+            except Exception as add_err:
+                logger.error(f"Error in client.add: {add_err}")
+                # Try without content as fallback
+                try:
+                    response = self.client.add(
+                        messages=messages,
+                        user_id=MEM0_CONFIG["user_id"],
+                        metadata=metadata
+                    )
+                except Exception as fallback_err:
+                    logger.error(f"Fallback also failed: {fallback_err}")
+                    return False
             
             if response is not None:
                 logger.info("Successfully stored strategy in memory")

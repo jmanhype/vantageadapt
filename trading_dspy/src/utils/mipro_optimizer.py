@@ -60,13 +60,21 @@ class MiProWrapper:
                     # First create example with inputs only
                     example = dspy.Example()
                     
-                    # First set the attributes directly
-                    example.market_data = {"summary": "Market data summary..."}
+                    # First set the attributes directly with proper structure to avoid KeyError
+                    example.market_data = {
+                        "prices": [100.0, 101.0, 102.0, 101.5, 102.5],
+                        "volumes": [1000, 1200, 900, 1100, 1300],
+                        "indicators": {
+                            "sma_20": [99.0, 100.0, 101.0, 101.2, 101.8],
+                            "sma_50": [95.0, 96.0, 97.0, 98.0, 99.0],
+                            "rsi": [55, 60, 65, 58, 62],
+                            "volatility": [0.02, 0.025, 0.022, 0.018, 0.02]
+                        }
+                    }
                     example.timeframe = ex.get('timeframe', '1h')
-                    example.prompt = ex.get('prompt', '')
                     
-                    # Then mark which ones are inputs
-                    example = example.with_inputs('market_data', 'timeframe', 'prompt')
+                    # Then mark which ones are inputs - removed 'prompt' as it causes errors
+                    example = example.with_inputs('market_data', 'timeframe')
                     
                     # Set output attributes directly
                     example.regime = outputs_dict.get('regime', '')
