@@ -518,6 +518,24 @@ class TradingMemoryManager:
         # Generate tracking ID for this attempt
         tracking_id = str(uuid.uuid4())[:8]
         
+        # Log strategy object structure for debugging
+        strategy_type = type(strategy).__name__
+        logger.debug(f"[MEM0-{tracking_id}] Strategy object type: {strategy_type}")
+        
+        if isinstance(strategy, dict):
+            top_level_keys = list(strategy.keys())
+            logger.debug(f"[MEM0-{tracking_id}] Top-level keys: {top_level_keys}")
+            
+            if "strategy" in strategy and isinstance(strategy["strategy"], dict):
+                inner_keys = list(strategy["strategy"].keys())
+                logger.debug(f"[MEM0-{tracking_id}] Inner strategy keys: {inner_keys}")
+        elif hasattr(strategy, "to_dict"):
+            try:
+                dict_repr = strategy.to_dict()
+                logger.debug(f"[MEM0-{tracking_id}] StrategyContext keys: {list(dict_repr.keys())}")
+            except Exception as e:
+                logger.error(f"[MEM0-{tracking_id}] Error in to_dict(): {e}")
+
         # First determine if we're in optimization context
         full_stack = inspect.stack()
         is_optimization = any('dspy/teleprompt/mipro' in frame.filename or 'bootstrap' in frame.function 
@@ -570,218 +588,177 @@ class TradingMemoryManager:
         except Exception as e:
             logger.error(f"[MEM0-{tracking_id}] Failed to create backup: {e}")
             
-        # For optimization context, try a more minimal approach first
+        # If in optimization mode, skip directly to emergency fallback
         if is_optimization:
-            try:
-                logger.info(f"[MEM0-{tracking_id}] Attempting simplified storage for optimization")
-                
-                # Create a minimal strategy object with just the essential fields
-                simplified = {
-                    "strategy": {
-                        "regime": strategy.get("strategy", {}).get("regime", "UNKNOWN") if isinstance(strategy, dict) 
-                                   else getattr(strategy, "regime", "UNKNOWN"),
-                        "confidence": float(strategy.get("strategy", {}).get("confidence", 0.5) if isinstance(strategy, dict)
-                                     else getattr(strategy, "confidence", 0.5)),
-                        "timestamp": datetime.datetime.now().isoformat()
+            logger.info(f"[MEM0-{tracking_id}] Skipping simplified and pre-structured storage attempts")
+            # Proceed directly to emergency fallback
+        
+        # Otherwise, use standard approach for non-optimization mode
+        elif not is_optimization:
+            # Standard approach for pre-structured strategies
+            if (isinstance(strategy, dict) and "strategy" in strategy and 
+                isinstance(strategy["strategy"], dict)):
+                try:
+                    logger.info(f"[MEM0-{tracking_id}] Using pre-structured strategy")
+                    strategy_content = strategy["strategy"]
+                    
+                    # Create metadata - include only essential fields
+                    metadata = {
+                        "type": MEM0_CONFIG["metadata_types"]["strategy"],
+                        "timestamp": datetime.datetime.now().isoformat(),
+                        "regime": str(strategy_content.get('regime', 'UNKNOWN')),
+                        "confidence": float(strategy_content.get('confidence', 0.0)),
+                        "risk_level": str(strategy_content.get('risk_level', 'unknown'))
                     }
-                }
-                
-                # Create minimal metadata - keep this very small
-                minimal_metadata = {
-                    "type": MEM0_CONFIG["metadata_types"]["strategy"],
-                    "regime": str(simplified["strategy"]["regime"]),
-                    "timestamp": simplified["strategy"]["timestamp"]
-                }
-                
-                # Create minimal messages - keep this very consistent
-                minimal_messages = [
-                    {"role": "user", "content": "Store strategy"},
-                    {"role": "assistant", "content": "Stored minimal strategy"}
-                ]
-                
-                # Try to add the minimal strategy
-                minimal_response = self.client.add(
-                    messages=minimal_messages,
-                    user_id=MEM0_CONFIG["user_id"],
-                    content=json.dumps(simplified),
-                    metadata=minimal_metadata,
-                    output_format="v1.1"  # Use latest format
-                )
-                
-                simplified_success = minimal_response is not None
-                logger.info(f"[MEM0-{tracking_id}] Simplified storage {'succeeded' if simplified_success else 'failed'}")
-                
-                # If the simplified approach worked, record success and return
-                if simplified_success:
+                    
+                    # Create simple conversation
+                    messages = [
+                        {"role": "user", "content": "Store trading strategy"},
+                        {"role": "assistant", "content": "Strategy stored successfully"}
+                    ]
+                    
+                    # Store the strategy
+                    response = self.client.add(
+                        messages=messages, 
+                        user_id=MEM0_CONFIG["user_id"],
+                        content=json.dumps(strategy, default=str),
+                        metadata=metadata,
+                        output_format="v1.1"  # Use latest format
+                    )
+                    
+                    storage_success = response is not None
+                    
+                    # Record result
                     try:
-                        success_file = os.path.join(tracking_dir, f"success_{tracking_id}.json")
-                        with open(success_file, "w") as f:
-                            json.dump({
+                        result_file = os.path.join(tracking_dir, f"result_{tracking_id}.json")
+                        with open(result_file, "w") as f:
+                            result_data = {
                                 "id": tracking_id,
                                 "timestamp": datetime.datetime.now().isoformat(),
-                                "action": "stored",
-                                "method": "simplified",
+                                "success": storage_success,
+                                "method": "standard_prestructured",
                                 "is_optimization": is_optimization
-                            }, f, indent=2)
+                            }
+                            json.dump(result_data, f, indent=2)
                     except Exception as e:
-                        logger.error(f"[MEM0-{tracking_id}] Failed to record success: {e}")
-                        
-                    return True
+                        logger.error(f"[MEM0-{tracking_id}] Failed to record result: {e}")
+                    
+                    if storage_success:
+                        logger.info(f"[MEM0-{tracking_id}] Successfully stored pre-structured strategy")
+                        return True
+                    else:
+                        logger.warning(f"[MEM0-{tracking_id}] No response from memory system")
+                        # Fall through to emergency fallback
+                
+                except Exception as e:
+                    logger.error(f"[MEM0-{tracking_id}] Error storing pre-structured strategy: {e}")
+                    # Fall through to emergency fallback
             
-            except Exception as e:
-                logger.error(f"[MEM0-{tracking_id}] Simplified storage attempt failed: {e}")
-                # Fall through to standard approach
-        
-        # Standard approach for pre-structured strategies
-        if (isinstance(strategy, dict) and "strategy" in strategy and 
-            isinstance(strategy["strategy"], dict)):
-            try:
-                logger.info(f"[MEM0-{tracking_id}] Using pre-structured strategy")
-                strategy_content = strategy["strategy"]
-                
-                # Create metadata - include only essential fields
-                metadata = {
-                    "type": MEM0_CONFIG["metadata_types"]["strategy"],
-                    "timestamp": datetime.datetime.now().isoformat(),
-                    "regime": str(strategy_content.get('regime', 'UNKNOWN')),
-                    "confidence": float(strategy_content.get('confidence', 0.0)),
-                    "risk_level": str(strategy_content.get('risk_level', 'unknown'))
-                }
-                
-                # Create simple conversation
-                messages = [
-                    {"role": "user", "content": "Store trading strategy"},
-                    {"role": "assistant", "content": "Strategy stored successfully"}
-                ]
-                
-                # Only include essential content during optimization to reduce size
-                content_to_store = strategy
-                if is_optimization:
-                    # Strip down to essentials for optimization context
-                    content_to_store = {
+            # Standard approach for unstructured strategies
+            else:
+                try:
+                    # Normalize to a consistent structure
+                    logger.info(f"[MEM0-{tracking_id}] Converting to standard strategy format")
+                    
+                    # Create a simple, consistent strategy dictionary
+                    simple_strategy = {
                         "strategy": {
-                            "regime": strategy_content.get('regime', 'UNKNOWN'),
-                            "confidence": float(strategy_content.get('confidence', 0.0)),
-                            "risk_level": strategy_content.get('risk_level', 'moderate'),
-                            "parameters": strategy_content.get('parameters', {}),
+                            "regime": "UNKNOWN",
+                            "confidence": 0.0,
+                            "risk_level": "moderate",
+                            "parameters": {},
                             "timestamp": datetime.datetime.now().isoformat()
                         }
                     }
-                
-                # Store the strategy
-                response = self.client.add(
-                    messages=messages, 
-                    user_id=MEM0_CONFIG["user_id"],
-                    content=json.dumps(content_to_store, default=str),
-                    metadata=metadata,
-                    output_format="v1.1"  # Use latest format
-                )
-                
-                storage_success = response is not None
-                
-                # Record result
-                try:
-                    result_file = os.path.join(tracking_dir, f"result_{tracking_id}.json")
-                    with open(result_file, "w") as f:
-                        result_data = {
-                            "id": tracking_id,
-                            "timestamp": datetime.datetime.now().isoformat(),
-                            "success": storage_success,
-                            "method": "standard_prestructured",
-                            "is_optimization": is_optimization
-                        }
-                        json.dump(result_data, f, indent=2)
-                except Exception as e:
-                    logger.error(f"[MEM0-{tracking_id}] Failed to record result: {e}")
-                
-                if storage_success:
-                    logger.info(f"[MEM0-{tracking_id}] Successfully stored pre-structured strategy")
-                    return True
-                else:
-                    logger.warning(f"[MEM0-{tracking_id}] No response from memory system")
-                    # Fall through to emergency fallback
-            
-            except Exception as e:
-                logger.error(f"[MEM0-{tracking_id}] Error storing pre-structured strategy: {e}")
-                # Fall through to emergency fallback
-        
-        # Standard approach for unstructured strategies
-        else:
-            try:
-                # Normalize to a consistent structure
-                logger.info(f"[MEM0-{tracking_id}] Converting to standard strategy format")
-                
-                # Create a simple, consistent strategy dictionary
-                simple_strategy = {
-                    "strategy": {
-                        "regime": "UNKNOWN",
-                        "confidence": 0.0,
-                        "risk_level": "moderate",
-                        "parameters": {},
-                        "timestamp": datetime.datetime.now().isoformat()
+                    
+                    # Handle dspy.Prediction objects
+                    if hasattr(strategy, '__dict__') and not isinstance(strategy, dict):
+                        # Extract basic fields
+                        for key in ['regime', 'confidence', 'risk_level', 'parameters']:
+                            if hasattr(strategy, key):
+                                value = getattr(strategy, key)
+                                simple_strategy["strategy"][key] = value
+                    
+                    # Handle dictionary input
+                    elif isinstance(strategy, dict) and "strategy" not in strategy:
+                        # Copy fields from the input dict
+                        for key in simple_strategy["strategy"].keys():
+                            if key in strategy:
+                                simple_strategy["strategy"][key] = strategy[key]
+                    
+                    # Create metadata
+                    metadata = {
+                        "type": MEM0_CONFIG["metadata_types"]["strategy"],
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "regime": str(simple_strategy["strategy"].get('regime', 'UNKNOWN')),
+                        "confidence": float(simple_strategy["strategy"].get('confidence', 0.0)),
+                        "risk_level": str(simple_strategy["strategy"].get('risk_level', 'unknown'))
                     }
-                }
-                
-                # Handle dspy.Prediction objects
-                if hasattr(strategy, '__dict__') and not isinstance(strategy, dict):
-                    # Extract basic fields
-                    for key in ['regime', 'confidence', 'risk_level', 'parameters']:
-                        if hasattr(strategy, key):
-                            value = getattr(strategy, key)
-                            simple_strategy["strategy"][key] = value
-                
-                # Handle dictionary input
-                elif isinstance(strategy, dict) and "strategy" not in strategy:
-                    # Copy fields from the input dict
-                    for key in simple_strategy["strategy"].keys():
-                        if key in strategy:
-                            simple_strategy["strategy"][key] = strategy[key]
-                
-                # Create metadata
-                metadata = {
-                    "type": MEM0_CONFIG["metadata_types"]["strategy"],
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "regime": str(simple_strategy["strategy"].get('regime', 'UNKNOWN')),
-                    "confidence": float(simple_strategy["strategy"].get('confidence', 0.0)),
-                    "risk_level": str(simple_strategy["strategy"].get('risk_level', 'unknown'))
-                }
+                        
+                    # Create a properly structured message
+                    messages = [
+                        {"role": "user", "content": "Store trading strategy"},
+                        {"role": "assistant", "content": "Strategy stored successfully"}
+                    ]
+                        
+                    # Store with standard approach
+                    response = self.client.add(
+                        messages=messages,
+                        user_id=MEM0_CONFIG["user_id"],
+                        content=json.dumps(simple_strategy, default=str),
+                        metadata=metadata,
+                        output_format="v1.1"  # Use latest format
+                    )
                     
-                # Create a properly structured message
-                messages = [
-                    {"role": "user", "content": "Store trading strategy"},
-                    {"role": "assistant", "content": "Strategy stored successfully"}
-                ]
+                    storage_success = response is not None
                     
-                # Store with standard approach
-                response = self.client.add(
-                    messages=messages,
-                    user_id=MEM0_CONFIG["user_id"],
-                    content=json.dumps(simple_strategy, default=str),
-                    metadata=metadata,
-                    output_format="v1.1"  # Use latest format
-                )
+                    if storage_success:
+                        logger.info(f"[MEM0-{tracking_id}] Successfully stored with standard approach")
+                        return True
+                    else:
+                        logger.warning(f"[MEM0-{tracking_id}] Standard approach failed")
+                        # Fall through to emergency fallback
                 
-                storage_success = response is not None
-                
-                if storage_success:
-                    logger.info(f"[MEM0-{tracking_id}] Successfully stored with standard approach")
-                    return True
-                else:
-                    logger.warning(f"[MEM0-{tracking_id}] Standard approach failed")
+                except Exception as e:
+                    logger.error(f"[MEM0-{tracking_id}] Error in standard approach: {e}")
                     # Fall through to emergency fallback
-            
-            except Exception as e:
-                logger.error(f"[MEM0-{tracking_id}] Error in standard approach: {e}")
-                # Fall through to emergency fallback
         
         # Final emergency fallback for critical strategies
-        if force_store:
+        if force_store or is_optimization:
             try:
                 logger.info(f"[MEM0-{tracking_id}] Trying emergency minimal fallback")
                 
-                # Create absolute minimal data
+                # Create a more robust minimal fallback that still captures essential data
+                # Get as much useful data as possible from the original strategy
+                regime = "unknown"
+                confidence = 0.0
+                original_strategy = None
+                parameters = None
+
+                # Try to extract key information from different possible structure types
+                if isinstance(strategy, dict):
+                    if "strategy" in strategy and isinstance(strategy["strategy"], dict):
+                        original_strategy = strategy["strategy"]
+                        regime = original_strategy.get("regime", "unknown")
+                        confidence = original_strategy.get("confidence", 0.0)
+                        parameters = original_strategy.get("parameters", {})
+                    else:
+                        # Top level strategy dict without "strategy" key
+                        regime = strategy.get("market_regime", strategy.get("regime", "unknown"))
+                        confidence = strategy.get("confidence", 0.0)
+                        parameters = strategy.get("parameters", {})
+                elif hasattr(strategy, "regime"):
+                    regime = getattr(strategy, "regime", "unknown")
+                    confidence = getattr(strategy, "confidence", 0.0)
+                    if hasattr(strategy, "parameters"):
+                        parameters = getattr(strategy, "parameters", {})
+                
+                # Create a richer emergency fallback with any data we can extract
                 ultra_minimal = {
                     "strategy": {
+                        "regime": regime,
+                        "confidence": float(confidence),
+                        "parameters": parameters or {},
                         "timestamp": datetime.datetime.now().isoformat()
                     }
                 }
@@ -794,7 +771,7 @@ class TradingMemoryManager:
                     ],
                     user_id=MEM0_CONFIG["user_id"],
                     content=json.dumps(ultra_minimal),
-                    metadata={"type": "strategy", "timestamp": datetime.datetime.now().isoformat()},
+                    metadata={"type": "strategy", "regime": regime, "timestamp": datetime.datetime.now().isoformat()},
                     output_format="v1.1"  # Use latest format
                 )
                 
