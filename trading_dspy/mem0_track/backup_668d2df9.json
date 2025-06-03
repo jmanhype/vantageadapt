@@ -1,0 +1,33 @@
+{
+  "regime": "TRENDING_BEARISH",
+  "confidence": 0.85,
+  "risk_level": "unknown",
+  "reasoning": "",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T12:07:02.587486",
+  "parameters": {
+    "position_size": 0.5,
+    "stop_loss": 0.1,
+    "take_profit": 0.3,
+    "entry_conditions": [
+      "current_price < moving_average_20 and rsi < 30 and volume > average_volume * 1.5"
+    ],
+    "exit_conditions": [
+      "current_price >= entry_price * (1 + take_profit) or current_price <= entry_price * (1 - stop_loss)"
+    ],
+    "indicators": [
+      "RSI",
+      "20-period SMA",
+      "50-period SMA",
+      "Volume"
+    ],
+    "strategy_type": "default"
+  },
+  "entry_conditions": [],
+  "exit_conditions": [],
+  "indicators": [],
+  "source": "strategy_generator",
+  "storage_id": "668d2df9",
+  "is_optimization": false
+}

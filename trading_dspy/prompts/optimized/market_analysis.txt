@@ -97,3 +97,18 @@ Analysis:
 }
 ```
 
+
+Example 5:
+Timeframe: 1h
+Market Context: [Market data summary]
+
+Analysis:
+```json
+{
+  "regime": "RANGING_LOW_VOL",
+  "confidence": 0.75,
+  "risk_level": "moderate",
+  "analysis": ""The market is currently exhibiting characteristics of a ranging market with low volatility. The price change percentage is minimal, indicating a lack of strong directional movement. The RSI values fluctuate around the mid-range without showing extreme overbought or oversold conditions, which supports the ranging market assessment. The moving averages (SMA_20 and SMA_50) are very close to each other and to the current price, further indicating a lack of strong trend. Volume data does not show significant spikes, which often accompany trend reversals or breakouts, reinforcing the low volatility environment. The buy/sell ratio and its variations across different periods show a balanced market sentiment without a clear dominance of buying or selling pressure. Overall, the market is in a low volatility range, with moderate risk due to the potential for sudden changes in direction or volatility spikes.""
+}
+```
+

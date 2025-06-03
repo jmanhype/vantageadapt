@@ -1,0 +1,31 @@
+{
+  "regime": "unknown",
+  "confidence": 0.7,
+  "risk_level": "unknown",
+  "reasoning": "Given the lack of specific market regime information and the general theme, the strategy will be designed to be adaptable, focusing on capital preservation and risk management. The recent performance data suggests a high overall win rate among analyzed strategies, indicating a potentially favorable environment for trend-following or momentum strategies. However, without clear market regime identification (bullish, bearish, or sideways), the strategy will incorporate elements that perform well across various market conditions. The strategy will use technical indicators to identify entry and exit points, with a strong emphasis on managing risk through defined stop loss and take profit levels.",
+  "trade_signal": "BUY/SELL",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-03-18T19:28:53.004886",
+  "parameters": {
+    "position_size": 0.02,
+    "stop_loss": 0.02,
+    "take_profit": 0.05
+  },
+  "entry_conditions": [
+    "cross_over(close, SMA(close, 20))",
+    "RSI(close, 14) > 50"
+  ],
+  "exit_conditions": [
+    "cross_under(close, SMA(close, 20))",
+    "RSI(close, 14) < 50"
+  ],
+  "indicators": [
+    "SMA",
+    "RSI",
+    "cross_over",
+    "cross_under"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "b25572bf",
+  "is_optimization": false
+}

@@ -1,0 +1,27 @@
+{
+  "regime": "unknown",
+  "confidence": 0.3,
+  "risk_level": "unknown",
+  "reasoning": "Given the current market context, the analysis indicates that there is insufficient price data available to make a reliable judgment. The regime is categorized as \"UNKNOWN,\" and the overall performance has been poor with a win rate of only 10.81%. This suggests a highly uncertain market environment. Given these conditions, it is prudent to adopt a cautious approach. The strategy will focus on minimizing risk while attempting to capitalize on potential opportunities, should they arise.\n\nThe trade signal will be to hold off on making new trades until clearer market conditions are established. If open positions exist, managing those with set stop-loss and take-profit levels is crucial. We will define conservative parameters for risk management due to the current uncertainty and previous poor performance.",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T14:05:18.270459",
+  "parameters": {
+    "position_size": 0.2,
+    "stop_loss": 0.1,
+    "take_profit": 0.3
+  },
+  "entry_conditions": [],
+  "exit_conditions": [
+    "current_price <= entry_price * (1 - stop_loss)",
+    "current_price >= entry_price * (1 + take_profit)"
+  ],
+  "indicators": [
+    "Moving Average",
+    "Relative Strength Index",
+    "Bollinger Bands"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "1754b4f2",
+  "is_optimization": false
+}

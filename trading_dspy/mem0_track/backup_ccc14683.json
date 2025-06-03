@@ -1,0 +1,31 @@
+{
+  "regime": "unknown",
+  "confidence": 0.75,
+  "risk_level": "unknown",
+  "reasoning": "Given the current market context of a ranging market with low volatility, the strategy will focus on capturing small price movements within the established range. The lack of strong directional movement and the close proximity of the moving averages suggest that significant price changes are unlikely in the short term. Therefore, a conservative approach is warranted, utilizing a small position size and tight stop loss to manage risk effectively. The strategy will aim to enter trades when the price approaches the support or resistance levels of the range, with a focus on taking profits quickly to capitalize on minor fluctuations.",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T07:36:09.137531",
+  "parameters": {
+    "position_size": 0.2,
+    "stop_loss": 0.05,
+    "take_profit": 0.1
+  },
+  "entry_conditions": [
+    "current_price <= support_level",
+    "RSI < 40"
+  ],
+  "exit_conditions": [
+    "current_price >= resistance_level",
+    "current_price <= entry_price * (1 - stop_loss)"
+  ],
+  "indicators": [
+    "RSI",
+    "SMA_20",
+    "SMA_50",
+    "Volume"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "ccc14683",
+  "is_optimization": false
+}

@@ -1,0 +1,30 @@
+{
+  "regime": "unknown",
+  "confidence": 0.65,
+  "risk_level": "unknown",
+  "reasoning": "Given the current market context of a ranging market with low volatility, the strategy will focus on capturing small price movements within the established range. The lack of strong directional movement and the close proximity of the moving averages suggest that significant price changes are unlikely in the short term. Therefore, a conservative approach is warranted, utilizing a small position size and tight stop loss to manage risk effectively. The strategy will employ a mean-reversion approach, entering trades when the price approaches the boundaries of the range, and exiting when a small profit target is reached.",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T11:09:06.894325",
+  "parameters": {
+    "position_size": 0.2,
+    "stop_loss": 0.05,
+    "take_profit": 0.1
+  },
+  "entry_conditions": [
+    "current_price <= lower_bound",
+    "RSI < 30"
+  ],
+  "exit_conditions": [
+    "current_price >= entry_price + take_profit",
+    "current_price <= entry_price - stop_loss"
+  ],
+  "indicators": [
+    "RSI",
+    "SMA_20",
+    "SMA_50"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "9a3f9559",
+  "is_optimization": false
+}

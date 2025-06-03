@@ -1,0 +1,41 @@
+{
+  "regime": "unknown",
+  "confidence": 0.75,
+  "risk_level": "unknown",
+  "reasoning": "Given the market is in a ranging low volatility regime, the strategy should focus on capturing small price movements within the range. The close alignment of SMA20 and SMA50 supports the use of moving averages to identify entry and exit points within this range. Since the RSI is fluctuating around the mid-range, it suggests that the market is neither overbought nor oversold, making it less likely for a breakout to occur soon. Therefore, a strategy that capitalizes on small price movements and avoids holding positions in anticipation of large trends would be appropriate. The strategy should employ tight stop losses and modest take profit levels to manage risk effectively in this environment. The use of volume trends and buy/sell ratios as secondary indicators can help confirm entry and exit signals provided by price action and moving averages.",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-03-18T15:30:42.017338",
+  "parameters": {
+    "position_size": 0.3,
+    "stop_loss": 0.02,
+    "take_profit": 0.05,
+    "entry_conditions": [
+      "cross_over('SMA', 'close', 20, 50)",
+      "RSI('close', 14) > 40 and RSI('close', 14) < 60"
+    ],
+    "exit_conditions": [
+      "cross_under('SMA', 'close', 20, 50)",
+      "RSI('close', 14) < 40 or RSI('close', 14) > 60"
+    ],
+    "additional_parameters": {
+      "volume_threshold": 100000,
+      "buy_sell_ratio_threshold": 1.5
+    }
+  },
+  "entry_conditions": [
+    "cross_over('SMA', 'close', 20, 50) and RSI('close', 14) > 40 and RSI('close', 14) < 60 and volume_today() > volume_threshold and buy_sell_ratio_today() > buy_sell_ratio_threshold"
+  ],
+  "exit_conditions": [
+    "cross_under('SMA', 'close', 20, 50) or RSI('close', 14) < 40 or RSI('close', 14) > 60"
+  ],
+  "indicators": [
+    "SMA",
+    "RSI",
+    "volume",
+    "buy_sell_ratio"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "4897262c",
+  "is_optimization": false
+}

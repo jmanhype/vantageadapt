@@ -1,0 +1,33 @@
+{
+  "regime": "unknown",
+  "confidence": 0.8,
+  "risk_level": "unknown",
+  "reasoning": "The current market context indicates a strong bullish trend characterized by higher highs and higher lows, supported by a favorable RSI and moving averages. Given the bullish sentiment, the strategy will focus on entering long positions while managing risk through appropriate stop-loss and take-profit levels. The recent performance suggests a need for cautious entry, as the average return is negative, indicating potential consolidation. Therefore, the strategy will incorporate a moderate position size and conservative risk management to capitalize on upward movements while protecting against pullbacks.",
+  "trade_signal": "BUY",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T11:55:52.108248",
+  "parameters": {
+    "position_size": 0.5,
+    "stop_loss": 0.05,
+    "take_profit": 0.2
+  },
+  "entry_conditions": [
+    "current_price > moving_average_20",
+    "rsi < 70",
+    "volume > average_volume"
+  ],
+  "exit_conditions": [
+    "current_price < moving_average_20",
+    "rsi > 70",
+    "current_price >= entry_price * (1 + take_profit)"
+  ],
+  "indicators": [
+    "RSI",
+    "20-period Moving Average",
+    "50-period Moving Average",
+    "Volume"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "19f8a202",
+  "is_optimization": false
+}

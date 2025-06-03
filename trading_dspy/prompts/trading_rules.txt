@@ -14,40 +14,51 @@ Current Exit Conditions:
 
 Based on the above information, generate trading rules in the following format:
 
-Example response:
+CRITICAL: YOU MUST INCLUDE ALL 5 FIELDS IN YOUR RESPONSE:
+1. entry_conditions
+2. exit_conditions  
+3. parameters
+4. reasoning
+5. indicators (THIS IS MANDATORY - LIST ALL INDICATORS USED)
+
+Example response format:
 '''json
 {{
-  "entry_conditions": "{entry_conditions}",
-  "exit_conditions": "{exit_conditions}",
-  "parameters": {parameters},
-  "reasoning": "{reasoning}"
+  "entry_conditions": [list of entry conditions],
+  "exit_conditions": [list of exit conditions],
+  "parameters": {{parameter dict}},
+  "reasoning": "detailed explanation",
+  "indicators": [list of ALL indicators used]
 }}
 '''
 
-IMPORTANT:
-1. Your response MUST be a valid JSON object with the exact structure shown above
-2. Entry and exit conditions must be clear, implementable rules (e.g. "price > MA(20) AND volume > 100")
-3. Do not modify the values of stop_loss, take_profit, or position_size from the strategy insights
-4. You may add additional parameters if needed
-5. The reasoning should explain why the rules and parameters were chosen
+IMPORTANT REQUIREMENTS:
+1. Your response MUST be a valid JSON object with ALL 5 fields shown above
+2. Entry and exit conditions must use specific indicators (e.g. "price > sma_20", "rsi < 30")
+3. The "indicators" field MUST list ALL indicators referenced in your conditions
+4. Common indicators: price, sma_20, sma_50, rsi, macd.macd, macd.signal, bb.upper, bb.lower, volume
+5. If you use an indicator in a condition, it MUST be listed in the indicators array
+6. NEVER omit the indicators field - this will cause a system error
 
-Example response:
+Example of a COMPLETE response with ALL required fields:
 ```
 {{
   "entry_conditions": [
-    "price > MA(20) AND volume > 100",
-    "RSI < 30"
+    "price > sma_20",
+    "rsi < 30",
+    "volume > volume_sma_20"
   ],
   "exit_conditions": [
-    "price < MA(20)",
-    "RSI > 70",
-    "trailing_stop(0.02)"
+    "price < sma_20",
+    "rsi > 70",
+    "price <= entry_price * 0.98"
   ],
   "parameters": {{
     "stop_loss": 0.02,
     "take_profit": 0.04,
     "position_size": 0.1
   }},
-  "reasoning": "These rules are designed for a ranging market with moderate volatility. The entry conditions focus on identifying oversold conditions with sufficient volume, while the exit conditions protect profits and limit losses. The parameters are conservative due to the current market regime."
+  "reasoning": "These rules are designed for a ranging market with moderate volatility. The entry conditions focus on identifying oversold conditions with sufficient volume, while the exit conditions protect profits and limit losses. The parameters are conservative due to the current market regime.",
+  "indicators": ["price", "sma_20", "rsi", "volume", "volume_sma_20", "entry_price"]
 }}
 ``` 

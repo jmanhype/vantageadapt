@@ -1,0 +1,63 @@
+{
+  "id": "50ffa168",
+  "timestamp": "2025-03-14T17:15:09.805557",
+  "is_optimization": true,
+  "strategy": {
+    "strategy": {
+      "regime": "unknown",
+      "confidence": 0.5,
+      "risk_level": "moderate",
+      "parameters": {
+        "position_size": 0.1,
+        "stop_loss": 0.02,
+        "take_profit": 0.05,
+        "entry_conditions": [
+          "RSI < 30",
+          "price > SMA_50"
+        ],
+        "exit_conditions": [
+          "RSI > 70",
+          "price < SMA_50"
+        ],
+        "additional_risk_management": {
+          "max_daily_loss": 0.05,
+          "max_open_trades": 2
+        }
+      },
+      "parameter_ranges": {
+        "position_size": {
+          "min": 0,
+          "max": 1
+        },
+        "stop_loss": {
+          "min": 0,
+          "max": 1
+        },
+        "take_profit": {
+          "min": 0,
+          "max": 5
+        },
+        "additional_risk_management.max_daily_loss": {
+          "min": 0,
+          "max": 0.1
+        },
+        "additional_risk_management.max_open_trades": {
+          "min": 1,
+          "max": 5
+        }
+      },
+      "reasoning": "Given the market regime is unknown with a confidence level of 0.0, and the risk level is also unknown, the strategy must be highly adaptable and conservative. The recent performance data suggests a relatively high average PnL per trade but with a very low overall win rate, indicating that while most trades do not succeed, the few that do are significantly profitable. This scenario suggests a market that may have brief periods of high volatility or trends that are difficult to predict but can be highly rewarding. Therefore, the strategy should focus on capital preservation while trying to capture gains from these brief periods of opportunity.\n\nGiven the lack of clear market direction and the unknown risk level, a HOLD signal is most prudent until more definitive market conditions can be identified. The strategy should employ tight risk management controls, including a low position size to manage exposure, a tight stop loss to protect against sudden adverse movements, and a conservative take profit to ensure gains are captured without assuming excessive risk.",
+      "trade_signal": "HOLD",
+      "entry_conditions": [
+        "RSI < 30 and price > SMA_50"
+      ],
+      "exit_conditions": [
+        "RSI > 70 or price < SMA_50"
+      ],
+      "indicators": [
+        "RSI",
+        "SMA_50"
+      ]
+    }
+  }
+}

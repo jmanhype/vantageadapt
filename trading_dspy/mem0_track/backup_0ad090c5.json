@@ -1,0 +1,33 @@
+{
+  "regime": "unknown",
+  "confidence": 0.8,
+  "risk_level": "unknown",
+  "reasoning": "Given the current market context, we are in a bullish trend characterized by higher highs and higher lows, strong buying momentum indicated by an RSI above 60, and a favorable moving average alignment. The increase in volume during upward price movements further supports the bullish sentiment. However, the recent performance shows a negative total PnL, suggesting that while the market is bullish, there may be volatility that could impact trading outcomes. Therefore, a cautious approach is warranted, focusing on risk management while capitalizing on the bullish trend.",
+  "trade_signal": "BUY",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-02T22:09:52.226882",
+  "parameters": {
+    "position_size": 0.5,
+    "stop_loss": 0.05,
+    "take_profit": 0.2
+  },
+  "entry_conditions": [
+    "current_price > moving_average_20",
+    "RSI > 60",
+    "volume > average_volume_20"
+  ],
+  "exit_conditions": [
+    "current_price < moving_average_20",
+    "RSI < 50",
+    "current_price >= entry_price * (1 + take_profit)"
+  ],
+  "indicators": [
+    "RSI",
+    "20-period Moving Average",
+    "50-period Moving Average",
+    "Volume"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "0ad090c5",
+  "is_optimization": false
+}

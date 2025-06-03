@@ -1,0 +1,25 @@
+{
+  "id": "8f772dbd",
+  "timestamp": "2025-03-18T08:08:37.403401",
+  "mem0_id": null,
+  "action": "emergency_fallback",
+  "success": true,
+  "strategy": {
+    "strategy": {
+      "regime": "unknown",
+      "confidence": 0.65,
+      "parameters": {
+        "position_size": 0.2,
+        "stop_loss": 0.02,
+        "take_profit": 0.05
+      },
+      "timestamp": "2025-03-18T08:08:35.930470"
+    },
+    "metadata": {
+      "source": "emergency_fallback",
+      "tracking_id": "8f772dbd",
+      "optimization": true,
+      "timestamp": "2025-03-18T08:08:35.930474"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+Asset Performance Report
+======================
+
+Overall Statistics
+=================
+Total Return: 0.0295
+Win Rate: 1.0000
+Total Trades: 4
+Sortino Ratio: 13.6226
+Total PnL: 0.2945

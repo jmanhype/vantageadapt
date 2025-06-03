@@ -1,0 +1,35 @@
+{
+  "regime": "unknown",
+  "confidence": 0.75,
+  "risk_level": "unknown",
+  "reasoning": "Given the current market context of a ranging market with low volatility, the strategy focuses on capitalizing on small price movements. The analysis indicates that the price is oscillating around the moving averages (SMA20 and SMA50) without strong directional trends. The RSI values are also in the mid-range, suggesting that there are no extreme conditions to exploit. Therefore, the strategy will employ a mean-reversion approach, entering trades when the price deviates slightly from the SMA20 and exiting when it reverts back or when the RSI indicates overbought conditions.\n\nThe chosen parameters reflect a conservative approach, with a moderate stop loss and take profit to manage risk effectively. The position size is kept small to accommodate the low volatility environment, allowing for multiple trades without significant exposure. The entry and exit conditions are designed to trigger trades based on slight deviations from the SMA and RSI thresholds, which are appropriate for a ranging market.",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T00:00:44.378041",
+  "parameters": {
+    "position_size": 0.03,
+    "stop_loss": 0.063,
+    "take_profit": 0.077,
+    "max_orders": 3,
+    "order_size": 0.00275,
+    "enable_sl_mod": false,
+    "enable_tp_mod": false,
+    "post_buy_delay": 1,
+    "post_sell_delay": 4
+  },
+  "entry_conditions": [
+    "current_price < SMA20 * (1 - 0.005)",
+    "RSI14 < 30"
+  ],
+  "exit_conditions": [
+    "current_price > SMA20 * (1 + 0.005)",
+    "RSI14 > 70"
+  ],
+  "indicators": [
+    "SMA20",
+    "RSI14"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "dc0d86bb",
+  "is_optimization": false
+}

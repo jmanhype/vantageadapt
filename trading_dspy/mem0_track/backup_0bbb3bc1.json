@@ -1,0 +1,48 @@
+{
+  "regime": "unknown",
+  "confidence": 0.7,
+  "risk_level": "unknown",
+  "reasoning": "Given the market is in a ranging low volatility regime, the strategy should focus on capturing small price movements within the range. The close proximity of SMA_20 and SMA_50 to the current price, along with balanced buy/sell ratios, suggests that the market lacks a clear direction. Therefore, a mean-reversion strategy might be more appropriate than a trend-following strategy in this context. The strategy will use tighter stop loss and take profit levels to manage the lower volatility and smaller price movements. Position size will be adjusted to manage risk effectively, considering the moderate risk of sudden market changes. The strategy will rely on SMA crossovers for entry and exit signals, as these indicators can help identify potential reversals within the range. The MACD indicator, with adjusted parameters for a low volatility environment, will be used to confirm the strength and direction of potential moves within the range.",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-03-18T11:27:11.408221",
+  "parameters": {
+    "position_size": 0.3,
+    "stop_loss": 0.02,
+    "take_profit": 0.05,
+    "entry_conditions": [
+      "cross_over('SMA', 'close', 20, 50)",
+      "macd('close', 12, 26, 9) > 0"
+    ],
+    "exit_conditions": [
+      "cross_under('SMA', 'close', 20, 50)",
+      "macd('close', 12, 26, 9) < 0"
+    ],
+    "sl_window": 400,
+    "indicators": [
+      "SMA",
+      "MACD"
+    ],
+    "max_orders": 3,
+    "order_size": 0.003,
+    "strategy_type": "mean_reversion",
+    "macd_signal_fast": 12,
+    "macd_signal_slow": 26,
+    "macd_signal_signal": 9
+  },
+  "entry_conditions": [
+    "cross_over('SMA', 'close', 20, 50)",
+    "macd('close', 12, 26, 9) > 0"
+  ],
+  "exit_conditions": [
+    "cross_under('SMA', 'close', 20, 50)",
+    "macd('close', 12, 26, 9) < 0"
+  ],
+  "indicators": [
+    "SMA",
+    "MACD"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "0bbb3bc1",
+  "is_optimization": false
+}

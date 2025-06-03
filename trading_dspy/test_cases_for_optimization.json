@@ -1,0 +1,189 @@
+[
+  {
+    "strategy": {
+      "trade_signal": "HOLD",
+      "confidence": 0.3,
+      "reasoning": "Waiting for confirmation"
+    },
+    "prompt": "Generate trading rules for a trend following strategy",
+    "outputs": {
+      "trading_rules": {
+        "entry_conditions": [],
+        "exit_conditions": [],
+        "parameters": {},
+        "indicators": [],
+        "reasoning": "",
+        "trade_signal": "HOLD"
+      }
+    }
+  },
+  {
+    "strategy": {
+      "trade_signal": "HOLD",
+      "confidence": 0.3,
+      "reasoning": "Waiting for confirmation"
+    },
+    "prompt": "Generate trading rules for a trend following strategy",
+    "outputs": {
+      "trading_rules": {
+        "entry_conditions": ["price > sma_20"],
+        "exit_conditions": [],
+        "parameters": {},
+        "indicators": ["sma"],
+        "reasoning": "",
+        "trade_signal": "HOLD"
+      }
+    }
+  },
+  {
+    "strategy": {
+      "trade_signal": "HOLD",
+      "confidence": 0.3,
+      "reasoning": "Waiting for confirmation"
+    },
+    "prompt": "Generate trading rules for a trend following strategy",
+    "outputs": {
+      "trading_rules": {
+        "entry_conditions": ["price > sma_20"],
+        "exit_conditions": [],
+        "parameters": {},
+        "indicators": ["sma"],
+        "reasoning": "",
+        "trade_signal": "HOLD"
+      }
+    }
+  },
+  {
+    "strategy": {
+      "trade_signal": "HOLD",
+      "confidence": 0.3,
+      "reasoning": "Waiting for confirmation"
+    },
+    "prompt": "Generate trading rules for a trend following strategy",
+    "outputs": {
+      "trading_rules": {
+        "entry_conditions": ["price > sma_20"],
+        "exit_conditions": [],
+        "parameters": {},
+        "indicators": ["sma"],
+        "reasoning": "",
+        "trade_signal": "HOLD"
+      }
+    }
+  },
+  {
+    "strategy": {
+      "trade_signal": "BUY",
+      "confidence": 0.7,
+      "reasoning": "Market analysis indicates potential uptrend"
+    },
+    "prompt": "Generate trading rules for a trend following strategy",
+    "outputs": {
+      "trading_rules": {
+        "entry_conditions": ["price > sma_20"],
+        "exit_conditions": ["price < sma_20"],
+        "parameters": {"stop_loss": 0.02},
+        "indicators": ["sma"],
+        "reasoning": "",
+        "trade_signal": "BUY",
+        "parameter_ranges": {
+          "stop_loss": [0.02, 0.15],
+          "take_profit": [0.04, 0.30],
+          "position_size": [0.1, 1.0]
+        }
+      }
+    }
+  },
+  {
+    "strategy": {
+      "trade_signal": "BUY",
+      "confidence": 0.7,
+      "reasoning": "Market analysis indicates potential uptrend"
+    },
+    "prompt": "Generate trading rules for a trend following strategy",
+    "outputs": {
+      "trading_rules": {
+        "entry_conditions": ["price > sma_20", "rsi < 30"],
+        "exit_conditions": ["price < sma_20"],
+        "parameters": {"stop_loss": 0.02},
+        "indicators": ["sma", "rsi"],
+        "reasoning": "",
+        "trade_signal": "BUY",
+        "parameter_ranges": {
+          "stop_loss": [0.02, 0.15],
+          "take_profit": [0.04, 0.30],
+          "position_size": [0.1, 1.0]
+        }
+      }
+    }
+  },
+  {
+    "strategy": {
+      "trade_signal": "BUY",
+      "confidence": 0.7,
+      "reasoning": "Market analysis indicates potential uptrend"
+    },
+    "prompt": "Generate trading rules for a trend following strategy",
+    "outputs": {
+      "trading_rules": {
+        "entry_conditions": ["price > sma_20", "rsi < 30"],
+        "exit_conditions": ["price < sma_20"],
+        "parameters": {"stop_loss": 0.02},
+        "indicators": ["sma", "rsi"],
+        "reasoning": "",
+        "trade_signal": "BUY",
+        "parameter_ranges": {
+          "stop_loss": [0.02, 0.15],
+          "take_profit": [0.04, 0.30],
+          "position_size": [0.1, 1.0]
+        }
+      }
+    }
+  },
+  {
+    "strategy": {
+      "trade_signal": "BUY",
+      "confidence": 0.7,
+      "reasoning": "Market analysis indicates potential uptrend"
+    },
+    "prompt": "Generate trading rules for a trend following strategy",
+    "outputs": {
+      "trading_rules": {
+        "entry_conditions": ["price > sma_20", "rsi < 30"],
+        "exit_conditions": ["price < sma_20", "rsi > 70"],
+        "parameters": {"stop_loss": 0.02, "take_profit": 0.05},
+        "indicators": ["sma", "rsi"],
+        "reasoning": "This is a simple SMA crossover strategy with RSI confirmation.This is a simple SMA crossover strategy with RSI confirmation.This is a simple SMA crossover strategy with RSI confirmation.This is a simple SMA crossover strategy with RSI confirmation.",
+        "trade_signal": "BUY",
+        "parameter_ranges": {
+          "stop_loss": [0.02, 0.15],
+          "take_profit": [0.04, 0.30],
+          "position_size": [0.1, 1.0]
+        }
+      }
+    }
+  },
+  {
+    "strategy": {
+      "trade_signal": "BUY",
+      "confidence": 0.7,
+      "reasoning": "Market analysis indicates potential uptrend"
+    },
+    "prompt": "Generate trading rules for a trend following strategy",
+    "outputs": {
+      "trading_rules": {
+        "entry_conditions": ["price > sma_20", "rsi < 30"],
+        "exit_conditions": ["price < sma_20", "rsi > 70"],
+        "parameters": {"stop_loss": 0.02, "take_profit": 0.05},
+        "indicators": ["sma", "rsi"],
+        "reasoning": "This is a simple SMA crossover strategy with RSI confirmation.This is a simple SMA crossover strategy with RSI confirmation.This is a simple SMA crossover strategy with RSI confirmation.This is a simple SMA crossover strategy with RSI confirmation.This is a simple SMA crossover strategy with RSI confirmation.This is a simple SMA crossover strategy with RSI confirmation.",
+        "trade_signal": "BUY",
+        "parameter_ranges": {
+          "stop_loss": [0.02, 0.15],
+          "take_profit": [0.04, 0.30],
+          "position_size": [0.1, 1.0]
+        }
+      }
+    }
+  }
+]

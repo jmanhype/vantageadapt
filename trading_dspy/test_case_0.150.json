@@ -1,0 +1,12 @@
+{
+  "entry_conditions": [
+    "price > sma_1",
+    "price > sma_2"
+  ],
+  "exit_conditions": [],
+  "parameters": {},
+  "indicators": [
+    "sma"
+  ],
+  "reasoning": ""
+}

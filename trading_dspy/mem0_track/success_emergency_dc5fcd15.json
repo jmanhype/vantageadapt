@@ -1,0 +1,34 @@
+{
+  "id": "dc5fcd15",
+  "timestamp": "2025-03-18T08:09:43.456973",
+  "mem0_id": null,
+  "action": "emergency_fallback",
+  "success": true,
+  "strategy": {
+    "strategy": {
+      "regime": "unknown",
+      "confidence": 0.6,
+      "parameters": {
+        "position_size": 0.2,
+        "stop_loss": 0.02,
+        "take_profit": 0.05,
+        "entry_conditions": [
+          "RSI < 30 for BUY signal, RSI > 70 for SELL signal"
+        ],
+        "exit_conditions": [
+          "Price reaches stop loss or take profit level"
+        ],
+        "additional_parameters": {
+          "RSI_period": 14
+        }
+      },
+      "timestamp": "2025-03-18T08:09:41.886608"
+    },
+    "metadata": {
+      "source": "emergency_fallback",
+      "tracking_id": "dc5fcd15",
+      "optimization": true,
+      "timestamp": "2025-03-18T08:09:41.886610"
+    }
+  }
+}

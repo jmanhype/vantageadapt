@@ -1,0 +1,37 @@
+{
+  "id": "54512b58",
+  "timestamp": "2025-03-18T08:08:35.503077",
+  "is_optimization": true,
+  "strategy": {
+    "strategy": {
+      "regime": "unknown",
+      "confidence": 0.65,
+      "parameters": {
+        "position_size": 0.2,
+        "stop_loss": 0.02,
+        "take_profit": 0.05
+      },
+      "reasoning": "Given the market context lacks specific regime identification, confidence level, and risk level, a conservative approach is warranted. The strategy should be flexible, focusing on capital preservation and risk management, while still allowing for profit in uncertain market conditions. The recent performance data suggests a positive average return and win rate, indicating some strategies have been effective in the current environment. Therefore, the strategy will aim to capitalize on short-term movements with tight risk controls.",
+      "trade_signal": "HOLD",
+      "entry_conditions": [
+        "cross_over(close, sma(close, 20))",
+        "rsi(close, 14) < 30"
+      ],
+      "exit_conditions": [
+        "cross_under(close, sma(close, 20))",
+        "rsi(close, 14) > 70"
+      ],
+      "indicators": [
+        "sma",
+        "rsi"
+      ],
+      "opportunity_score": 0.0,
+      "timestamp": "2025-03-18T08:08:35.502399"
+    },
+    "metadata": {
+      "source": "strategy_generator",
+      "timestamp": "2025-03-18T08:08:35.502476",
+      "storage_id": "6dd4e363"
+    }
+  }
+}

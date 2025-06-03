@@ -54,7 +54,7 @@ def main():
     # Initialize pipeline
     pipeline = TradingPipeline(
         api_key=os.getenv("OPENAI_API_KEY"),
-        model="gpt-4-turbo-preview",
+        model="gpt-4o-mini",
         performance_thresholds={
             'min_return': 0.10,
             'min_trades': 10,

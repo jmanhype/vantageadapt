@@ -1,0 +1,8 @@
+{
+  "id": "98580092",
+  "timestamp": "2025-03-18T20:27:56.929424",
+  "action": "store",
+  "success": false,
+  "error": "API request failed: <html>\r\n<head><title>504 Gateway Time-out</title></head>\r\n<body>\r\n<center><h1>504 Gateway Time-out</h1></center>\r\n<hr><center>nginx/1.21.6</center>\r\n</body>\r\n</html>\r\n",
+  "attempts": 1
+}

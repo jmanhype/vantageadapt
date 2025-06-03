@@ -1,0 +1,28 @@
+{
+  "id": "dc0e9fc5",
+  "timestamp": "2025-03-18T08:10:07.997682",
+  "mem0_id": null,
+  "action": "emergency_fallback",
+  "success": true,
+  "strategy": {
+    "strategy": {
+      "regime": "unknown",
+      "confidence": 0.5,
+      "parameters": {
+        "position_size": 0.1,
+        "stop_loss": 0.02,
+        "take_profit": 0.05,
+        "entry_conditions": [],
+        "exit_conditions": [],
+        "additional_parameters": {}
+      },
+      "timestamp": "2025-03-18T08:10:06.386817"
+    },
+    "metadata": {
+      "source": "emergency_fallback",
+      "tracking_id": "dc0e9fc5",
+      "optimization": true,
+      "timestamp": "2025-03-18T08:10:06.386819"
+    }
+  }
+}

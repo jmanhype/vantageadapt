@@ -1,0 +1,35 @@
+{
+  "regime": "UNKNOWN",
+  "confidence": 0.7,
+  "risk_level": "unknown",
+  "reasoning": "",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-03-18T19:21:49.509147",
+  "parameters": {
+    "position_size": 0.5,
+    "stop_loss": 0.02,
+    "take_profit": 0.05,
+    "entry_conditions": [
+      "cross_over(close, SMA(close, 20))",
+      "RSI(close, 14) > 50"
+    ],
+    "exit_conditions": [
+      "cross_under(close, SMA(close, 20))",
+      "RSI(close, 14) < 50"
+    ],
+    "indicators": [
+      "SMA",
+      "RSI",
+      "cross_over",
+      "cross_under"
+    ],
+    "strategy_type": "default"
+  },
+  "entry_conditions": [],
+  "exit_conditions": [],
+  "indicators": [],
+  "source": "strategy_generator",
+  "storage_id": "971c1f4d",
+  "is_optimization": false
+}

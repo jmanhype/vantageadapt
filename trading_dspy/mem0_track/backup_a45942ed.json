@@ -1,0 +1,32 @@
+{
+  "id": "a45942ed",
+  "timestamp": "2025-03-14T12:35:00.937219",
+  "is_optimization": false,
+  "strategy": {
+    "regime": "RANGING_LOW_VOL",
+    "confidence": 0.7,
+    "risk_level": "unknown",
+    "parameters": {
+      "position_size": 0.5,
+      "stop_loss": 0.02,
+      "take_profit": 0.05,
+      "entry_conditions": [
+        "rsi < 30 and close > sma_20",
+        "macd_line > signal_line and close < sma_50"
+      ],
+      "exit_conditions": [
+        "rsi > 70 or close < stop_loss",
+        "macd_line < signal_line or close > take_profit"
+      ],
+      "indicators": [
+        "rsi",
+        "sma_20",
+        "sma_50",
+        "macd_line",
+        "signal_line"
+      ],
+      "strategy_type": "default"
+    },
+    "opportunity_score": 0.0
+  }
+}

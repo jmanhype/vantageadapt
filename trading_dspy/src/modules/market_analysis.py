@@ -7,6 +7,7 @@ import dspy
 from dspy import Signature, InputField, OutputField, Module, ChainOfThought, Predict
 import time
 import json
+import random
 
 from ..utils.prompt_manager import PromptManager
 from ..utils.types import MarketRegime
@@ -42,9 +43,16 @@ class MarketAnalyzer(ChainOfThought):
         # Initialize regime classifier
         logger.info("Initializing regime classifier")
         self.regime_classifier = MarketRegimeClassifier()
+        
+        # Flag for optimization mode
+        self.is_optimizing = False
 
     def _prepare_market_data(self, market_data: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare market data for analysis by reducing data points.
+        
+        During optimization, this method will use varying window sizes and random
+        starting points to ensure diverse training examples. It also applies
+        various data sampling strategies to further enhance diversity.
         
         Args:
             market_data: Raw market data dictionary
@@ -52,27 +60,154 @@ class MarketAnalyzer(ChainOfThought):
         Returns:
             Prepared market data with reduced points
         """
-        # Take last 20 points instead of 50
+        # Check if market_data is nested under 'summary' key
+        if 'summary' in market_data and 'prices' in market_data['summary']:
+            # Extract data from nested structure
+            logger.debug("Found nested market data structure with 'summary' key")
+            prices = market_data['summary']['prices']
+            volumes = market_data['summary'].get('volumes', [])
+            indicators = market_data['summary'].get('indicators', {})
+        else:
+            # Use direct structure
+            logger.debug("Using direct market data structure")
+            prices = market_data.get('prices', [])
+            volumes = market_data.get('volumes', [])
+            indicators = market_data.get('indicators', {})
+            
+        # Ensure we have data to work with
+        if not prices:
+            logger.error("No price data found in market_data")
+            logger.error(f"Market data keys: {list(market_data.keys())}")
+            if 'summary' in market_data:
+                logger.error(f"Summary keys: {list(market_data['summary'].keys())}")
+            raise ValueError("No price data available for analysis")
+            
+        # Determine sampling strategy for optimization
+        if self.is_optimizing:
+            # Use multiple sampling strategies for diversity
+            sampling_strategies = ["random_window", "segment_based", "volatility_biased", "recent_biased"]
+            chosen_strategy = random.choice(sampling_strategies)
+            logger.debug(f"Using sampling strategy: {chosen_strategy} for optimization")
+            
+            # Get available data size
+            data_length = len(prices)
+            
+            if chosen_strategy == "random_window":
+                # Enhanced random window with larger size variation
+                window_size = random.randint(20, 100)  # Increased from 10-50 to 20-100
+                if data_length > window_size + 20:
+                    start_idx = random.randint(0, data_length - window_size)
+                    end_idx = start_idx + window_size
+                else:
+                    start_idx = 0
+                    end_idx = min(window_size, data_length)
+                    
+            elif chosen_strategy == "segment_based":
+                # Divide data into 3 segments (early, middle, late) and sample from one
+                segment_size = data_length // 3
+                segment = random.choice(["early", "middle", "late"])
+                
+                if segment == "early":
+                    start_range = (0, segment_size)
+                elif segment == "middle":
+                    start_range = (segment_size, 2 * segment_size)
+                else:  # late
+                    start_range = (2 * segment_size, data_length - 30)
+                    
+                # Choose a random window size and starting point within the segment
+                window_size = random.randint(30, 60)
+                start_idx = random.randint(start_range[0], max(start_range[0], min(start_range[1], data_length - window_size)))
+                end_idx = start_idx + window_size
+                
+            elif chosen_strategy == "volatility_biased":
+                # Attempt to find a more volatile section of data
+                # This is a simple approach - calculate price changes and find higher volatility areas
+                window_size = random.randint(30, 70)
+                
+                if data_length > window_size + 30:
+                    # Calculate simplified volatility for chunks of data
+                    chunk_size = 20
+                    volatilities = []
+                    
+                    for i in range(0, data_length - chunk_size, 10):
+                        chunk = prices[i:i+chunk_size]
+                        if len(chunk) > 1:
+                            # Use max-min range as a simple volatility measure
+                            volatility = (max(chunk) - min(chunk)) / min(chunk) if min(chunk) > 0 else 0
+                            volatilities.append((i, volatility))
+                    
+                    if volatilities:
+                        # Sort by volatility and pick from top half with some randomness
+                        volatilities.sort(key=lambda x: x[1], reverse=True)
+                        top_volatilities = volatilities[:len(volatilities)//2]
+                        chosen_start, _ = random.choice(top_volatilities)
+                        
+                        start_idx = chosen_start
+                        end_idx = min(start_idx + window_size, data_length)
+                    else:
+                        # Fallback to random window
+                        start_idx = random.randint(0, max(0, data_length - window_size))
+                        end_idx = start_idx + window_size
+                else:
+                    # Fallback for small datasets
+                    start_idx = 0
+                    end_idx = min(window_size, data_length)
+                    
+            else:  # recent_biased - bias toward more recent data
+                window_size = random.randint(25, 75)
+                
+                # Generate a biased random number that favors recent data
+                # This will more often pick from the second half of the data
+                bias = random.random() ** 2  # Square to bias toward 1.0
+                start_idx = int((data_length - window_size) * bias)
+                end_idx = start_idx + window_size
+                
+                # Ensure indices are valid
+                start_idx = max(0, min(start_idx, data_length - window_size))
+                end_idx = min(end_idx, data_length)
+                
+        else:
+            # In production, use fixed window of 20 points from the end
+            window_size = 20
+            start_idx = -window_size
+            end_idx = None
+        
+        # Extract data window
         recent_data = {
-            'prices': market_data['prices'][-20:],
-            'volumes': market_data['volumes'][-20:],
+            'prices': prices[start_idx:end_idx],
+            'volumes': volumes[start_idx:end_idx] if volumes else [],
             'indicators': {
-                k: v[-20:] if isinstance(v, list) else v
-                for k, v in market_data['indicators'].items()
-            }
+                k: v[start_idx:end_idx] if isinstance(v, list) else v
+                for k, v in indicators.items()
+            } if indicators else {}
         }
         
         # Calculate key statistics
         price_change = (recent_data['prices'][-1] - recent_data['prices'][0]) / recent_data['prices'][0] * 100
-        avg_volume = sum(recent_data['volumes']) / len(recent_data['volumes'])
+        
+        # Handle empty volumes list to prevent ZeroDivisionError
+        if recent_data['volumes'] and len(recent_data['volumes']) > 0:
+            avg_volume = sum(recent_data['volumes']) / len(recent_data['volumes'])
+            current_volume = recent_data['volumes'][-1]
+        else:
+            avg_volume = 0.0
+            current_volume = 0.0
         
         # Add summary statistics
         recent_data['summary'] = {
             'price_change_pct': price_change,
             'avg_volume': avg_volume,
             'current_price': recent_data['prices'][-1],
-            'current_volume': recent_data['volumes'][-1]
+            'current_volume': current_volume,
+            'window_size': window_size,
+            'data_start_idx': start_idx,
+            'sampling_strategy': chosen_strategy if self.is_optimizing else "fixed_recent"
         }
+        
+        # Log additional information during optimization
+        if self.is_optimizing:
+            logger.debug(f"Prepared market data: strategy={chosen_strategy}, window_size={window_size}, " 
+                        f"start_idx={start_idx}, price_change={price_change:.2f}%")
         
         return recent_data
 
@@ -442,21 +577,101 @@ class MarketRegimeClassifier(Module):
             start_time = time.time()
             logger.info("Starting market regime classification for timeframe: {}", timeframe)
             
+            # Check if market_data has the required keys
+            if 'prices' not in market_data:
+                # Check if it's nested under 'summary'
+                if 'summary' in market_data and 'prices' in market_data['summary']:
+                    logger.debug("Found prices in nested structure under 'summary'")
+                    market_data = market_data['summary']
+                else:
+                    logger.error("Market data missing 'prices' field: {}", list(market_data.keys()))
+                    # Return default response instead of raising error
+                    return {
+                        "market_context": {"regime": MarketRegime.UNKNOWN.value, "confidence": 0.0},
+                        "analysis_text": "Classification failed: Missing required price data",
+                        "risk_level": "unknown"
+                    }
+            
+            # Check if market_data contains indicators in different formats
+            if 'indicators' not in market_data:
+                # First check if data is nested under 'summary'
+                if 'summary' in market_data and 'indicators' in market_data['summary']:
+                    logger.debug("Found indicators in nested structure under 'summary'")
+                    market_data['indicators'] = market_data['summary']['indicators']
+                elif all(k in market_data for k in ['sma_20', 'sma_50', 'rsi']):
+                    # Indicators are directly in the market_data
+                    logger.debug("Found indicators as direct fields in market_data, restructuring")
+                    market_data['indicators'] = {
+                        'sma_20': [market_data['sma_20']] if not isinstance(market_data['sma_20'], list) else market_data['sma_20'],
+                        'sma_50': [market_data['sma_50']] if not isinstance(market_data['sma_50'], list) else market_data['sma_50'],
+                        'rsi': [market_data['rsi']] if not isinstance(market_data['rsi'], list) else market_data['rsi']
+                    }
+                    # Add other indicators if they exist
+                    for indicator in ['macd', 'volatility', 'bollinger_upper', 'bollinger_lower']:
+                        if indicator in market_data:
+                            market_data['indicators'][indicator] = [market_data[indicator]] if not isinstance(market_data[indicator], list) else market_data[indicator]
+                else:
+                    logger.error("Market data missing 'indicators' field: {}", list(market_data.keys()))
+                    # Create empty indicators dict instead of raising error
+                    market_data['indicators'] = {}
+                
             # Get recent price data
             logger.info("Extracting recent market data")
+            
+            # Handle different price data structures
+            if 'prices' not in market_data:
+                logger.error("Market data missing 'prices' field: {}", list(market_data.keys()))
+                if 'summary' in market_data and 'prices' in market_data['summary']:
+                    logger.debug("Found prices in nested structure under 'summary'")
+                    market_data['prices'] = market_data['summary']['prices']
+                elif 'current_price' in market_data:
+                    # Just use current price if that's all we have
+                    logger.debug("No historical prices, using current_price")
+                    market_data['prices'] = [market_data['current_price']] * 20  # Create synthetic history
+                else:
+                    logger.error("No price data found in any expected location")
+                    raise ValueError("No price data available for analysis")
+            
+            # Ensure we have at least one price point
+            if not market_data['prices']:
+                logger.error("Empty prices list in market data")
+                raise ValueError("Empty prices list in market data")
+                
+            # Take the last 20 points
             prices = market_data['prices'][-20:]  # Reduced from 50 to 20 points
-            volumes = market_data['volumes'][-20:]
+            volumes = market_data.get('volumes', [])[-20:] if market_data.get('volumes') else []
             indicators = market_data['indicators']
             
             # Calculate basic trend indicators
             logger.info("Calculating trend indicators")
-            sma_20 = indicators['sma_20'][-1]
-            sma_50 = indicators['sma_50'][-1]
+            # Check for required indicators
+            if 'sma_20' not in indicators or 'sma_50' not in indicators:
+                logger.warning("Market data missing required indicators sma_20 or sma_50")
+                # Create default values if missing
+                if 'sma_20' not in indicators:
+                    indicators['sma_20'] = [sum(prices[:min(20, len(prices))]) / min(20, len(prices))]
+                    logger.debug("Created default sma_20 from prices")
+                if 'sma_50' not in indicators:
+                    indicators['sma_50'] = [sum(prices[:min(50, len(prices))]) / min(50, len(prices))]
+                    logger.debug("Created default sma_50 from prices")
+                
+            sma_20 = indicators['sma_20'][-1] if indicators['sma_20'] else prices[-1] * 0.98
+            sma_50 = indicators['sma_50'][-1] if indicators['sma_50'] else prices[-1] * 0.95
             current_price = prices[-1]
             
             # Calculate volatility
             logger.info("Calculating volatility")
-            volatility = indicators['volatility'][-1] if 'volatility' in indicators else None
+            if 'volatility' in indicators and indicators['volatility']:
+                volatility = indicators['volatility'][-1]
+            else:
+                # Calculate simple volatility if not provided
+                if len(prices) > 5:
+                    price_changes = [abs(prices[i] - prices[i-1])/prices[i-1] for i in range(1, len(prices))]
+                    volatility = sum(price_changes) / len(price_changes)
+                    logger.debug("Calculated default volatility: {}", volatility)
+                else:
+                    volatility = 0.01  # Default low volatility
+                    logger.debug("Using default volatility value")
             
             # Determine regime
             logger.info("Determining market regime")

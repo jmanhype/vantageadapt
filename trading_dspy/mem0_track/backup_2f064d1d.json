@@ -1,0 +1,37 @@
+{
+  "regime": "unknown",
+  "confidence": 0.65,
+  "risk_level": "unknown",
+  "reasoning": "Given the market is in a ranging low volatility regime, the strategy should aim to capitalize on small price movements around key moving averages, specifically the 20 SMA, while also considering RSI levels to gauge momentum. The analysis indicates a balanced market sentiment, which suggests that both buy and sell opportunities may present themselves, provided they are approached with careful risk management. The strategy will focus on tight stop losses and conservative take profit levels to ensure capital preservation in a market lacking strong directional momentum. Entry conditions will be based on price interactions with the 20 SMA and RSI levels, reflecting the current market's behavior. A smaller position size is preferable to manage risk effectively in the uncertain market regime.",
+  "trade_signal": "HOLD until entry conditions are met",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-03-19T07:11:41.151874",
+  "parameters": {
+    "stop_loss": 0.02,
+    "take_profit": 0.05,
+    "position_size": 0.01,
+    "entry_conditions": [
+      "current_price < SMA20 * (1 - 0.005)",
+      "RSI14 < 30"
+    ],
+    "exit_conditions": [
+      "current_price > SMA20 * (1 + 0.005)",
+      "RSI14 > 70"
+    ]
+  },
+  "entry_conditions": [
+    "current_price < SMA20 * (1 - 0.005)",
+    "RSI14 < 30"
+  ],
+  "exit_conditions": [
+    "current_price > SMA20 * (1 + 0.005)",
+    "RSI14 > 70"
+  ],
+  "indicators": [
+    "SMA20",
+    "RSI14"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "2f064d1d",
+  "is_optimization": false
+}

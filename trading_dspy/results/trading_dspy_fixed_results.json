@@ -1,0 +1,42 @@
+{
+  "timestamp": "2025-06-03 10:18:23",
+  "model": "gpt-4o-mini",
+  "approach": "Fixed Trading DSPy",
+  "tokens_analyzed": 3,
+  "total_pnl": 4.854254988884843,
+  "total_trades": 5,
+  "avg_pnl_per_trade": 0.9708509977769687,
+  "token_results": [
+    {
+      "token": "$MICHI",
+      "best_performance": {
+        "total_pnl": 0.80981582340182,
+        "total_return": 0.080981582340182,
+        "win_rate": 1.0,
+        "total_trades": 2,
+        "sortino_ratio": 33.925410215069455
+      }
+    },
+    {
+      "token": "POPCAT",
+      "best_performance": {
+        "total_pnl": 3.4930830196388456,
+        "total_return": 0.34930830196388457,
+        "win_rate": 1.0,
+        "total_trades": 1,
+        "sortino_ratio": 134.59488168321158
+      }
+    },
+    {
+      "token": "BILLY",
+      "best_performance": {
+        "total_pnl": 0.5513561458441778,
+        "total_return": 0.05513561458441778,
+        "win_rate": 1.0,
+        "total_trades": 2,
+        "sortino_ratio": 49.83593767867498
+      }
+    }
+  ],
+  "execution_time": 32742.900752305984
+}

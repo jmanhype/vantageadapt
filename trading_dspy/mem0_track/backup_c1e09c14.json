@@ -1,0 +1,36 @@
+{
+  "regime": "TRENDING_BULLISH",
+  "confidence": 0.9,
+  "risk_level": "unknown",
+  "reasoning": "",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T11:02:53.674857",
+  "parameters": {
+    "position_size": 0.5,
+    "stop_loss": 0.05,
+    "take_profit": 0.2,
+    "entry_conditions": [
+      "current_price > recent_highs",
+      "RSI > 60",
+      "volume > average_volume"
+    ],
+    "exit_conditions": [
+      "current_price >= entry_price * (1 + take_profit)",
+      "current_price <= entry_price * (1 - stop_loss)"
+    ],
+    "indicators": [
+      "RSI",
+      "20-period moving average",
+      "50-period moving average",
+      "Volume"
+    ],
+    "strategy_type": "default"
+  },
+  "entry_conditions": [],
+  "exit_conditions": [],
+  "indicators": [],
+  "source": "strategy_generator",
+  "storage_id": "c1e09c14",
+  "is_optimization": false
+}

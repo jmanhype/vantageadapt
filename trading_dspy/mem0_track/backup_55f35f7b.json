@@ -1,0 +1,29 @@
+{
+  "id": "55f35f7b",
+  "timestamp": "2025-03-14T18:15:25.564005",
+  "is_optimization": false,
+  "strategy": {
+    "regime": "RANGING_LOW_VOL",
+    "confidence": 0.7,
+    "risk_level": "unknown",
+    "parameters": {
+      "position_size": 0.2,
+      "stop_loss": 0.02,
+      "take_profit": 0.05,
+      "entry_conditions": [
+        "rsi < 30",
+        "close < lower_band"
+      ],
+      "exit_conditions": [
+        "rsi > 70",
+        "close > upper_band"
+      ],
+      "indicators": [
+        "rsi",
+        "bollinger_bands"
+      ],
+      "strategy_type": "default"
+    },
+    "opportunity_score": 0.0
+  }
+}

@@ -1,0 +1,352 @@
+{
+  "components": {
+    "ML Trading Engine": {
+      "module": "src.ml_trading_engine",
+      "classes": [
+        {
+          "name": "FeatureEngineer",
+          "methods": [
+            "create_features"
+          ],
+          "doc": "Extract REAL trading features from market data"
+        },
+        {
+          "name": "MLTradingModel",
+          "methods": [
+            "load",
+            "predict",
+            "prepare_training_data",
+            "save",
+            "train",
+            "update_online"
+          ],
+          "doc": "The actual ML model that learns from historical data"
+        },
+        {
+          "name": "TradeSignal",
+          "methods": [],
+          "doc": "Actual trade signal with probability and reasoning"
+        },
+        {
+          "name": "TradingSystemOrchestrator",
+          "methods": [
+            "execute_trade",
+            "generate_signal",
+            "get_performance_report",
+            "train_system",
+            "update_performance"
+          ],
+          "doc": "Orchestrates the entire ML trading system"
+        }
+      ],
+      "functions": []
+    },
+    "Data Preprocessor": {
+      "module": "src.utils.data_preprocessor",
+      "classes": [
+        {
+          "name": "DataPreprocessor",
+          "methods": [
+            "add_features"
+          ],
+          "doc": "Data preprocessor for market data with technical indicators."
+        }
+      ],
+      "functions": [
+        {
+          "name": "preprocess_market_data",
+          "params": [
+            "df"
+          ],
+          "doc": "Preprocess raw market data into a format suitable for the trading system.\n    \n    Args:\n        df: DataFrame containing market data\n        \n    Returns:\n        Preprocessed market data dictionary\n    "
+        }
+      ]
+    },
+    "Market Analysis": {
+      "module": "src.modules.market_analysis",
+      "classes": [
+        {
+          "name": "MarketAnalyzer",
+          "methods": [
+            "batch",
+            "deepcopy",
+            "dump_state",
+            "forward",
+            "get_lm",
+            "load",
+            "load_state",
+            "map_named_predictors",
+            "named_parameters",
+            "named_predictors",
+            "named_sub_modules",
+            "parameters",
+            "predictors",
+            "reset_copy",
+            "save",
+            "set_lm"
+          ],
+          "doc": "Market analysis module using chain-of-thought reasoning."
+        },
+        {
+          "name": "MarketRegimeClassifier",
+          "methods": [
+            "batch",
+            "deepcopy",
+            "dump_state",
+            "forward",
+            "get_lm",
+            "load",
+            "load_state",
+            "map_named_predictors",
+            "named_parameters",
+            "named_predictors",
+            "named_sub_modules",
+            "parameters",
+            "predictors",
+            "reset_copy",
+            "save",
+            "set_lm"
+          ],
+          "doc": "Classifier for market regime using direct prediction."
+        }
+      ],
+      "functions": []
+    },
+    "Strategy Generator": {
+      "module": "src.modules.strategy_generator",
+      "classes": [
+        {
+          "name": "StrategyGenerator",
+          "methods": [
+            "batch",
+            "deepcopy",
+            "dump_state",
+            "forward",
+            "get_lm",
+            "load",
+            "load_state",
+            "map_named_predictors",
+            "named_parameters",
+            "named_predictors",
+            "named_sub_modules",
+            "parameters",
+            "predictors",
+            "reset_copy",
+            "save",
+            "set_lm",
+            "validate_strategy"
+          ],
+          "doc": "Strategy generation module using chain-of-thought reasoning for autonomous strategy creation."
+        }
+      ],
+      "functions": []
+    },
+    "Backtester": {
+      "module": "src.modules.backtester",
+      "classes": [
+        {
+          "name": "Backtester",
+          "methods": [
+            "forward",
+            "run_parameter_optimization"
+          ],
+          "doc": "Backtester class for running parameter optimization and backtesting."
+        },
+        {
+          "name": "TradeMemory",
+          "methods": [
+            "count",
+            "index",
+            "trade_counts",
+            "trade_records"
+          ],
+          "doc": "TradeMemory(trade_records, trade_counts)"
+        }
+      ],
+      "functions": [
+        {
+          "name": "calculate_entries_and_params",
+          "params": [
+            "trade_data_df",
+            "p"
+          ],
+          "doc": "Calculate entry signals and parameters based on multiple technical indicators."
+        },
+        {
+          "name": "calculate_stats",
+          "params": [
+            "test_portfolio",
+            "trade_data_dict"
+          ],
+          "doc": "Calculate performance statistics for backtested portfolios."
+        },
+        {
+          "name": "from_signals_backtest",
+          "params": [
+            "trade_data_df",
+            "p"
+          ],
+          "doc": "Run vectorbt backtest from entry/exit signals with comprehensive technical indicators."
+        },
+        {
+          "name": "init_trade_memory",
+          "params": [
+            "target_shape"
+          ],
+          "doc": "Initialize trade memory for vectorbt backtest."
+        },
+        {
+          "name": "load_trade_data",
+          "params": [
+            "data_path"
+          ],
+          "doc": "Load market data from pickle file."
+        }
+      ]
+    },
+    "Memory Manager": {
+      "module": "src.utils.memory_manager",
+      "classes": [
+        {
+          "name": "TradingMemoryManager",
+          "methods": [
+            "batch_delete_strategies",
+            "batch_update_strategies",
+            "get_all_strategies",
+            "get_recent_performance",
+            "get_strategy_history",
+            "query_similar_strategies",
+            "store_strategy",
+            "store_strategy_results"
+          ],
+          "doc": "Manages memory for trading strategies using mem0ai."
+        }
+      ],
+      "functions": []
+    },
+    "Hybrid System": {
+      "module": "src.hybrid_trading_system",
+      "classes": [
+        {
+          "name": "HybridTradingSystem",
+          "methods": [
+            "generate_hybrid_signal",
+            "get_performance_report",
+            "load_models",
+            "save_models",
+            "train_on_historical_data",
+            "update_with_trade_result"
+          ],
+          "doc": "\n    The ultimate trading system that combines:\n    1. DSPy for creative strategy generation and analysis\n    2. ML models for actual learning from data\n    3. Regime-based optimization for adaptive strategies\n    "
+        }
+      ],
+      "functions": []
+    }
+  },
+  "data_flow": {
+    "1. Data Input": {
+      "source": "/Users/speed/StratOptimv4/big_optimize_1016.pkl",
+      "format": "Dictionary of DataFrames",
+      "tokens": "65 crypto tokens",
+      "columns": [
+        "timestamp",
+        "dex_price",
+        "sol_volume",
+        "is_buy",
+        "etc..."
+      ]
+    },
+    "2. Data Preprocessing": {
+      "module": "src.utils.data_preprocessor",
+      "class": "DataPreprocessor",
+      "adds": [
+        "technical indicators",
+        "price features",
+        "volume metrics"
+      ],
+      "output": "Enhanced DataFrame with 30+ features"
+    },
+    "3. ML Pipeline": {
+      "entry_model": {
+        "type": "XGBoost Classifier",
+        "predicts": "BUY/HOLD signals",
+        "confidence": "probability 0-1"
+      },
+      "return_model": {
+        "type": "RandomForest Regressor",
+        "predicts": "expected return %",
+        "range": "-5% to +5%"
+      },
+      "risk_model": {
+        "type": "GradientBoosting Regressor",
+        "predicts": "volatility/risk",
+        "used_for": "position sizing"
+      }
+    },
+    "4. DSPy Components": {
+      "market_analysis": {
+        "module": "src.modules.market_analysis",
+        "llm": "GPT-4 or GPT-3.5",
+        "analyzes": "market conditions",
+        "outputs": "regime classification"
+      },
+      "strategy_generator": {
+        "module": "src.modules.strategy_generator",
+        "generates": "trading strategies",
+        "uses": "memory from past trades"
+      },
+      "trading_rules": {
+        "module": "src.modules.trading_rules",
+        "creates": "entry/exit conditions",
+        "format": "if-then rules"
+      }
+    },
+    "5. Hybrid Signal Generation": {
+      "weights": {
+        "ML": 0.6,
+        "Regime": 0.3,
+        "DSPy": 0.1
+      },
+      "threshold": "30% confidence to trade",
+      "position_size": "10-30% of capital"
+    },
+    "6. Backtesting": {
+      "module": "src.modules.backtester",
+      "engine": "VectorBTPro",
+      "calculates": [
+        "returns",
+        "sharpe",
+        "drawdown",
+        "win_rate"
+      ],
+      "validates": "strategy performance"
+    },
+    "7. Memory Storage": {
+      "module": "src.utils.memory_manager",
+      "backend": "Mem0ai",
+      "stores": "successful strategies",
+      "learns": "from past performance"
+    }
+  },
+  "dependencies": {
+    "Core Libraries": {
+      "pandas": "Data manipulation",
+      "numpy": "Numerical operations",
+      "scikit-learn": "ML models",
+      "xgboost": "Entry signal model",
+      "dspy": "LLM orchestration",
+      "vectorbtpro": "Backtesting engine"
+    },
+    "APIs": {
+      "OPENAI_API_KEY": "GPT-4/3.5 access",
+      "MEM0_API_KEY": "Memory storage",
+      "GITHUB_TOKEN": "VectorBTPro access"
+    },
+    "Data Files": {
+      "/Users/speed/StratOptimv4/big_optimize_1016.pkl": "Real trading data",
+      "prompts/": "Prompt templates",
+      "mem0_track/": "Memory backups"
+    }
+  },
+  "timestamp": "1748979758.3470235"
+}

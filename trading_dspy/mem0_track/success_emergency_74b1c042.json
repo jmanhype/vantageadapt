@@ -1,0 +1,37 @@
+{
+  "id": "74b1c042",
+  "timestamp": "2025-03-18T08:30:46.708945",
+  "mem0_id": null,
+  "action": "emergency_fallback",
+  "success": true,
+  "strategy": {
+    "strategy": {
+      "regime": "unknown",
+      "confidence": 0.6,
+      "parameters": {
+        "position_size": 0.1,
+        "stop_loss": 0.02,
+        "take_profit": 0.05,
+        "entry_conditions": [
+          "RSI < 30",
+          "price > SMA_50"
+        ],
+        "exit_conditions": [
+          "RSI > 70",
+          "price < SMA_50"
+        ],
+        "additional_risk_management": {
+          "max_daily_loss": 0.05,
+          "max_open_trades": 2
+        }
+      },
+      "timestamp": "2025-03-18T08:30:45.190711"
+    },
+    "metadata": {
+      "source": "emergency_fallback",
+      "tracking_id": "74b1c042",
+      "optimization": true,
+      "timestamp": "2025-03-18T08:30:45.190713"
+    }
+  }
+}

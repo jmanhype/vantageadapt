@@ -12,9 +12,11 @@ from dotenv import load_dotenv
 
 from .modules.market_analysis import MarketAnalyzer
 from .modules.market_regime import MarketRegimeClassifier
+from .modules.market_regime_enhanced import EnhancedMarketRegimeClassifier
 from .modules.strategy_generator import StrategyGenerator
 from .modules.trading_rules import TradingRulesGenerator
 from .modules.backtester import Backtester
+from .modules.prompt_optimizer import PromptOptimizer
 from .utils.prompt_manager import PromptManager
 from .utils.memory_manager import TradingMemoryManager
 from .utils.types import StrategyContext, MarketRegime, BacktestResults
@@ -29,7 +31,9 @@ class TradingPipeline:
         model: str = "gpt-4-turbo-preview",
         memory_dir: str = "memory",
         prompts_dir: str = "prompts",
-        performance_thresholds: Optional[Dict[str, float]] = None
+        performance_thresholds: Optional[Dict[str, float]] = None,
+        use_enhanced_regime: bool = True,
+        use_prompt_optimization: bool = True
     ):
         """Initialize trading pipeline.
         
@@ -39,6 +43,8 @@ class TradingPipeline:
             memory_dir: Directory for memory storage
             prompts_dir: Directory for prompts
             performance_thresholds: Optional performance thresholds
+            use_enhanced_regime: Whether to use enhanced market regime detection
+            use_prompt_optimization: Whether to use MiPro prompt optimization
         """
         # Load environment variables
         load_dotenv()
@@ -67,7 +73,20 @@ class TradingPipeline:
         # Initialize modules
         logger.info("Initializing pipeline modules")
         self.market_analyzer = MarketAnalyzer(self.prompt_manager)
-        self.regime_classifier = MarketRegimeClassifier()
+        
+        # Use enhanced market regime classifier if enabled
+        if use_enhanced_regime:
+            logger.info("Using enhanced market regime classifier")
+            self.regime_classifier = EnhancedMarketRegimeClassifier()
+        else:
+            logger.info("Using standard market regime classifier")
+            self.regime_classifier = MarketRegimeClassifier()
+            
+        # Initialize prompt optimizer if enabled
+        self.use_prompt_optimization = use_prompt_optimization
+        if use_prompt_optimization:
+            logger.info("Initializing prompt optimizer with MiPro")
+            self.prompt_optimizer = PromptOptimizer(self.prompt_manager)
         self.strategy_generator = StrategyGenerator(self.prompt_manager, self.memory_manager)
         self.trading_rules_generator = TradingRulesGenerator(self.prompt_manager)
         self.backtester = Backtester(performance_thresholds=performance_thresholds)
@@ -106,8 +125,14 @@ class TradingPipeline:
                 logger.info("  Total Trades: {}", recent_performance.get("total_trades", 0))
                 logger.info("  Overall Win Rate: {:.2f}", recent_performance.get("overall_win_rate", 0))
             
+            # Run prompt optimization if enabled and if there are enough examples in memory
+            if self.use_prompt_optimization:
+                self._run_prompt_optimization()
+            
             results = []
             optimization_history = []  # Track optimization progress
+            iteration_feedback = None  # Track what we learn from each iteration
+            
             for i in range(num_iterations):
                 logger.info("\nStarting iteration {} of {}", i + 1, num_iterations)
                 
@@ -117,34 +142,69 @@ class TradingPipeline:
                 logger.info("Market regime: {}", market_context.get("regime", "UNKNOWN"))
                 logger.info("Risk level: {}", market_context.get("risk_level", "unknown"))
                 
+                # Add iteration feedback to market context for learning
+                if iteration_feedback:
+                    market_context['iteration_feedback'] = iteration_feedback
+                    market_context['iteration_number'] = i + 1
+                    market_context['previous_iterations'] = results
+                
                 # Step 2: Strategy Generation
                 logger.info("Step 2: Strategy Generation")
                 strategy_insights = self.generate_strategy(market_context, recent_performance)
-                logger.info("Generated strategy with confidence: {:.2f}", strategy_insights.confidence)
+                # Check if strategy_insights is a dict or has confidence attribute
+                if isinstance(strategy_insights, dict):
+                    confidence = strategy_insights.get('confidence', 0.0)
+                    logger.info("Generated strategy with confidence: {:.2f}", confidence)
+                else:
+                    logger.info("Generated strategy with confidence: {:.2f}", getattr(strategy_insights, 'confidence', 0.0))
                 
                 # Step 3: Trading Rules Generation
                 logger.info("Step 3: Trading Rules Generation")
-                rules = self.generate_trading_rules(strategy_insights.to_dict(), market_context)
+                # Check if strategy_insights is a dict or an object with to_dict method
+                if isinstance(strategy_insights, dict):
+                    strategy_dict = strategy_insights
+                else:
+                    strategy_dict = strategy_insights.to_dict() if hasattr(strategy_insights, 'to_dict') else strategy_insights
+                rules = self.generate_trading_rules(strategy_dict, market_context)
                 
                 # Debug log the strategy parameters and conditions
-                logger.debug("Strategy parameters: {}", strategy_insights.parameters)
-                if 'entry_conditions' in strategy_insights.parameters:
-                    logger.debug("Entry conditions: {}", strategy_insights.parameters['entry_conditions'])
-                if 'exit_conditions' in strategy_insights.parameters:
-                    logger.debug("Exit conditions: {}", strategy_insights.parameters['exit_conditions'])
+                if isinstance(strategy_insights, dict):
+                    logger.debug("Strategy parameters: {}", strategy_insights.get('parameters', {}))
+                    if 'entry_conditions' in strategy_insights.get('parameters', {}):
+                        logger.debug("Entry conditions: {}", strategy_insights['parameters']['entry_conditions'])
+                else:
+                    logger.debug("Strategy parameters: {}", getattr(strategy_insights, 'parameters', {}))
+                    if hasattr(strategy_insights, 'parameters') and 'entry_conditions' in strategy_insights.parameters:
+                        logger.debug("Entry conditions: {}", strategy_insights.parameters['entry_conditions'])
+                # Check for exit conditions
+                if isinstance(strategy_insights, dict):
+                    if 'exit_conditions' in strategy_insights.get('parameters', {}):
+                        logger.debug("Exit conditions: {}", strategy_insights['parameters']['exit_conditions'])
+                else:
+                    if hasattr(strategy_insights, 'parameters') and 'exit_conditions' in strategy_insights.parameters:
+                        logger.debug("Exit conditions: {}", strategy_insights.parameters['exit_conditions'])
                 
                 # Step 4: Backtesting
                 logger.info("Step 4: Backtesting")
                 if rules and "conditions" in rules:
+                    # Get parameters based on strategy_insights type
+                    if isinstance(strategy_insights, dict):
+                        params = strategy_insights.get('parameters', {})
+                    else:
+                        params = getattr(strategy_insights, 'parameters', {})
+                        
                     backtest_results = self.backtest(
                         market_data,
-                        strategy_insights.parameters,
+                        params,
                         rules["conditions"]
                     )
                     
                     if backtest_results:
-                        # Convert StrategyContext to dict for storage
-                        strategy_dict = strategy_insights.to_dict()
+                        # Convert StrategyContext to dict for storage if needed
+                        if isinstance(strategy_insights, dict):
+                            strategy_dict = strategy_insights
+                        else:
+                            strategy_dict = strategy_insights.to_dict() if hasattr(strategy_insights, 'to_dict') else strategy_insights
                         results.append({
                             "market_context": market_context,
                             "strategy": strategy_dict,
@@ -169,6 +229,29 @@ class TradingPipeline:
                         results=last_result["performance"],
                         iteration=len(results)
                     )
+                    
+                    # CRITICAL: Extract learning feedback for next iteration
+                    if i < num_iterations - 1:  # Not the last iteration
+                        perf = last_result.get("performance", {}).get("backtest_results", {})
+                        iteration_feedback = {
+                            'previous_pnl': perf.get('total_pnl', 0),
+                            'previous_return': perf.get('total_return', 0),
+                            'previous_trades': perf.get('total_trades', 0),
+                            'previous_win_rate': perf.get('win_rate', 0),
+                            'failed_entry_conditions': [],
+                            'successful_patterns': [],
+                            'lessons_learned': f"Iteration {i+1} had PnL of ${perf.get('total_pnl', 0):.2f} with {perf.get('total_trades', 0)} trades"
+                        }
+                        
+                        # Analyze what went wrong/right
+                        if perf.get('total_pnl', 0) < 0:
+                            iteration_feedback['lessons_learned'] += " - AVOID this approach"
+                            if perf.get('total_trades', 0) > 20:
+                                iteration_feedback['lessons_learned'] += " - Too many trades led to losses"
+                        else:
+                            iteration_feedback['lessons_learned'] += " - BUILD on this approach"
+                            if perf.get('win_rate', 0) > 0.8:
+                                iteration_feedback['lessons_learned'] += " - High win rate strategy worked well"
                     
                     # Track optimization progress
                     if 'optimization_history' in last_result.get('performance', {}):
@@ -220,6 +303,17 @@ class TradingPipeline:
                 'analysis_text': analysis.get('analysis_text', ''),
                 'risk_level': analysis.get('risk_level', 'unknown')
             }
+            
+            # If prompt optimization is enabled, collect this as an example
+            if self.use_prompt_optimization and hasattr(self, 'prompt_optimizer'):
+                try:
+                    # Collect market analysis example
+                    self.prompt_optimizer.collect_market_analysis_example(
+                        market_data=market_data,
+                        result=analysis
+                    )
+                except Exception as e:
+                    logger.error(f"Error collecting market analysis example: {str(e)}")
             
             duration = time.time() - start_time
             logger.info("Market analysis completed in {:.2f} seconds", duration)
@@ -315,6 +409,17 @@ class TradingPipeline:
                 logger.warning("Invalid strategy: {}", reason)
                 return {}
             
+            # If prompt optimization is enabled, collect this as an example
+            if self.use_prompt_optimization and hasattr(self, 'prompt_optimizer') and strategy:
+                try:
+                    # Collect strategy example
+                    self.prompt_optimizer.collect_strategy_example(
+                        market_analysis=market_context,
+                        strategy=strategy
+                    )
+                except Exception as e:
+                    logger.error(f"Error collecting strategy example: {str(e)}")
+            
             duration = time.time() - start_time
             logger.info("Strategy generation completed in {:.2f} seconds", duration)    
             return strategy_context
@@ -353,6 +458,17 @@ class TradingPipeline:
                     'entry': rules.get('entry_conditions', []),
                     'exit': rules.get('exit_conditions', [])
                 }
+            
+            # If prompt optimization is enabled, collect this as an example
+            if self.use_prompt_optimization and hasattr(self, 'prompt_optimizer') and rules:
+                try:
+                    # Collect trading rules example
+                    self.prompt_optimizer.collect_trading_rules_example(
+                        strategy=strategy_insights,
+                        trading_rules=rules
+                    )
+                except Exception as e:
+                    logger.error(f"Error collecting trading rules example: {str(e)}")
             
             duration = time.time() - start_time
             logger.info("Trading rules generation completed in {:.2f} seconds", duration)
@@ -429,6 +545,51 @@ class TradingPipeline:
             Memory statistics dictionary
         """
         return self.memory_manager.get_strategy_statistics()
+    
+    def _run_prompt_optimization(self) -> None:
+        """Run prompt optimization for all modules if enough examples are available."""
+        if not hasattr(self, 'prompt_optimizer'):
+            logger.warning("Prompt optimizer not initialized, skipping optimization")
+            return
+        
+        logger.info("Checking for prompt optimization opportunities")
+        
+        # Check optimization status
+        optimization_status = self.prompt_optimizer.check_optimization_status()
+        logger.info(f"Current optimization status: {optimization_status}")
+        
+        # Get examples for market analysis
+        market_analysis_examples = self.prompt_manager.get_examples("market_analysis")
+        if len(market_analysis_examples) >= 3:
+            logger.info(f"Running market analysis optimization with {len(market_analysis_examples)} examples")
+            self.market_analyzer = self.prompt_optimizer.optimize_market_analysis(
+                self.market_analyzer, 
+                market_analysis_examples
+            )
+        else:
+            logger.info(f"Not enough market analysis examples for optimization, need at least 3 (found {len(market_analysis_examples)})")
+        
+        # Get examples for strategy generation
+        strategy_examples = self.prompt_manager.get_examples("strategy_generator")
+        if len(strategy_examples) >= 3:
+            logger.info(f"Running strategy generation optimization with {len(strategy_examples)} examples")
+            self.strategy_generator = self.prompt_optimizer.optimize_strategy_generation(
+                self.strategy_generator, 
+                strategy_examples
+            )
+        else:
+            logger.info(f"Not enough strategy examples for optimization, need at least 3 (found {len(strategy_examples)})")
+        
+        # Get examples for trading rules generation
+        trading_rules_examples = self.prompt_manager.get_examples("trading_rules")
+        if len(trading_rules_examples) >= 3:
+            logger.info(f"Running trading rules optimization with {len(trading_rules_examples)} examples")
+            self.trading_rules_generator = self.prompt_optimizer.optimize_trading_rules(
+                self.trading_rules_generator, 
+                trading_rules_examples
+            )
+        else:
+            logger.info(f"Not enough trading rules examples for optimization, need at least 3 (found {len(trading_rules_examples)})")
 
 
 def run_backtest() -> None:

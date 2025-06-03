@@ -1,0 +1,33 @@
+{
+  "regime": "unknown",
+  "confidence": 0.75,
+  "risk_level": "unknown",
+  "reasoning": "Given the current market context, we are in a bullish trend characterized by higher highs and higher lows, strong buying momentum indicated by the RSI, and a favorable moving average alignment. The significant volume spikes during upward movements suggest that the bullish trend is supported by robust market participation. However, the recent performance shows a negative average return and win rate, indicating that while the market is bullish, previous strategies may not have been effective. Therefore, the strategy should focus on capitalizing on the bullish trend while implementing strict risk management to mitigate potential losses.",
+  "trade_signal": "BUY",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T09:56:04.229164",
+  "parameters": {
+    "position_size": 0.5,
+    "stop_loss": 0.05,
+    "take_profit": 0.2
+  },
+  "entry_conditions": [
+    "current_price > moving_average_20",
+    "RSI < 70",
+    "volume > average_volume * 1.5"
+  ],
+  "exit_conditions": [
+    "current_price < moving_average_20",
+    "RSI > 75",
+    "current_price >= entry_price * (1 + take_profit)"
+  ],
+  "indicators": [
+    "RSI",
+    "20-period Moving Average",
+    "50-period Moving Average",
+    "Volume"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "2394a581",
+  "is_optimization": false
+}

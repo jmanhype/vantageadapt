@@ -1,0 +1,39 @@
+{
+  "id": "8262fc30",
+  "timestamp": "2025-03-18T08:05:35.208048",
+  "mem0_id": null,
+  "action": "emergency_fallback",
+  "success": true,
+  "strategy": {
+    "strategy": {
+      "regime": "unknown",
+      "confidence": 0.6,
+      "parameters": {
+        "position_size": 0.2,
+        "stop_loss": 0.02,
+        "take_profit": 0.05,
+        "entry_conditions": [
+          "(RSI < 30 and price < lower_bollinger_band) or (MACD_line > MACD_signal_line and price > SMA_50)"
+        ],
+        "exit_conditions": [
+          "(RSI > 70 and price > upper_bollinger_band) or (MACD_line < MACD_signal_line and price < SMA_50)"
+        ],
+        "additional_parameters": {
+          "RSI_period": 14,
+          "Bollinger_band_period": 20,
+          "MACD_fast_period": 12,
+          "MACD_slow_period": 26,
+          "MACD_signal_period": 9,
+          "SMA_period": 50
+        }
+      },
+      "timestamp": "2025-03-18T08:05:33.741570"
+    },
+    "metadata": {
+      "source": "emergency_fallback",
+      "tracking_id": "8262fc30",
+      "optimization": true,
+      "timestamp": "2025-03-18T08:05:33.741573"
+    }
+  }
+}

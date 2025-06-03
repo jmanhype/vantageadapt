@@ -1,0 +1,47 @@
+{
+  "id": "29618823",
+  "timestamp": "2025-03-18T08:09:01.234149",
+  "is_optimization": true,
+  "strategy": {
+    "strategy": {
+      "regime": "unknown",
+      "confidence": 0.6,
+      "parameters": {
+        "position_size": 0.2,
+        "stop_loss": 0.02,
+        "take_profit": 0.05,
+        "entry_conditions": [
+          "RSI < 30",
+          "price < SMA_20"
+        ],
+        "exit_conditions": [
+          "RSI > 70",
+          "price > SMA_20"
+        ],
+        "additional_parameters": {
+          "RSI_period": 14,
+          "SMA_period": 20
+        }
+      },
+      "reasoning": "Given the market regime is unknown with a confidence level of 0.0, and the risk level is also unknown, the strategy must be highly adaptable and conservative. The recent performance data suggests a relatively high average PNL per trade and an overall win rate, indicating that certain strategies have been effective in the recent past. However, the lack of specific market regime information necessitates a strategy that can perform well under various conditions. Therefore, a balanced mean reversion strategy could be suitable, aiming to capitalize on small price reversals within a broader range. This approach is generally less dependent on clear trend directions and can be adjusted to manage risk effectively in uncertain market conditions. The strategy will use technical indicators to identify potential entry and exit points, focusing on overbought and oversold conditions as well as price action relative to moving averages.",
+      "trade_signal": "HOLD",
+      "entry_conditions": [
+        "RSI < 30 and price < SMA_20"
+      ],
+      "exit_conditions": [
+        "RSI > 70 or price > SMA_20"
+      ],
+      "indicators": [
+        "RSI",
+        "SMA"
+      ],
+      "opportunity_score": 0.0,
+      "timestamp": "2025-03-18T08:09:01.233153"
+    },
+    "metadata": {
+      "source": "strategy_generator",
+      "timestamp": "2025-03-18T08:09:01.233242",
+      "storage_id": "7b815920"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "id": "ffe2acc6",
+  "timestamp": "2025-06-03T09:25:08.309753",
+  "action": "store",
+  "success": false,
+  "error": "Request failed: The read operation timed out",
+  "attempts": 3
+}

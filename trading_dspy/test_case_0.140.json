@@ -1,0 +1,9 @@
+{
+  "entry_conditions": [
+    "price > sma_1"
+  ],
+  "exit_conditions": [],
+  "parameters": {},
+  "indicators": [],
+  "reasoning": "XXXXXXXXXXXXXXXXXXXX"
+}

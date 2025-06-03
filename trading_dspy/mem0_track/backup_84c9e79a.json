@@ -1,0 +1,65 @@
+{
+  "id": "84c9e79a",
+  "timestamp": "2025-03-14T17:36:45.898831",
+  "is_optimization": true,
+  "strategy": {
+    "strategy": {
+      "regime": "unknown",
+      "confidence": 0.6,
+      "risk_level": "moderate",
+      "parameters": {
+        "position_size": 0.2,
+        "stop_loss": 0.02,
+        "take_profit": 0.05,
+        "entry_conditions": [
+          "RSI(14) < 30",
+          "price > SMA(50)"
+        ],
+        "exit_conditions": [
+          "RSI(14) > 70",
+          "price < SMA(50)"
+        ],
+        "additional_risk_management": {
+          "max_daily_loss": 0.05,
+          "max_open_trades": 2
+        }
+      },
+      "parameter_ranges": {
+        "position_size": {
+          "min": 0.1,
+          "max": 0.5
+        },
+        "stop_loss": {
+          "min": 0.01,
+          "max": 0.05
+        },
+        "take_profit": {
+          "min": 0.03,
+          "max": 0.1
+        },
+        "additional_risk_management": {
+          "max_daily_loss": {
+            "min": 0.02,
+            "max": 0.1
+          },
+          "max_open_trades": {
+            "min": 1,
+            "max": 5
+          }
+        }
+      },
+      "reasoning": "Given the market regime is unknown and there's a lack of confidence in the current market analysis, a conservative approach is warranted. The strategy should focus on capital preservation and risk management, given the uncertainty. The recent performance data suggests a relatively high average return per trade but with a low overall win rate, indicating that while profitable trades are significant, they are infrequent. This scenario suggests a strategy that aims for higher quality trades over quantity, with stringent criteria for entry and exit to filter out potential false signals. A cautious position size and tight stop loss are recommended to manage the unknown risk level, while a reasonable take profit level can help lock in gains from the trades that do perform well. The strategy will rely on basic technical analysis indicators that are versatile and can perform under various market conditions, such as moving averages for trend identification and RSI for overbought/oversold conditions, to define entry and exit conditions.",
+      "trade_signal": "HOLD",
+      "entry_conditions": [
+        "RSI(14) < 30 and price > SMA(50)"
+      ],
+      "exit_conditions": [
+        "RSI(14) > 70 or price < SMA(50)"
+      ],
+      "indicators": [
+        "RSI(14)",
+        "SMA(50)"
+      ]
+    }
+  }
+}

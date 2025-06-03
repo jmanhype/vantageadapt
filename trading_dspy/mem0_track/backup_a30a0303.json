@@ -1,0 +1,33 @@
+{
+  "regime": "unknown",
+  "confidence": 0.85,
+  "risk_level": "unknown",
+  "reasoning": "The current market context indicates a strong bullish trend characterized by higher highs and higher lows, supported by a high RSI and increasing volume on upward movements. Given this environment, a buying strategy is appropriate. The strategy will focus on entering positions when the price retraces to key support levels, allowing for a favorable risk-reward ratio. The stop loss will be set to limit potential losses in case of unexpected volatility, while the take profit will be set to capture gains as the price approaches resistance levels. The position size will be determined based on the trader's risk tolerance, ensuring that the overall risk remains manageable.",
+  "trade_signal": "BUY",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T10:00:11.669341",
+  "parameters": {
+    "position_size": 0.5,
+    "stop_loss": 0.05,
+    "take_profit": 0.2
+  },
+  "entry_conditions": [
+    "price < recent_support_level",
+    "RSI < 60",
+    "volume > average_volume"
+  ],
+  "exit_conditions": [
+    "price >= recent_resistance_level",
+    "RSI > 70",
+    "price < stop_loss_level"
+  ],
+  "indicators": [
+    "RSI",
+    "20-period moving average",
+    "50-period moving average",
+    "Volume"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "a30a0303",
+  "is_optimization": false
+}

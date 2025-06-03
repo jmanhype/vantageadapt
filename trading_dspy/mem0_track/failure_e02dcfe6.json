@@ -1,0 +1,8 @@
+{
+  "id": "e02dcfe6",
+  "timestamp": "2025-06-03T05:51:13.425526",
+  "action": "store",
+  "success": false,
+  "error": "Request failed: [Errno 54] Connection reset by peer",
+  "attempts": 2
+}

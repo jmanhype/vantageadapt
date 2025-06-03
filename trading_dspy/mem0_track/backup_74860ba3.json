@@ -1,0 +1,41 @@
+{
+  "regime": "unknown",
+  "confidence": 0.8,
+  "risk_level": "unknown",
+  "reasoning": "The current market context indicates a ranging market with low volatility, characterized by minimal price changes and a lack of strong directional movement. The RSI values are fluctuating around the mid-range, and the moving averages are closely aligned with the current price, suggesting no clear trend. Given these conditions, a strategy that capitalizes on small price movements within the range is appropriate. The entry conditions focus on buying when the price dips below the SMA20 and the RSI indicates oversold conditions, while the exit conditions are set to sell when the price exceeds the SMA20 by a small margin and the RSI indicates overbought conditions. This approach allows for capturing small profits while managing risk effectively in a low-volatility environment.",
+  "trade_signal": "BUY",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T00:56:06.682917",
+  "parameters": {
+    "position_size": 0.05,
+    "stop_loss": 0.05,
+    "take_profit": 0.2,
+    "max_orders": 3,
+    "order_size": 0.0025,
+    "sl_window": 400,
+    "enable_sl_mod": false,
+    "enable_tp_mod": false,
+    "post_buy_delay": 1,
+    "post_sell_delay": 4,
+    "macd_signal_fast": 360,
+    "macd_signal_slow": 300.0,
+    "macd_signal_signal": 180.0,
+    "max_macd_signal_threshold": 0,
+    "min_macd_signal_threshold": 0
+  },
+  "entry_conditions": [
+    "current_price < SMA20 * (1 - 0.005)",
+    "RSI14 < 30"
+  ],
+  "exit_conditions": [
+    "current_price > SMA20 * (1 + 0.005)",
+    "RSI14 > 70"
+  ],
+  "indicators": [
+    "SMA20",
+    "RSI14"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "74860ba3",
+  "is_optimization": false
+}

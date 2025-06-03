@@ -16,7 +16,6 @@ import vectorbtpro as vbt
 import ta
 import itertools
 from collections import namedtuple
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -747,4 +746,22 @@ class Backtester:
             return {}
 
 if __name__ == "__main__":
-    run_parameter_optimization()
+    # Create backtester instance and run parameter optimization
+    backtester = Backtester()
+    trade_data = load_trade_data("/Users/speed/StratOptimv4/big_optimize_1016.pkl")
+    if trade_data:
+        conditions = {
+            'entry': [
+                "price > sma_20",  # Price above 20-period SMA
+                "rsi < 70",        # RSI not overbought
+                "macd.macd > macd.signal"  # MACD crossover
+            ],
+            'exit': [
+                "price < sma_20",  # Price below 20-period SMA
+                "rsi > 30",        # RSI not oversold
+                "macd.macd < macd.signal"  # MACD crossunder
+            ]
+        }
+        backtester.run_parameter_optimization(trade_data=trade_data, conditions=conditions)
+    else:
+        logger.error("Failed to load trade data")

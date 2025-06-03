@@ -1,0 +1,32 @@
+{
+  "regime": "unknown",
+  "confidence": 0.9,
+  "risk_level": "unknown",
+  "reasoning": "The current market context indicates a strong bullish trend characterized by higher highs and higher lows, supported by a high RSI and increasing volume on upward movements. The 20-period moving average being above the 50-period moving average further confirms this bullish sentiment. Given these conditions, the strategy will focus on entering long positions to capitalize on the upward momentum while implementing risk management through stop-loss and take-profit levels. The entry conditions will be based on the price breaking above recent resistance levels, while exit conditions will be triggered by either reaching the take-profit target or hitting the stop-loss. The overall confidence in this strategy is high due to the strong bullish indicators and the current market regime.",
+  "trade_signal": "BUY",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T10:56:13.292420",
+  "parameters": {
+    "position_size": 0.5,
+    "stop_loss": 0.05,
+    "take_profit": 0.2
+  },
+  "entry_conditions": [
+    "current_price > recent_highs",
+    "RSI > 60",
+    "volume > average_volume"
+  ],
+  "exit_conditions": [
+    "current_price >= entry_price * (1 + take_profit)",
+    "current_price <= entry_price * (1 - stop_loss)"
+  ],
+  "indicators": [
+    "RSI",
+    "20-period moving average",
+    "50-period moving average",
+    "Volume"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "3201a658",
+  "is_optimization": false
+}

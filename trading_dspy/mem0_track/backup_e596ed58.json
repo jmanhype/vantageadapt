@@ -1,0 +1,42 @@
+{
+  "strategy": {
+    "regime": "RANGING_LOW_VOL",
+    "confidence": 0.7,
+    "risk_level": "unknown",
+    "parameters": {
+      "position_size": 0.3,
+      "stop_loss": 0.02,
+      "take_profit": 0.05,
+      "entry_conditions": [
+        "rsi('close', 14) < 30",
+        "cross_over('SMA', 'close', 20, 50)"
+      ],
+      "exit_conditions": [
+        "rsi('close', 14) > 70",
+        "cross_under('SMA', 'close', 20, 50)"
+      ],
+      "additional_risk_management": {
+        "max_daily_loss": 0.05,
+        "max_open_trades": 2
+      },
+      "indicators": [
+        "SMA",
+        "RSI"
+      ],
+      "strategy_type": "default"
+    },
+    "reasoning": "",
+    "trade_signal": "HOLD",
+    "entry_conditions": [],
+    "exit_conditions": [],
+    "indicators": [],
+    "opportunity_score": 0.0,
+    "timestamp": "2025-03-18T10:23:10.253584"
+  },
+  "metadata": {
+    "source": "strategy_generator",
+    "timestamp": "2025-03-18T10:23:10.253591",
+    "storage_id": "e596ed58",
+    "is_optimization": false
+  }
+}

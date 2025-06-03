@@ -1,0 +1,35 @@
+{
+  "regime": "unknown",
+  "confidence": 0.8,
+  "risk_level": "unknown",
+  "reasoning": "Given the current market context of a ranging market with low volatility, the strategy focuses on taking advantage of small price fluctuations. The RSI is fluctuating around the mid-range, indicating no extreme conditions, which supports a strategy that capitalizes on minor price movements. The close proximity of the SMA20 and SMA50 to the current price further confirms the lack of a strong trend, making it suitable for a mean-reversion approach. The entry conditions are set to trigger when the price dips below the SMA20 by a small margin, and the RSI indicates oversold conditions. The exit conditions are designed to capture small gains when the price exceeds the SMA20 slightly or when the RSI indicates overbought conditions. The stop loss is set at a moderate level to manage risk, while the take profit is set to allow for a reasonable reward given the low volatility environment.",
+  "trade_signal": "BUY",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T00:15:39.577994",
+  "parameters": {
+    "position_size": 0.05,
+    "stop_loss": 0.05,
+    "take_profit": 0.1,
+    "max_orders": 3,
+    "order_size": 0.0025,
+    "enable_sl_mod": false,
+    "enable_tp_mod": false,
+    "post_buy_delay": 1,
+    "post_sell_delay": 4
+  },
+  "entry_conditions": [
+    "current_price < SMA20 * (1 - 0.005)",
+    "RSI14 < 30"
+  ],
+  "exit_conditions": [
+    "current_price > SMA20 * (1 + 0.005)",
+    "RSI14 > 70"
+  ],
+  "indicators": [
+    "SMA20",
+    "RSI14"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "93c64841",
+  "is_optimization": false
+}

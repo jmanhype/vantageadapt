@@ -1,0 +1,219 @@
+{
+  "timestamp": "2025-06-02T22:14:31.458274",
+  "approach": "Direct Backtesting (No DSPy)",
+  "strategies_tested": 3,
+  "best_strategy": {
+    "strategy_name": "Momentum Strategy",
+    "tokens": [
+      {
+        "token": "$MICHI",
+        "return": -0.10855493247715486,
+        "pnl": -0.0058819106800181865
+      },
+      {
+        "token": "POPCAT",
+        "return": 0.2165976469425857,
+        "pnl": 0.018238729896493316
+      },
+      {
+        "token": "BILLY",
+        "return": -0.046760754656477485,
+        "pnl": -0.010083654252718484
+      },
+      {
+        "token": "DADDY",
+        "return": -0.013494369319555943,
+        "pnl": -0.005508695554264769
+      },
+      {
+        "token": "GOAT",
+        "return": -0.04868843207116811,
+        "pnl": -0.010124775404566886
+      }
+    ],
+    "summary": {
+      "total_return": -0.0009008415817706728,
+      "total_pnl": -0.009008415817707949,
+      "win_rate": 0.2,
+      "total_trades": 11,
+      "sortino_ratio": -3.3240037462670586,
+      "parameters": {
+        "take_profit": 0.11000000000000001,
+        "stop_loss": 0.07,
+        "sl_window": 400,
+        "max_orders": 3,
+        "order_size": 0.0025,
+        "post_buy_delay": 2,
+        "post_sell_delay": 5,
+        "macd_signal_fast": 450.0,
+        "macd_signal_slow": 400.0,
+        "macd_signal_signal": 180.0,
+        "min_macd_signal_threshold": 0,
+        "max_macd_signal_threshold": 0,
+        "enable_sl_mod": false,
+        "enable_tp_mod": false
+      }
+    }
+  },
+  "all_results": [
+    {
+      "strategy_name": "Momentum Strategy",
+      "tokens": [
+        {
+          "token": "$MICHI",
+          "return": -0.10855493247715486,
+          "pnl": -0.0058819106800181865
+        },
+        {
+          "token": "POPCAT",
+          "return": 0.2165976469425857,
+          "pnl": 0.018238729896493316
+        },
+        {
+          "token": "BILLY",
+          "return": -0.046760754656477485,
+          "pnl": -0.010083654252718484
+        },
+        {
+          "token": "DADDY",
+          "return": -0.013494369319555943,
+          "pnl": -0.005508695554264769
+        },
+        {
+          "token": "GOAT",
+          "return": -0.04868843207116811,
+          "pnl": -0.010124775404566886
+        }
+      ],
+      "summary": {
+        "total_return": -0.0009008415817706728,
+        "total_pnl": -0.009008415817707949,
+        "win_rate": 0.2,
+        "total_trades": 11,
+        "sortino_ratio": -3.3240037462670586,
+        "parameters": {
+          "take_profit": 0.11000000000000001,
+          "stop_loss": 0.07,
+          "sl_window": 400,
+          "max_orders": 3,
+          "order_size": 0.0025,
+          "post_buy_delay": 2,
+          "post_sell_delay": 5,
+          "macd_signal_fast": 450.0,
+          "macd_signal_slow": 400.0,
+          "macd_signal_signal": 180.0,
+          "min_macd_signal_threshold": 0,
+          "max_macd_signal_threshold": 0,
+          "enable_sl_mod": false,
+          "enable_tp_mod": false
+        }
+      }
+    },
+    {
+      "strategy_name": "Mean Reversion Strategy",
+      "tokens": [
+        {
+          "token": "$MICHI",
+          "return": 0.07398235494541225,
+          "pnl": 0.007631926313632494
+        },
+        {
+          "token": "POPCAT",
+          "return": 0.0,
+          "pnl": NaN
+        },
+        {
+          "token": "BILLY",
+          "return": -0.05274090582321165,
+          "pnl": -0.005674006069349782
+        },
+        {
+          "token": "DADDY",
+          "return": 0.0,
+          "pnl": NaN
+        },
+        {
+          "token": "GOAT",
+          "return": -0.023564340818469986,
+          "pnl": -0.027988466698258264
+        }
+      ],
+      "summary": {
+        "total_return": -0.002322891696269383,
+        "total_pnl": -0.023228916962694912,
+        "win_rate": 0.2,
+        "total_trades": 8,
+        "sortino_ratio": -4.398456384970838,
+        "parameters": {
+          "take_profit": 0.05,
+          "stop_loss": 0.07,
+          "sl_window": 400,
+          "max_orders": 3,
+          "order_size": 0.0025,
+          "post_buy_delay": 2,
+          "post_sell_delay": 5,
+          "macd_signal_fast": 400.0,
+          "macd_signal_slow": 300.0,
+          "macd_signal_signal": 180.0,
+          "min_macd_signal_threshold": 0,
+          "max_macd_signal_threshold": 0,
+          "enable_sl_mod": false,
+          "enable_tp_mod": false
+        }
+      }
+    },
+    {
+      "strategy_name": "Breakout Strategy",
+      "tokens": [
+        {
+          "token": "$MICHI",
+          "return": -0.242567209095575,
+          "pnl": -0.010171291079294275
+        },
+        {
+          "token": "POPCAT",
+          "return": 0.15459374642057783,
+          "pnl": 0.012155189604760693
+        },
+        {
+          "token": "BILLY",
+          "return": -0.048461473219821374,
+          "pnl": -0.01983618366868886
+        },
+        {
+          "token": "DADDY",
+          "return": -0.1890969528694381,
+          "pnl": -0.009541278751045625
+        },
+        {
+          "token": "GOAT",
+          "return": -1.0433667608731727,
+          "pnl": -0.02592545520198202
+        }
+      ],
+      "summary": {
+        "total_return": -1.3688986496374296,
+        "total_pnl": -13.688986496374293,
+        "win_rate": 0.2,
+        "total_trades": 47,
+        "sortino_ratio": -17.04067449988088,
+        "parameters": {
+          "take_profit": 0.21000000000000002,
+          "stop_loss": 0.09000000000000001,
+          "sl_window": 400,
+          "max_orders": 3,
+          "order_size": 0.0025,
+          "post_buy_delay": 2,
+          "post_sell_delay": 5,
+          "macd_signal_fast": 300.0,
+          "macd_signal_slow": 900.0,
+          "macd_signal_signal": 40.0,
+          "min_macd_signal_threshold": 0,
+          "max_macd_signal_threshold": 0,
+          "enable_sl_mod": false,
+          "enable_tp_mod": false
+        }
+      }
+    }
+  ]
+}

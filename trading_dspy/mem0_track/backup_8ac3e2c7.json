@@ -1,0 +1,33 @@
+{
+  "regime": "unknown",
+  "confidence": 0.85,
+  "risk_level": "unknown",
+  "reasoning": "Given the current market context, we are in a bearish trend characterized by consistent price declines, lower highs, and lower lows. The RSI below 40 indicates strong selling pressure, and the moving averages confirm the bearish sentiment. Therefore, the strategy will focus on short-selling opportunities to capitalize on the downward momentum. The entry conditions will be triggered by further confirmation of bearish signals, while exit conditions will be set to secure profits and limit losses.",
+  "trade_signal": "SELL",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T11:36:05.616355",
+  "parameters": {
+    "position_size": 0.5,
+    "stop_loss": 0.1,
+    "take_profit": 0.3
+  },
+  "entry_conditions": [
+    "RSI < 40",
+    "Price < 20MA",
+    "20MA < 50MA",
+    "Volume > average_volume * 1.5"
+  ],
+  "exit_conditions": [
+    "Price >= entry_price * (1 + take_profit)",
+    "Price <= entry_price * (1 - stop_loss)"
+  ],
+  "indicators": [
+    "RSI",
+    "20-day Moving Average",
+    "50-day Moving Average",
+    "Volume"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "8ac3e2c7",
+  "is_optimization": false
+}

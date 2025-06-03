@@ -1,0 +1,33 @@
+{
+  "strategy": {
+    "regime": "RANGING_LOW_VOL",
+    "confidence": 0.75,
+    "risk_level": "unknown",
+    "parameters": {
+      "position_size": 0.5,
+      "stop_loss": 0.02,
+      "take_profit": 0.05,
+      "entry_conditions": [
+        "current_price <= lower_bollinger_band",
+        "rsi < 30"
+      ],
+      "exit_conditions": [
+        "current_price >= upper_bollinger_band",
+        "rsi > 70"
+      ],
+      "indicators": [
+        "lower_bollinger_band",
+        "upper_bollinger_band",
+        "rsi"
+      ],
+      "strategy_type": "default"
+    },
+    "opportunity_score": 0.0
+  },
+  "metadata": {
+    "source": "strategy_generator",
+    "timestamp": "2025-03-18T08:54:18.878249",
+    "storage_id": "9147b1cb",
+    "is_optimization": false
+  }
+}

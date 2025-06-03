@@ -1,0 +1,42 @@
+{
+  "regime": "unknown",
+  "confidence": 0.7,
+  "risk_level": "unknown",
+  "reasoning": "Given the market context of a ranging market with low volatility, the strategy should focus on capturing small price movements within the range. The close proximity of SMA_20 and SMA_50 to the current price, along with balanced buy/sell ratios, suggests that the market lacks a clear direction. Therefore, a mean reversion strategy could be effective in this environment. This involves buying during temporary weaknesses in a range and selling during temporary strengths. The strategy will use tighter stop loss and take profit levels to manage risk effectively, given the low volatility and the potential for sudden changes in direction. The use of SMA indicators for entry and exit points will help identify these temporary price movements. The strategy will maintain a moderate position size to manage risk while aiming to capitalize on the market's current conditions.",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-03-18T11:24:22.511016",
+  "parameters": {
+    "position_size": 0.3,
+    "stop_loss": 0.02,
+    "take_profit": 0.05,
+    "entry_conditions": [
+      "cross_over('SMA', 'close', 20, 50)",
+      "rsi('close', 14) < 30"
+    ],
+    "exit_conditions": [
+      "cross_under('SMA', 'close', 20, 50)",
+      "rsi('close', 14) > 70"
+    ],
+    "additional_parameters": {
+      "sl_window": 200,
+      "max_orders": 5,
+      "order_size": 0.002
+    }
+  },
+  "entry_conditions": [
+    "cross_over('SMA', 'close', 20, 50)",
+    "rsi('close', 14) < 30"
+  ],
+  "exit_conditions": [
+    "cross_under('SMA', 'close', 20, 50)",
+    "rsi('close', 14) > 70"
+  ],
+  "indicators": [
+    "SMA",
+    "RSI"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "12788a96",
+  "is_optimization": false
+}

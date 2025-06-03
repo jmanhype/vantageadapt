@@ -1,0 +1,29 @@
+{
+  "id": "0970f986",
+  "timestamp": "2025-03-14T17:21:41.837959",
+  "is_optimization": false,
+  "strategy": {
+    "regime": "RANGING_LOW_VOL",
+    "confidence": 0.75,
+    "risk_level": "unknown",
+    "parameters": {
+      "position_size": 0.5,
+      "stop_loss": 0.02,
+      "take_profit": 0.05,
+      "entry_conditions": [
+        "current_price <= SMA_20 * (1 - 0.01)",
+        "RSI < 30"
+      ],
+      "exit_conditions": [
+        "current_price >= SMA_20 * (1 + 0.01)",
+        "RSI > 70"
+      ],
+      "indicators": [
+        "SMA_20",
+        "RSI"
+      ],
+      "strategy_type": "default"
+    },
+    "opportunity_score": 0.0
+  }
+}

@@ -1,0 +1,1546 @@
+{
+  "iterations": [
+    {
+      "market_context": {
+        "regime": "RANGING_LOW_VOL",
+        "confidence": 0.75,
+        "risk_level": "unknown",
+        "analysis_text": "\"The market is currently exhibiting characteristics of a ranging market with low volatility. The price change percentage is minimal, indicating a lack of strong directional movement. The RSI values fluctuate around the mid-range without showing extreme overbought or oversold conditions, which supports the ranging market assessment. The moving averages (SMA_20 and SMA_50) are very close to each other and to the current price, further indicating a lack of strong trend. Volume data does not show significant spikes, which often accompany trend reversals or breakouts, reinforcing the low volatility environment. The buy/sell ratio and its variations across different periods show a balanced market sentiment without a clear dominance of buying or selling pressure. Overall, the market is in a low volatility range, with moderate risk due to the potential for sudden changes in direction or volatility spikes.\""
+      },
+      "strategy": {
+        "regime": "RANGING_LOW_VOL",
+        "confidence": 0.75,
+        "risk_level": "unknown",
+        "parameters": {
+          "position_size": 0.05,
+          "stop_loss": 0.12460000000000002,
+          "take_profit": 0.21090000000000003,
+          "entry_conditions": [
+            "current_price < SMA20 * (1 - 0.005)",
+            "RSI14 < 30"
+          ],
+          "exit_conditions": [
+            "current_price > SMA20 * (1 + 0.005)",
+            "RSI14 > 70"
+          ],
+          "additional_risk_management_parameters": {
+            "max_daily_loss": 0.02,
+            "max_weekly_loss": 0.05
+          },
+          "indicators": [
+            "SMA20",
+            "RSI14"
+          ],
+          "strategy_type": "default",
+          "sl_window": 400,
+          "max_orders": 3,
+          "order_size": 0.0025,
+          "post_buy_delay": 1,
+          "post_sell_delay": 4,
+          "macd_signal_fast": 356,
+          "macd_signal_slow": 300.0,
+          "macd_signal_signal": 180.0,
+          "min_macd_signal_threshold": 0,
+          "max_macd_signal_threshold": 0,
+          "enable_sl_mod": false,
+          "enable_tp_mod": false
+        },
+        "opportunity_score": 0.0
+      },
+      "rules": {
+        "status": "",
+        "conditions": {
+          "entry": [
+            "price > sma_20",
+            "rsi < 70",
+            "macd.macd > macd.signal"
+          ],
+          "exit": [
+            "price < sma_20",
+            "rsi > 30",
+            "macd.macd < macd.signal"
+          ]
+        },
+        "parameters": {
+          "position_size": 0.05,
+          "stop_loss": 0.05,
+          "take_profit": 0.1,
+          "entry_conditions": [
+            "current_price < SMA20 * (1 - 0.005)",
+            "RSI14 < 30"
+          ],
+          "exit_conditions": [
+            "current_price > SMA20 * (1 + 0.005)",
+            "RSI14 > 70"
+          ],
+          "additional_risk_management_parameters": {
+            "max_daily_loss": 0.02,
+            "max_weekly_loss": 0.05
+          },
+          "indicators": [
+            "SMA20",
+            "RSI14"
+          ],
+          "strategy_type": "default"
+        },
+        "reasoning": "Default strategy using trend following with momentum confirmation"
+      },
+      "performance": {
+        "backtest_results": {
+          "total_return": 0.07398235494541225,
+          "total_pnl": 0.7398235494541225,
+          "sortino_ratio": 38.99433612563477,
+          "win_rate": 1.0,
+          "total_trades": 2,
+          "trades": {
+            "$MICHI": {
+              "records": {
+                "id": {
+                  "0": 0,
+                  "1": 1
+                },
+                "col": {
+                  "0": 0,
+                  "1": 0
+                },
+                "size": {
+                  "0": 29164.952448587865,
+                  "1": 27275.976888310164
+                },
+                "entry_order_id": {
+                  "0": 0,
+                  "1": 2
+                },
+                "entry_idx": {
+                  "0": 25082,
+                  "1": 63575
+                },
+                "entry_price": {
+                  "0": 0.0014778026894429878,
+                  "1": 0.001726094120601699
+                },
+                "entry_fees": {
+                  "0": 0.0,
+                  "1": 0.0
+                },
+                "exit_order_id": {
+                  "0": 1,
+                  "1": 3
+                },
+                "exit_idx": {
+                  "0": 25105,
+                  "1": 63625
+                },
+                "exit_price": {
+                  "0": 0.0014699372844708498,
+                  "1": 0.0017616278694175223
+                },
+                "exit_fees": {
+                  "0": 0.0,
+                  "1": 0.0
+                },
+                "pnl": {
+                  "0": -0.2293941620012916,
+                  "1": 0.9692177114554141
+                },
+                "return": {
+                  "0": -0.005322364770565299,
+                  "1": 0.020586217397830286
+                },
+                "direction": {
+                  "0": 0,
+                  "1": 0
+                },
+                "status": {
+                  "0": 1,
+                  "1": 1
+                },
+                "parent_id": {
+                  "0": 0,
+                  "1": 1
+                }
+              },
+              "stats": {
+                "total_trades": 2,
+                "win_rate": 0.5,
+                "avg_trade_return": 0.007631926313632494,
+                "total_pnl": 0.7398235494541225
+              }
+            }
+          },
+          "metrics": {
+            "avg_pnl_per_trade": 0.007631926313632494,
+            "asset_count": 1,
+            "total_orders": 4,
+            "trade_memory_stats": {
+              "total_trades": 2,
+              "win_rate": 1.0,
+              "avg_trade_return": 0.07398235494541225,
+              "avg_trade_duration": 0,
+              "max_drawdown": 0,
+              "sharpe_ratio": 0,
+              "sortino_ratio": 38.99433612563477,
+              "profit_factor": 0
+            },
+            "per_asset_stats": {
+              "total_return": {
+                "$MICHI": 0.07398235494541225
+              },
+              "avg_pnl_per_trade": {
+                "$MICHI": 0.007631926313632494
+              }
+            }
+          },
+          "timestamp": "2025-03-19T08:50:31.135500"
+        }
+      }
+    },
+    {
+      "market_context": {
+        "regime": "RANGING_LOW_VOL",
+        "confidence": 0.75,
+        "risk_level": "unknown",
+        "analysis_text": "\"The market is currently exhibiting characteristics of a ranging market with low volatility. The price change percentage is minimal, indicating a lack of strong directional movement. The RSI values fluctuate around the mid-range without showing extreme overbought or oversold conditions, which supports the ranging market assessment. The moving averages (SMA_20 and SMA_50) are very close to each other and to the current price, further indicating a lack of strong trend. Volume data does not show significant spikes, which often accompany trend reversals or breakouts, reinforcing the low volatility environment. The buy/sell ratio and its variations across different periods show a balanced market sentiment without a clear dominance of buying or selling pressure. Overall, the market is in a low volatility range, with moderate risk due to the potential for sudden changes in direction or volatility spikes.\""
+      },
+      "strategy": {
+        "regime": "RANGING_LOW_VOL",
+        "confidence": 0.75,
+        "risk_level": "unknown",
+        "parameters": {
+          "position_size": 0.05,
+          "stop_loss": 0.09790000000000001,
+          "take_profit": 0.16650000000000004,
+          "entry_conditions": [
+            "current_price < SMA20 * (1 - 0.005)",
+            "RSI14 < 30"
+          ],
+          "exit_conditions": [
+            "current_price > SMA20 * (1 + 0.005)",
+            "RSI14 > 70"
+          ],
+          "additional_risk_management_parameters": {
+            "max_daily_loss": 0.02,
+            "max_weekly_loss": 0.05
+          },
+          "indicators": [
+            "SMA20",
+            "RSI14"
+          ],
+          "strategy_type": "default",
+          "sl_window": 400,
+          "max_orders": 3,
+          "order_size": 0.0025,
+          "post_buy_delay": 1,
+          "post_sell_delay": 4,
+          "macd_signal_fast": 178,
+          "macd_signal_slow": 600.0,
+          "macd_signal_signal": 120.0,
+          "min_macd_signal_threshold": 0,
+          "max_macd_signal_threshold": 0,
+          "enable_sl_mod": false,
+          "enable_tp_mod": false
+        },
+        "opportunity_score": 0.0
+      },
+      "rules": {
+        "status": "",
+        "conditions": {
+          "entry": [
+            "price > sma_20",
+            "rsi < 70",
+            "macd.macd > macd.signal"
+          ],
+          "exit": [
+            "price < sma_20",
+            "rsi > 30",
+            "macd.macd < macd.signal"
+          ]
+        },
+        "parameters": {
+          "position_size": 0.05,
+          "stop_loss": 0.05,
+          "take_profit": 0.1,
+          "entry_conditions": [
+            "current_price < SMA20 * (1 - 0.005)",
+            "RSI14 < 30"
+          ],
+          "exit_conditions": [
+            "current_price > SMA20 * (1 + 0.005)",
+            "RSI14 > 70"
+          ],
+          "additional_risk_management_parameters": {
+            "max_daily_loss": 0.02,
+            "max_weekly_loss": 0.05
+          },
+          "indicators": [
+            "SMA20",
+            "RSI14"
+          ],
+          "strategy_type": "default"
+        },
+        "reasoning": "Default strategy using trend following with momentum confirmation"
+      },
+      "performance": {
+        "backtest_results": {
+          "total_return": 0.029450783915928015,
+          "total_pnl": 0.29450783915928014,
+          "sortino_ratio": 13.622637684681308,
+          "win_rate": 1.0,
+          "total_trades": 4,
+          "trades": {
+            "$MICHI": {
+              "records": {
+                "id": {
+                  "0": 0,
+                  "1": 1,
+                  "2": 2,
+                  "3": 3
+                },
+                "col": {
+                  "0": 0,
+                  "1": 0,
+                  "2": 0,
+                  "3": 0
+                },
+                "size": {
+                  "0": 27500.665121231228,
+                  "1": 27162.601508395746,
+                  "2": 27372.45900207758,
+                  "3": 28193.098338006064
+                },
+                "entry_order_id": {
+                  "0": 0,
+                  "1": 2,
+                  "2": 4,
+                  "3": 6
+                },
+                "entry_idx": {
+                  "0": 66505,
+                  "1": 76878,
+                  "2": 124222,
+                  "3": 126857
+                },
+                "entry_price": {
+                  "0": 0.0017003845337452857,
+                  "1": 0.0017515817960326505,
+                  "2": 0.0017708739770047098,
+                  "3": 0.0016700671766939968
+                },
+                "entry_fees": {
+                  "0": 0.0,
+                  "1": 0.0,
+                  "2": 0.0,
+                  "3": 0.0
+                },
+                "exit_order_id": {
+                  "0": 1,
+                  "1": 3,
+                  "2": 5,
+                  "3": 7
+                },
+                "exit_idx": {
+                  "0": 66549,
+                  "1": 76905,
+                  "2": 124239,
+                  "3": 126882
+                },
+                "exit_price": {
+                  "0": 0.0017305272886984644,
+                  "1": 0.001751207014733442,
+                  "2": 0.001756866780048019,
+                  "3": 0.0016650713968958148
+                },
+                "exit_fees": {
+                  "0": 0.0,
+                  "1": 0.0,
+                  "2": 0.0,
+                  "3": 0.0
+                },
+                "pnl": {
+                  "0": 0.8289458097987037,
+                  "1": -0.010180035083202199,
+                  "2": -0.3834114244310527,
+                  "3": -0.14084651112516866
+                },
+                "return": {
+                  "0": 0.0177270225381232,
+                  "1": -0.00021396734086726022,
+                  "2": -0.007909764974006299,
+                  "3": -0.002991364579759864
+                },
+                "direction": {
+                  "0": 0,
+                  "1": 0,
+                  "2": 0,
+                  "3": 0
+                },
+                "status": {
+                  "0": 1,
+                  "1": 1,
+                  "2": 1,
+                  "3": 1
+                },
+                "parent_id": {
+                  "0": 0,
+                  "1": 1,
+                  "2": 2,
+                  "3": 3
+                }
+              },
+              "stats": {
+                "total_trades": 4,
+                "win_rate": 0.25,
+                "avg_trade_return": 0.0016529814108724443,
+                "total_pnl": 0.29450783915928014
+              }
+            }
+          },
+          "metrics": {
+            "avg_pnl_per_trade": 0.0016529814108724443,
+            "asset_count": 1,
+            "total_orders": 8,
+            "trade_memory_stats": {
+              "total_trades": 4,
+              "win_rate": 1.0,
+              "avg_trade_return": 0.029450783915928015,
+              "avg_trade_duration": 0,
+              "max_drawdown": 0,
+              "sharpe_ratio": 0,
+              "sortino_ratio": 13.622637684681308,
+              "profit_factor": 0
+            },
+            "per_asset_stats": {
+              "total_return": {
+                "$MICHI": 0.029450783915928015
+              },
+              "avg_pnl_per_trade": {
+                "$MICHI": 0.0016529814108724443
+              }
+            }
+          },
+          "timestamp": "2025-03-19T08:50:31.135500"
+        }
+      }
+    },
+    {
+      "market_context": {
+        "regime": "RANGING_LOW_VOL",
+        "confidence": 0.75,
+        "risk_level": "unknown",
+        "analysis_text": "\"The market is currently exhibiting characteristics of a ranging market with low volatility. The price change percentage is minimal, indicating a lack of strong directional movement. The RSI values fluctuate around the mid-range without showing extreme overbought or oversold conditions, which supports the ranging market assessment. The moving averages (SMA_20 and SMA_50) are very close to each other and to the current price, further indicating a lack of strong trend. Volume data does not show significant spikes, which often accompany trend reversals or breakouts, reinforcing the low volatility environment. The buy/sell ratio and its variations across different periods show a balanced market sentiment without a clear dominance of buying or selling pressure. Overall, the market is in a low volatility range, with moderate risk due to the potential for sudden changes in direction or volatility spikes.\""
+      },
+      "strategy": {
+        "regime": "RANGING_LOW_VOL",
+        "confidence": 0.75,
+        "risk_level": "unknown",
+        "parameters": {
+          "position_size": 0.05,
+          "stop_loss": 0.03,
+          "take_profit": 0.07,
+          "entry_conditions": [
+            "current_price < SMA20 * (1 - 0.005)",
+            "RSI14 < 30"
+          ],
+          "exit_conditions": [
+            "current_price > SMA20 * (1 + 0.005)",
+            "RSI14 > 70"
+          ],
+          "additional_risk_management_parameters": {
+            "max_daily_loss": 0.02,
+            "max_weekly_loss": 0.05
+          },
+          "indicators": [
+            "SMA20",
+            "RSI14"
+          ],
+          "strategy_type": "default",
+          "sl_window": 400,
+          "max_orders": 3,
+          "order_size": 0.002775,
+          "post_buy_delay": 1,
+          "post_sell_delay": 5,
+          "macd_signal_fast": 150.0,
+          "macd_signal_slow": 100.0,
+          "macd_signal_signal": 180.0,
+          "min_macd_signal_threshold": 0,
+          "max_macd_signal_threshold": 0,
+          "enable_sl_mod": false,
+          "enable_tp_mod": false
+        },
+        "opportunity_score": 0.0
+      },
+      "rules": {
+        "status": "",
+        "conditions": {
+          "entry": [
+            "price > sma_20",
+            "rsi < 70",
+            "macd.macd > macd.signal"
+          ],
+          "exit": [
+            "price < sma_20",
+            "rsi > 30",
+            "macd.macd < macd.signal"
+          ]
+        },
+        "parameters": {
+          "position_size": 0.05,
+          "stop_loss": 0.05,
+          "take_profit": 0.1,
+          "entry_conditions": [
+            "current_price < SMA20 * (1 - 0.005)",
+            "RSI14 < 30"
+          ],
+          "exit_conditions": [
+            "current_price > SMA20 * (1 + 0.005)",
+            "RSI14 > 70"
+          ],
+          "additional_risk_management_parameters": {
+            "max_daily_loss": 0.02,
+            "max_weekly_loss": 0.05
+          },
+          "indicators": [
+            "SMA20",
+            "RSI14"
+          ],
+          "strategy_type": "default"
+        },
+        "reasoning": "Default strategy using trend following with momentum confirmation"
+      },
+      "performance": {
+        "backtest_results": {
+          "total_return": 0.035590310567886974,
+          "total_pnl": 0.35590310567886974,
+          "sortino_ratio": 17.456762117894144,
+          "win_rate": 1.0,
+          "total_trades": 2,
+          "trades": {
+            "$MICHI": {
+              "records": {
+                "id": {
+                  "0": 0,
+                  "1": 1
+                },
+                "col": {
+                  "0": 0,
+                  "1": 0
+                },
+                "size": {
+                  "0": 32023.312938688323,
+                  "1": 28181.01300765574
+                },
+                "entry_order_id": {
+                  "0": 0,
+                  "1": 2
+                },
+                "entry_idx": {
+                  "0": 11201,
+                  "1": 119942
+                },
+                "entry_price": {
+                  "0": 0.00121349304482796,
+                  "1": 0.0016669699625160071
+                },
+                "entry_fees": {
+                  "0": 0.0,
+                  "1": 0.0
+                },
+                "exit_order_id": {
+                  "0": 1,
+                  "1": 3
+                },
+                "exit_idx": {
+                  "0": 11242,
+                  "1": 119959
+                },
+                "exit_price": {
+                  "0": 0.0012235785481089952,
+                  "1": 0.0016681385464117377
+                },
+                "exit_fees": {
+                  "0": 0.0,
+                  "1": 0.0
+                },
+                "pnl": {
+                  "0": 0.322971227712749,
+                  "1": 0.03293187796612074
+                },
+                "return": {
+                  "0": 0.008311133981377507,
+                  "1": 0.0007010227670610276
+                },
+                "direction": {
+                  "0": 0,
+                  "1": 0
+                },
+                "status": {
+                  "0": 1,
+                  "1": 1
+                },
+                "parent_id": {
+                  "0": 0,
+                  "1": 1
+                }
+              },
+              "stats": {
+                "total_trades": 2,
+                "win_rate": 1.0,
+                "avg_trade_return": 0.004506078374219268,
+                "total_pnl": 0.35590310567886974
+              }
+            }
+          },
+          "metrics": {
+            "avg_pnl_per_trade": 0.004506078374219268,
+            "asset_count": 1,
+            "total_orders": 4,
+            "trade_memory_stats": {
+              "total_trades": 2,
+              "win_rate": 1.0,
+              "avg_trade_return": 0.035590310567886974,
+              "avg_trade_duration": 0,
+              "max_drawdown": 0,
+              "sharpe_ratio": 0,
+              "sortino_ratio": 17.456762117894144,
+              "profit_factor": 0
+            },
+            "per_asset_stats": {
+              "total_return": {
+                "$MICHI": 0.035590310567886974
+              },
+              "avg_pnl_per_trade": {
+                "$MICHI": 0.004506078374219268
+              }
+            }
+          },
+          "timestamp": "2025-03-19T08:50:31.135500"
+        }
+      }
+    },
+    {
+      "market_context": {
+        "regime": "RANGING_LOW_VOL",
+        "confidence": 0.75,
+        "risk_level": "unknown",
+        "analysis_text": "\"The market is currently exhibiting characteristics of a ranging market with low volatility. The price change percentage is minimal, indicating a lack of strong directional movement. The RSI values fluctuate around the mid-range without showing extreme overbought or oversold conditions, which supports the ranging market assessment. The moving averages (SMA_20 and SMA_50) are very close to each other and to the current price, further indicating a lack of strong trend. Volume data does not show significant spikes, which often accompany trend reversals or breakouts, reinforcing the low volatility environment. The buy/sell ratio and its variations across different periods show a balanced market sentiment without a clear dominance of buying or selling pressure. Overall, the market is in a low volatility range, with moderate risk due to the potential for sudden changes in direction or volatility spikes.\""
+      },
+      "strategy": {
+        "regime": "RANGING_LOW_VOL",
+        "confidence": 0.75,
+        "risk_level": "unknown",
+        "parameters": {
+          "position_size": 0.05,
+          "stop_loss": 0.04,
+          "take_profit": 0.25,
+          "entry_conditions": [
+            "current_price < SMA20 * (1 - 0.005)",
+            "RSI14 < 30"
+          ],
+          "exit_conditions": [
+            "current_price > SMA20 * (1 + 0.005)",
+            "RSI14 > 70"
+          ],
+          "additional_risk_management_parameters": {
+            "max_daily_loss": 0.02,
+            "max_weekly_loss": 0.05
+          },
+          "indicators": [
+            "SMA20",
+            "RSI14"
+          ],
+          "strategy_type": "default",
+          "sl_window": 400,
+          "max_orders": 3,
+          "order_size": 0.0025,
+          "post_buy_delay": 1,
+          "post_sell_delay": 5,
+          "macd_signal_fast": 100.0,
+          "macd_signal_slow": 400.0,
+          "macd_signal_signal": 20.0,
+          "min_macd_signal_threshold": 0,
+          "max_macd_signal_threshold": 0,
+          "enable_sl_mod": false,
+          "enable_tp_mod": false
+        },
+        "opportunity_score": 0.0
+      },
+      "rules": {
+        "status": "",
+        "conditions": {
+          "entry": [
+            "price > sma_20",
+            "rsi < 70",
+            "macd.macd > macd.signal"
+          ],
+          "exit": [
+            "price < sma_20",
+            "rsi > 30",
+            "macd.macd < macd.signal"
+          ]
+        },
+        "parameters": {
+          "position_size": 0.05,
+          "stop_loss": 0.05,
+          "take_profit": 0.1,
+          "entry_conditions": [
+            "current_price < SMA20 * (1 - 0.005)",
+            "RSI14 < 30"
+          ],
+          "exit_conditions": [
+            "current_price > SMA20 * (1 + 0.005)",
+            "RSI14 > 70"
+          ],
+          "additional_risk_management_parameters": {
+            "max_daily_loss": 0.02,
+            "max_weekly_loss": 0.05
+          },
+          "indicators": [
+            "SMA20",
+            "RSI14"
+          ],
+          "strategy_type": "default"
+        },
+        "reasoning": "Default strategy using trend following with momentum confirmation"
+      },
+      "performance": {
+        "backtest_results": {
+          "total_return": -1.0472264906665274,
+          "total_pnl": -10.472264906665274,
+          "sortino_ratio": 78.4482236673352,
+          "win_rate": 0.0,
+          "total_trades": 33,
+          "trades": {
+            "$MICHI": {
+              "records": {
+                "id": {
+                  "0": 0,
+                  "1": 1,
+                  "2": 2,
+                  "3": 3,
+                  "4": 4,
+                  "5": 5,
+                  "6": 6,
+                  "7": 7,
+                  "8": 8,
+                  "9": 9,
+                  "10": 10,
+                  "11": 11,
+                  "12": 12,
+                  "13": 13,
+                  "14": 14,
+                  "15": 15,
+                  "16": 16,
+                  "17": 17,
+                  "18": 18,
+                  "19": 19,
+                  "20": 20,
+                  "21": 21,
+                  "22": 22,
+                  "23": 23,
+                  "24": 24,
+                  "25": 25,
+                  "26": 26,
+                  "27": 27,
+                  "28": 28,
+                  "29": 29,
+                  "30": 30,
+                  "31": 31,
+                  "32": 32
+                },
+                "col": {
+                  "0": 0,
+                  "1": 0,
+                  "2": 0,
+                  "3": 0,
+                  "4": 0,
+                  "5": 0,
+                  "6": 0,
+                  "7": 0,
+                  "8": 0,
+                  "9": 0,
+                  "10": 0,
+                  "11": 0,
+                  "12": 0,
+                  "13": 0,
+                  "14": 0,
+                  "15": 0,
+                  "16": 0,
+                  "17": 0,
+                  "18": 0,
+                  "19": 0,
+                  "20": 0,
+                  "21": 0,
+                  "22": 0,
+                  "23": 0,
+                  "24": 0,
+                  "25": 0,
+                  "26": 0,
+                  "27": 0,
+                  "28": 0,
+                  "29": 0,
+                  "30": 0,
+                  "31": 0,
+                  "32": 0
+                },
+                "size": {
+                  "0": 29830.525666849688,
+                  "1": 29880.282829917967,
+                  "2": 29727.580911884084,
+                  "3": 30838.43301638961,
+                  "4": 30836.183960162103,
+                  "5": 30019.02343823947,
+                  "6": 30451.018022829667,
+                  "7": 28812.84107949771,
+                  "8": 28614.106796866283,
+                  "9": 28195.11158847995,
+                  "10": 27786.8474793043,
+                  "11": 26512.00059192814,
+                  "12": 26540.447920221835,
+                  "13": 28144.2815531753,
+                  "14": 27738.659664086998,
+                  "15": 26522.2812778987,
+                  "16": 26353.38971719891,
+                  "17": 24843.335454497486,
+                  "18": 25934.05798390694,
+                  "19": 25298.310384109616,
+                  "20": 27502.564572542906,
+                  "21": 27293.34747680649,
+                  "22": 26909.341225158423,
+                  "23": 27614.896297337487,
+                  "24": 27256.96784086898,
+                  "25": 27243.31473049335,
+                  "26": 28427.593062561005,
+                  "27": 27752.95690135099,
+                  "28": 27606.88326268643,
+                  "29": 27450.596567805856,
+                  "30": 27448.847410477698,
+                  "31": 26431.511514015496,
+                  "32": 25473.38968162425
+                },
+                "entry_order_id": {
+                  "0": 0,
+                  "1": 2,
+                  "2": 4,
+                  "3": 6,
+                  "4": 8,
+                  "5": 10,
+                  "6": 12,
+                  "7": 14,
+                  "8": 16,
+                  "9": 18,
+                  "10": 20,
+                  "11": 22,
+                  "12": 24,
+                  "13": 26,
+                  "14": 28,
+                  "15": 30,
+                  "16": 32,
+                  "17": 34,
+                  "18": 36,
+                  "19": 38,
+                  "20": 40,
+                  "21": 42,
+                  "22": 44,
+                  "23": 46,
+                  "24": 48,
+                  "25": 50,
+                  "26": 52,
+                  "27": 54,
+                  "28": 56,
+                  "29": 58,
+                  "30": 60,
+                  "31": 62,
+                  "32": 64
+                },
+                "entry_idx": {
+                  "0": 485,
+                  "1": 4429,
+                  "2": 4496,
+                  "3": 8490,
+                  "4": 8540,
+                  "5": 9463,
+                  "6": 14162,
+                  "7": 24321,
+                  "8": 25473,
+                  "9": 26393,
+                  "10": 27297,
+                  "11": 32616,
+                  "12": 36407,
+                  "13": 42310,
+                  "14": 42583,
+                  "15": 49139,
+                  "16": 49671,
+                  "17": 55054,
+                  "18": 58653,
+                  "19": 59868,
+                  "20": 69302,
+                  "21": 70425,
+                  "22": 70924,
+                  "23": 74998,
+                  "24": 76626,
+                  "25": 76659,
+                  "26": 86595,
+                  "27": 88296,
+                  "28": 89542,
+                  "29": 90834,
+                  "30": 90849,
+                  "31": 93556,
+                  "32": 106096
+                },
+                "entry_price": {
+                  "0": 0.0013875063992644042,
+                  "1": 0.0013864438841838177,
+                  "2": 0.0014008149375207015,
+                  "3": 0.0013058102418166248,
+                  "4": 0.0013060172211699082,
+                  "5": 0.0013789825110568366,
+                  "6": 0.001344739695000264,
+                  "7": 0.0015132990504342734,
+                  "8": 0.0015358429160873862,
+                  "9": 0.001582895964079906,
+                  "10": 0.0016307992690726442,
+                  "11": 0.001798833943444179,
+                  "12": 0.0017982779191142821,
+                  "13": 0.0016033950157822998,
+                  "14": 0.0016508118708502563,
+                  "15": 0.0018092587055440995,
+                  "16": 0.0018329978533683444,
+                  "17": 0.002072756642240658,
+                  "18": 0.001905741525369235,
+                  "19": 0.0020039379568959612,
+                  "20": 0.001702288411098756,
+                  "21": 0.0017296553032025213,
+                  "22": 0.0017794359157202143,
+                  "23": 0.001693188688294681,
+                  "24": 0.001739336178612285,
+                  "25": 0.0017411049358254257,
+                  "26": 0.0016096762342991734,
+                  "27": 0.0016907406351724932,
+                  "28": 0.0017098092539693385,
+                  "29": 0.0017294996684501843,
+                  "30": 0.0017297385443338807,
+                  "31": 0.001868379063740405,
+                  "32": 0.0020264395008952165
+                },
+                "entry_fees": {
+                  "0": 0.0,
+                  "1": 0.0,
+                  "2": 0.0,
+                  "3": 0.0,
+                  "4": 0.0,
+                  "5": 0.0,
+                  "6": 0.0,
+                  "7": 0.0,
+                  "8": 0.0,
+                  "9": 0.0,
+                  "10": 0.0,
+                  "11": 0.0,
+                  "12": 0.0,
+                  "13": 0.0,
+                  "14": 0.0,
+                  "15": 0.0,
+                  "16": 0.0,
+                  "17": 0.0,
+                  "18": 0.0,
+                  "19": 0.0,
+                  "20": 0.0,
+                  "21": 0.0,
+                  "22": 0.0,
+                  "23": 0.0,
+                  "24": 0.0,
+                  "25": 0.0,
+                  "26": 0.0,
+                  "27": 0.0,
+                  "28": 0.0,
+                  "29": 0.0,
+                  "30": 0.0,
+                  "31": 0.0,
+                  "32": 0.0
+                },
+                "exit_order_id": {
+                  "0": 1,
+                  "1": 3,
+                  "2": 5,
+                  "3": 7,
+                  "4": 9,
+                  "5": 11,
+                  "6": 13,
+                  "7": 15,
+                  "8": 17,
+                  "9": 19,
+                  "10": 21,
+                  "11": 23,
+                  "12": 25,
+                  "13": 27,
+                  "14": 29,
+                  "15": 31,
+                  "16": 33,
+                  "17": 35,
+                  "18": 37,
+                  "19": 39,
+                  "20": 41,
+                  "21": 43,
+                  "22": 45,
+                  "23": 47,
+                  "24": 49,
+                  "25": 51,
+                  "26": 53,
+                  "27": 55,
+                  "28": 57,
+                  "29": 59,
+                  "30": 61,
+                  "31": 63,
+                  "32": 65
+                },
+                "exit_idx": {
+                  "0": 513,
+                  "1": 4432,
+                  "2": 4498,
+                  "3": 8515,
+                  "4": 8563,
+                  "5": 9476,
+                  "6": 14189,
+                  "7": 24351,
+                  "8": 25522,
+                  "9": 26426,
+                  "10": 27300,
+                  "11": 32619,
+                  "12": 36439,
+                  "13": 42326,
+                  "14": 42601,
+                  "15": 49157,
+                  "16": 49693,
+                  "17": 55064,
+                  "18": 58695,
+                  "19": 59886,
+                  "20": 69308,
+                  "21": 70433,
+                  "22": 70943,
+                  "23": 75030,
+                  "24": 76646,
+                  "25": 76669,
+                  "26": 86606,
+                  "27": 88313,
+                  "28": 89578,
+                  "29": 90838,
+                  "30": 90897,
+                  "31": 93603,
+                  "32": 106100
+                },
+                "exit_price": {
+                  "0": 0.0013841580742430092,
+                  "1": 0.001377264516977407,
+                  "2": 0.00139504978180429,
+                  "3": 0.0012996966908982884,
+                  "4": 0.0012993410835366636,
+                  "5": 0.0013583292737803722,
+                  "6": 0.001340619333723633,
+                  "7": 0.0015185197468401365,
+                  "8": 0.0014793383989223769,
+                  "9": 0.0015865023832770297,
+                  "10": 0.001615335162153748,
+                  "11": 0.0017872766145917013,
+                  "12": 0.0017986798733849892,
+                  "13": 0.0015928644264670163,
+                  "14": 0.001628564674323998,
+                  "15": 0.0017795533788729058,
+                  "16": 0.0018305919241083306,
+                  "17": 0.0020522749399798515,
+                  "18": 0.0019052216254977533,
+                  "19": 0.0019898066954529437,
+                  "20": 0.0016892946290921545,
+                  "21": 0.0017183865480626332,
+                  "22": 0.0017611850382430125,
+                  "23": 0.0016853363261691617,
+                  "24": 0.0017307779823535023,
+                  "25": 0.0017277133098429198,
+                  "26": 0.0015959237310560481,
+                  "27": 0.0016618410532991232,
+                  "28": 0.0017126454606400728,
+                  "29": 0.0017182868462573748,
+                  "30": 0.0017285173053450398,
+                  "31": 0.0018664617626771819,
+                  "32": 0.0020038881742942293
+                },
+                "exit_fees": {
+                  "0": 0.0,
+                  "1": 0.0,
+                  "2": 0.0,
+                  "3": 0.0,
+                  "4": 0.0,
+                  "5": 0.0,
+                  "6": 0.0,
+                  "7": 0.0,
+                  "8": 0.0,
+                  "9": 0.0,
+                  "10": 0.0,
+                  "11": 0.0,
+                  "12": 0.0,
+                  "13": 0.0,
+                  "14": 0.0,
+                  "15": 0.0,
+                  "16": 0.0,
+                  "17": 0.0,
+                  "18": 0.0,
+                  "19": 0.0,
+                  "20": 0.0,
+                  "21": 0.0,
+                  "22": 0.0,
+                  "23": 0.0,
+                  "24": 0.0,
+                  "25": 0.0,
+                  "26": 0.0,
+                  "27": 0.0,
+                  "28": 0.0,
+                  "29": 0.0,
+                  "30": 0.0,
+                  "31": 0.0,
+                  "32": 0.0
+                },
+                "pnl": {
+                  "0": -0.09988229549167471,
+                  "1": -0.2742820883272259,
+                  "2": -0.17138413302923539,
+                  "3": -0.18853233048740492,
+                  "4": -0.20586660820209346,
+                  "5": -0.6199900138777039,
+                  "6": -0.12546919549524915,
+                  "7": 0.15042309586644365,
+                  "8": -1.6168262886649387,
+                  "9": 0.10168339169774754,
+                  "10": -0.42969878035902553,
+                  "11": -0.3064079093779952,
+                  "12": 0.010668046388012442,
+                  "13": -0.29637587061020554,
+                  "14": -0.6171074129219392,
+                  "15": -0.7878530294252641,
+                  "16": -0.06340439142115883,
+                  "17": -0.5088337999443553,
+                  "18": -0.013483113412831926,
+                  "19": -0.3574970381044551,
+                  "20": -0.35736232867810713,
+                  "21": -0.30756204966402123,
+                  "22": -0.49111908969258167,
+                  "23": -0.21684216578535143,
+                  "24": -0.2332704802014831,
+                  "25": -0.364832281394456,
+                  "26": -0.39095056578711507,
+                  "27": -0.8020488501987018,
+                  "28": 0.07829882646781527,
+                  "29": -0.307798658401353,
+                  "30": -0.03352160265642112,
+                  "31": -0.05067716512841969,
+                  "32": -0.5744587303445243
+                },
+                "return": {
+                  "0": -0.0024131960927675773,
+                  "1": -0.006620799666778064,
+                  "2": -0.004115572701284356,
+                  "3": -0.004681806530963745,
+                  "4": -0.0051118297102271636,
+                  "5": -0.014977156788330784,
+                  "6": -0.003064058636738491,
+                  "7": 0.003449877540308436,
+                  "8": -0.0367905575323787,
+                  "9": 0.0022783678011462465,
+                  "10": -0.009482532407369775,
+                  "11": -0.006424900360924438,
+                  "12": 0.00022352177404540098,
+                  "13": -0.006567682456057692,
+                  "14": -0.013476518384132932,
+                  "15": -0.016418506972036565,
+                  "16": -0.0013125652360109145,
+                  "17": -0.009881383006287556,
+                  "18": -0.00027280712759877575,
+                  "19": -0.00705174598564234,
+                  "20": -0.0076331260448484605,
+                  "21": -0.006515029392864465,
+                  "22": -0.010256552268034267,
+                  "23": -0.004637617874371551,
+                  "24": -0.004920380754461571,
+                  "25": -0.0076914525408297765,
+                  "26": -0.008543645579207339,
+                  "27": -0.01709285343486264,
+                  "28": 0.0016587854254210244,
+                  "29": -0.006483275132892828,
+                  "30": -0.0007060251925595149,
+                  "31": -0.001026184193792513,
+                  "32": -0.011128546690401902
+                },
+                "direction": {
+                  "0": 0,
+                  "1": 0,
+                  "2": 0,
+                  "3": 0,
+                  "4": 0,
+                  "5": 0,
+                  "6": 0,
+                  "7": 0,
+                  "8": 0,
+                  "9": 0,
+                  "10": 0,
+                  "11": 0,
+                  "12": 0,
+                  "13": 0,
+                  "14": 0,
+                  "15": 0,
+                  "16": 0,
+                  "17": 0,
+                  "18": 0,
+                  "19": 0,
+                  "20": 0,
+                  "21": 0,
+                  "22": 0,
+                  "23": 0,
+                  "24": 0,
+                  "25": 0,
+                  "26": 0,
+                  "27": 0,
+                  "28": 0,
+                  "29": 0,
+                  "30": 0,
+                  "31": 0,
+                  "32": 0
+                },
+                "status": {
+                  "0": 1,
+                  "1": 1,
+                  "2": 1,
+                  "3": 1,
+                  "4": 1,
+                  "5": 1,
+                  "6": 1,
+                  "7": 1,
+                  "8": 1,
+                  "9": 1,
+                  "10": 1,
+                  "11": 1,
+                  "12": 1,
+                  "13": 1,
+                  "14": 1,
+                  "15": 1,
+                  "16": 1,
+                  "17": 1,
+                  "18": 1,
+                  "19": 1,
+                  "20": 1,
+                  "21": 1,
+                  "22": 1,
+                  "23": 1,
+                  "24": 1,
+                  "25": 1,
+                  "26": 1,
+                  "27": 1,
+                  "28": 1,
+                  "29": 1,
+                  "30": 1,
+                  "31": 1,
+                  "32": 1
+                },
+                "parent_id": {
+                  "0": 0,
+                  "1": 1,
+                  "2": 2,
+                  "3": 3,
+                  "4": 4,
+                  "5": 5,
+                  "6": 6,
+                  "7": 7,
+                  "8": 8,
+                  "9": 9,
+                  "10": 10,
+                  "11": 11,
+                  "12": 12,
+                  "13": 13,
+                  "14": 14,
+                  "15": 15,
+                  "16": 16,
+                  "17": 17,
+                  "18": 18,
+                  "19": 19,
+                  "20": 20,
+                  "21": 21,
+                  "22": 22,
+                  "23": 23,
+                  "24": 24,
+                  "25": 25,
+                  "26": 26,
+                  "27": 27,
+                  "28": 28,
+                  "29": 29,
+                  "30": 30,
+                  "31": 31,
+                  "32": 32
+                }
+              },
+              "stats": {
+                "total_trades": 33,
+                "win_rate": 0.12121212121212122,
+                "avg_trade_return": -0.006899628974355624,
+                "total_pnl": -10.472264906665274
+              }
+            }
+          },
+          "metrics": {
+            "avg_pnl_per_trade": -0.006899628974355624,
+            "asset_count": 1,
+            "total_orders": 66,
+            "trade_memory_stats": {
+              "total_trades": 33,
+              "win_rate": 0.0,
+              "avg_trade_return": -1.0472264906665274,
+              "avg_trade_duration": 0,
+              "max_drawdown": 0,
+              "sharpe_ratio": 0,
+              "sortino_ratio": 78.4482236673352,
+              "profit_factor": 0
+            },
+            "per_asset_stats": {
+              "total_return": {
+                "$MICHI": -1.0472264906665274
+              },
+              "avg_pnl_per_trade": {
+                "$MICHI": -0.006899628974355624
+              }
+            }
+          },
+          "timestamp": "2025-03-19T08:50:31.135500"
+        }
+      }
+    },
+    {
+      "market_context": {
+        "regime": "RANGING_LOW_VOL",
+        "confidence": 0.75,
+        "risk_level": "unknown",
+        "analysis_text": "\"The market is currently exhibiting characteristics of a ranging market with low volatility. The price change percentage is minimal, indicating a lack of strong directional movement. The RSI values fluctuate around the mid-range without showing extreme overbought or oversold conditions, which supports the ranging market assessment. The moving averages (SMA_20 and SMA_50) are very close to each other and to the current price, further indicating a lack of strong trend. Volume data does not show significant spikes, which often accompany trend reversals or breakouts, reinforcing the low volatility environment. The buy/sell ratio and its variations across different periods show a balanced market sentiment without a clear dominance of buying or selling pressure. Overall, the market is in a low volatility range, with moderate risk due to the potential for sudden changes in direction or volatility spikes.\""
+      },
+      "strategy": {
+        "regime": "RANGING_LOW_VOL",
+        "confidence": 0.65,
+        "risk_level": "unknown",
+        "parameters": {
+          "position_size": 0.05,
+          "stop_loss": 0.13,
+          "take_profit": 0.1443,
+          "entry_conditions": [
+            "current_price < SMA20 * (1 - 0.005)",
+            "RSI14 < 30"
+          ],
+          "exit_conditions": [
+            "current_price > SMA20 * (1 + 0.005)",
+            "RSI14 > 70"
+          ],
+          "additional_risk_management": {
+            "max_daily_loss": 0.02,
+            "max_weekly_loss": 0.05
+          },
+          "indicators": [
+            "SMA20",
+            "RSI14"
+          ],
+          "strategy_type": "default",
+          "sl_window": 400,
+          "max_orders": 3,
+          "order_size": 0.0025,
+          "post_buy_delay": 1,
+          "post_sell_delay": 5,
+          "macd_signal_fast": 200.0,
+          "macd_signal_slow": 600.0,
+          "macd_signal_signal": 120.0,
+          "min_macd_signal_threshold": 0,
+          "max_macd_signal_threshold": 0,
+          "enable_sl_mod": false,
+          "enable_tp_mod": false
+        },
+        "opportunity_score": 0.0
+      },
+      "rules": {
+        "status": "",
+        "conditions": {
+          "entry": [
+            "price > sma_20",
+            "rsi < 70",
+            "macd.macd > macd.signal"
+          ],
+          "exit": [
+            "price < sma_20",
+            "rsi > 30",
+            "macd.macd < macd.signal"
+          ]
+        },
+        "parameters": {
+          "position_size": 0.05,
+          "stop_loss": 0.05,
+          "take_profit": 0.1,
+          "entry_conditions": [
+            "current_price < SMA20 * (1 - 0.005)",
+            "RSI14 < 30"
+          ],
+          "exit_conditions": [
+            "current_price > SMA20 * (1 + 0.005)",
+            "RSI14 > 70"
+          ],
+          "additional_risk_management": {
+            "max_daily_loss": 0.02,
+            "max_weekly_loss": 0.05
+          },
+          "indicators": [
+            "SMA20",
+            "RSI14"
+          ],
+          "strategy_type": "default"
+        },
+        "reasoning": "Default strategy using trend following with momentum confirmation"
+      },
+      "performance": {
+        "backtest_results": {
+          "total_return": 0.029450783915928015,
+          "total_pnl": 0.29450783915928014,
+          "sortino_ratio": 13.622637684681308,
+          "win_rate": 1.0,
+          "total_trades": 4,
+          "trades": {
+            "$MICHI": {
+              "records": {
+                "id": {
+                  "0": 0,
+                  "1": 1,
+                  "2": 2,
+                  "3": 3
+                },
+                "col": {
+                  "0": 0,
+                  "1": 0,
+                  "2": 0,
+                  "3": 0
+                },
+                "size": {
+                  "0": 27500.665121231228,
+                  "1": 27162.601508395746,
+                  "2": 27372.45900207758,
+                  "3": 28193.098338006064
+                },
+                "entry_order_id": {
+                  "0": 0,
+                  "1": 2,
+                  "2": 4,
+                  "3": 6
+                },
+                "entry_idx": {
+                  "0": 66505,
+                  "1": 76878,
+                  "2": 124222,
+                  "3": 126857
+                },
+                "entry_price": {
+                  "0": 0.0017003845337452857,
+                  "1": 0.0017515817960326505,
+                  "2": 0.0017708739770047098,
+                  "3": 0.0016700671766939968
+                },
+                "entry_fees": {
+                  "0": 0.0,
+                  "1": 0.0,
+                  "2": 0.0,
+                  "3": 0.0
+                },
+                "exit_order_id": {
+                  "0": 1,
+                  "1": 3,
+                  "2": 5,
+                  "3": 7
+                },
+                "exit_idx": {
+                  "0": 66549,
+                  "1": 76905,
+                  "2": 124239,
+                  "3": 126882
+                },
+                "exit_price": {
+                  "0": 0.0017305272886984644,
+                  "1": 0.001751207014733442,
+                  "2": 0.001756866780048019,
+                  "3": 0.0016650713968958148
+                },
+                "exit_fees": {
+                  "0": 0.0,
+                  "1": 0.0,
+                  "2": 0.0,
+                  "3": 0.0
+                },
+                "pnl": {
+                  "0": 0.8289458097987037,
+                  "1": -0.010180035083202199,
+                  "2": -0.3834114244310527,
+                  "3": -0.14084651112516866
+                },
+                "return": {
+                  "0": 0.0177270225381232,
+                  "1": -0.00021396734086726022,
+                  "2": -0.007909764974006299,
+                  "3": -0.002991364579759864
+                },
+                "direction": {
+                  "0": 0,
+                  "1": 0,
+                  "2": 0,
+                  "3": 0
+                },
+                "status": {
+                  "0": 1,
+                  "1": 1,
+                  "2": 1,
+                  "3": 1
+                },
+                "parent_id": {
+                  "0": 0,
+                  "1": 1,
+                  "2": 2,
+                  "3": 3
+                }
+              },
+              "stats": {
+                "total_trades": 4,
+                "win_rate": 0.25,
+                "avg_trade_return": 0.0016529814108724443,
+                "total_pnl": 0.29450783915928014
+              }
+            }
+          },
+          "metrics": {
+            "avg_pnl_per_trade": 0.0016529814108724443,
+            "asset_count": 1,
+            "total_orders": 8,
+            "trade_memory_stats": {
+              "total_trades": 4,
+              "win_rate": 1.0,
+              "avg_trade_return": 0.029450783915928015,
+              "avg_trade_duration": 0,
+              "max_drawdown": 0,
+              "sharpe_ratio": 0,
+              "sortino_ratio": 13.622637684681308,
+              "profit_factor": 0
+            },
+            "per_asset_stats": {
+              "total_return": {
+                "$MICHI": 0.029450783915928015
+              },
+              "avg_pnl_per_trade": {
+                "$MICHI": 0.0016529814108724443
+              }
+            }
+          },
+          "timestamp": "2025-03-19T08:50:31.135500"
+        }
+      }
+    }
+  ],
+  "optimization_history": [],
+  "final_performance_targets": {
+    "min_return": 0.1,
+    "min_trades": 10,
+    "min_assets": 1,
+    "min_win_rate": 0.6
+  }
+}

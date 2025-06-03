@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-06-03T16:45:49.580017",
+  "kagan_requirements": {
+    "return_target": "10%",
+    "return_achieved": "2.80%",
+    "trades_target": 100,
+    "trades_achieved": 261,
+    "assets_target": 10,
+    "assets_achieved": 36,
+    "real_data": true,
+    "autonomous_learning": true
+  },
+  "performance": {
+    "total_pnl": 2799.1486533809334,
+    "win_rate": 0.4099616858237548,
+    "trades_per_asset": 7.25
+  },
+  "requirements_met": 4
+}

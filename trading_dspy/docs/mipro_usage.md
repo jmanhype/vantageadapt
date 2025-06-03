@@ -10,6 +10,32 @@ The MiPro system optimizes prompts for language models to improve the quality an
 2. **Strategy Generator** - Optimizes trading strategy creation prompts
 3. **Trading Rules** - Optimizes rules generation for implementing strategies
 
+## How MiPro Works
+
+MiPRO (Multiprompt Instruction PRoposal Optimizer) is a sophisticated optimization algorithm in DSPy designed to tune prompts for better language model performance. MiPROv2, the latest version, can optimize both instructions and few-shot examples jointly, functioning in either:
+
+- **Few-shot mode**: Optimizes both instructions and example demonstrations
+- **Zero-shot mode**: Optimizes only instructions without examples
+
+MiPRO works in three key stages:
+
+1. **Bootstrapping Stage**:
+   - Takes your program and runs it multiple times across different inputs
+   - Collects traces of input/output behavior for each module
+   - Filters traces to keep only those that appear in trajectories with high scores according to your metric
+
+2. **Grounded Proposal Stage**:
+   - Analyzes your DSPy program's code, your data, and traces from program execution
+   - Drafts multiple potential instructions for every prompt in your program
+   - Uses context from the program and data to ground these instructions in the specific task
+
+3. **Discrete Search Stage**:
+   - Samples mini-batches from your training set
+   - Proposes combinations of instructions and traces for constructing each prompt
+   - Evaluates candidate programs on mini-batches
+   - Updates a surrogate model to improve proposals over time
+   - Uses Bayesian Optimization to find optimal combinations
+
 ## Setup
 
 ### Prerequisites
@@ -237,6 +263,61 @@ mipro = MiProWrapper(
 )
 ```
 
+### Advanced MiPro Configuration
+
+For more control over the MiPro optimization process, you can configure these advanced parameters:
+
+```python
+from dspy.teleprompt import MIPROv2
+
+# Initialize optimizer with advanced parameters
+teleprompter = MIPROv2(
+    metric=your_metric_function,
+    num_candidates=7,            # Number of candidate instructions to generate
+    init_temperature=0.5,        # Temperature for generation diversity
+    max_bootstrapped_demos=3,    # Maximum bootstrapped examples to include
+    max_labeled_demos=4,         # Maximum labeled examples to include
+    teacher_settings={           # Settings for bootstrapping model
+        "lm": more_powerful_lm   # Use a more powerful model for bootstrapping
+    },
+    metric_threshold=0.6,        # Only keep examples above this score
+    verbose=True,                # Show detailed logs
+    track_stats=True             # Log optimization statistics
+)
+
+# Compile with advanced parameters
+optimized_program = teleprompter.compile(
+    your_program,
+    trainset=your_training_data,
+    valset=your_validation_data, # Optional separate validation set
+    num_trials=15,               # Number of optimization trials
+    minibatch=True,              # Use minibatch evaluation (faster)
+    minibatch_size=25,           # Size of evaluation minibatches
+    minibatch_full_eval_steps=10,# Full evaluation frequency
+    program_aware_proposer=True, # Use program code for instruction proposal
+    data_aware_proposer=True,    # Use data summary for instruction proposal
+    tip_aware_proposer=True,     # Use tips for instruction proposal
+    fewshot_aware_proposer=True  # Use few-shot examples for instruction proposal
+)
+```
+
+#### Key Parameters Explained
+
+**Initialization Parameters:**
+- **metric**: Function that evaluates how good the outputs are
+- **auto**: Set to "light", "medium", or "heavy" for automatic configuration
+- **num_candidates**: More candidates = more options to search but slower
+- **max_bootstrapped_demos**: More demos = better examples but longer prompts
+- **init_temperature**: Higher = more creative but potentially less focused
+- **metric_threshold**: Only keep examples above this performance score
+
+**Compile Parameters:**
+- **num_trials**: More trials = better optimization but longer runtime
+- **minibatch**: Evaluate on smaller batches for efficiency (recommended)
+- **minibatch_size**: Larger batches = more stable but slower evaluation
+- **program_aware_proposer**: Use program insight for better instructions
+- **data_aware_proposer**: Use dataset insight for better instructions
+
 ## Troubleshooting
 
 ### Common Issues
@@ -316,7 +397,46 @@ mipro = MiProWrapper(
    )
    ```
 
-5. **Memory System Connection Issues**
+5. **Duplicate Example Detection Problems**
+   - Check if examples are being skipped as duplicates in logs (`Skipping duplicate example for prompt...`)
+   - Review the `add_example` method in `src.utils.prompt_manager` 
+   - Consider modifying the duplicate detection criteria to be less strict
+   - Ensure market data preprocessing provides sufficient variation between runs
+   
+   ```python
+   # Example of checking duplicate detection
+   from src.utils.prompt_manager import PromptManager
+   
+   prompt_manager = PromptManager('prompts')
+   
+   # Print current example comparison function
+   print(prompt_manager._examples_are_similar.__code__)
+   
+   # Modify similarity threshold if needed
+   prompt_manager.similarity_threshold = 0.8  # Make less strict (default is usually higher)
+   ```
+
+6. **Market Analysis Optimization Issues**
+   - Ensure data preprocessing provides different time windows for each iteration
+   - Verify the prepared data summary changes between optimization runs
+   - Check that the prompt formatting correctly incorporates new examples
+   - Monitor prompt length variations to confirm changes are being applied
+   - Ensure different market regimes are being represented in the examples
+   
+   ```python
+   # Debug preprocessor output
+   from src.utils.data_preprocessor import preprocess_market_data
+   
+   # Force different time windows by using different offset parameters
+   data1 = preprocess_market_data(raw_data, start_offset=0, window_size=100)
+   data2 = preprocess_market_data(raw_data, start_offset=50, window_size=100)
+   
+   # Verify they're actually different
+   import pandas as pd
+   print(f"Data sets identical: {pd.DataFrame.equals(data1, data2)}")
+   ```
+
+7. **Memory System Connection Issues**
    
    If you encounter Mem0 connection problems:
    

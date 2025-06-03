@@ -1,0 +1,32 @@
+{
+  "strategy": {
+    "regime": "RANGING_LOW_VOL",
+    "confidence": 0.7,
+    "risk_level": "unknown",
+    "parameters": {
+      "position_size": 0.2,
+      "stop_loss": 0.02,
+      "take_profit": 0.05,
+      "entry_conditions": [
+        "current_price < SMA_20 * 0.99 and RSI < 30",
+        "current_price > SMA_20 * 1.01 and RSI > 70"
+      ],
+      "exit_conditions": [
+        "current_price > entry_price * (1 + take_profit)",
+        "current_price < entry_price * (1 - stop_loss)"
+      ],
+      "indicators": [
+        "SMA_20",
+        "RSI"
+      ],
+      "strategy_type": "default"
+    },
+    "opportunity_score": 0.0
+  },
+  "metadata": {
+    "source": "strategy_generator",
+    "timestamp": "2025-03-18T09:48:04.114881",
+    "storage_id": "fdb4a15f",
+    "is_optimization": false
+  }
+}

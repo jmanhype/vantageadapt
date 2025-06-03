@@ -8,6 +8,9 @@ Trading Theme: {trading_theme}
 Previous Successful Parameters (if available):
 {base_parameters}
 
+ITERATION LEARNING (if available):
+{iteration_feedback}
+
 Please provide:
 1. A detailed reasoning for the strategy, considering the current market conditions
 2. A clear trade signal (BUY/SELL/HOLD)

@@ -1,0 +1,40 @@
+{
+  "regime": "RANGING_LOW_VOL",
+  "confidence": 0.75,
+  "risk_level": "unknown",
+  "reasoning": "",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-03-18T14:23:34.668788",
+  "parameters": {
+    "position_size": 0.3,
+    "stop_loss": 0.02,
+    "take_profit": 0.05,
+    "sl_window": 400,
+    "max_orders": 3,
+    "order_size": 0.003,
+    "strategy_type": "default",
+    "macd_signal_fast": 12,
+    "macd_signal_slow": 26,
+    "macd_signal_signal": 9,
+    "entry_conditions": [
+      "cross_over('SMA', 'close', 20, 50)",
+      "rsi('close', 14) > 50"
+    ],
+    "exit_conditions": [
+      "cross_under('SMA', 'close', 20, 50)",
+      "rsi('close', 14) < 50"
+    ],
+    "indicators": [
+      "SMA",
+      "RSI",
+      "MACD"
+    ]
+  },
+  "entry_conditions": [],
+  "exit_conditions": [],
+  "indicators": [],
+  "source": "strategy_generator",
+  "storage_id": "e8bc461d",
+  "is_optimization": false
+}

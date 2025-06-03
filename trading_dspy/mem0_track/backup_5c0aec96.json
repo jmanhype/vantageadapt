@@ -1,0 +1,41 @@
+{
+  "regime": "unknown",
+  "confidence": 0.75,
+  "risk_level": "unknown",
+  "reasoning": "Given the market is in a RANGING_LOW_VOL regime, the strategy should capitalize on small price movements within the range. The market analysis indicates that the RSI values are fluctuating around the mid-range, suggesting a lack of strong momentum, which aligns with a ranging market. The close alignment between the 20-period and 50-period SMA further supports this assessment. Therefore, the strategy will focus on identifying overbought and oversold conditions within this range to execute trades, using the RSI and SMA indicators as primary tools.\n\nThe strategy will maintain a conservative approach due to the low volatility and the balanced buy/sell ratio, indicating a lack of clear directional bias. This approach is further justified by the recent performance data, which shows a high win rate but under a specific market condition that may not persist. Thus, the strategy will employ tight stop-loss and take-profit levels to manage risk effectively while aiming to capture small, consistent gains.\n\nGiven these conditions, the trade signal will be both BUY and SELL, depending on the specific entry conditions met at the time of evaluation. The strategy will look to buy at signs of the price being oversold and sell at signs of the price being overbought, within the defined range.",
+  "trade_signal": "BUY/SELL",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-03-18T22:29:55.119708",
+  "parameters": {
+    "position_size": 0.05,
+    "stop_loss": 0.02,
+    "take_profit": 0.04,
+    "entry_conditions": [
+      "current_price < SMA20 * (1 - 0.003)",
+      "RSI14 < 30"
+    ],
+    "exit_conditions": [
+      "current_price > SMA20 * (1 + 0.003)",
+      "RSI14 > 70"
+    ],
+    "additional_risk_management_parameters": {
+      "max_daily_loss": 0.05,
+      "max_open_trades": 2
+    }
+  },
+  "entry_conditions": [
+    "current_price < SMA20 * (1 - 0.003)",
+    "RSI14 < 30"
+  ],
+  "exit_conditions": [
+    "current_price > SMA20 * (1 + 0.003)",
+    "RSI14 > 70"
+  ],
+  "indicators": [
+    "SMA20",
+    "RSI14"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "5c0aec96",
+  "is_optimization": false
+}

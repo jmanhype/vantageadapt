@@ -286,33 +286,73 @@ class TradingMemoryManager:
                 }
             )
             
-            logger.debug(f"Search response: {memories}")
+            logger.debug(f"Search response type: {type(memories)}")
+            
+            # Handle different response formats
+            if isinstance(memories, dict):
+                if "results" in memories:
+                    # New v2 API format with results key
+                    memories = memories.get("results", [])
+                elif "memories" in memories:
+                    # Alternative format with memories key
+                    memories = memories.get("memories", [])
+            elif isinstance(memories, str):
+                try:
+                    parsed = json.loads(memories)
+                    if isinstance(parsed, dict):
+                        if "results" in parsed:
+                            memories = parsed.get("results", [])
+                        elif "memories" in parsed:
+                            memories = parsed.get("memories", [])
+                    else:
+                        memories = parsed
+                except json.JSONDecodeError:
+                    logger.error("Failed to parse memories as JSON")
+                    return []
+            
+            # Ensure memories is a list
+            if not isinstance(memories, list):
+                logger.error(f"Expected list of memories after processing, got {type(memories)}")
+                return []
             
             # Parse and filter memories
             similar_strategies = []
             for memory in memories:
                 try:
+                    # Handle string memory by parsing as JSON
+                    if isinstance(memory, str):
+                        try:
+                            memory = json.loads(memory)
+                        except json.JSONDecodeError:
+                            logger.warning("Failed to parse memory JSON")
+                            continue
+                    
+                    if not isinstance(memory, dict):
+                        logger.warning(f"Invalid memory format: {type(memory)}")
+                        continue
+                        
                     metadata = memory.get("metadata", {})
                     content = memory.get("content", {})
                     
-                    logger.debug(f"Memory: {memory}")
-                    logger.debug(f"Metadata: {metadata}")
+                    # Handle string content by parsing as JSON
+                    if isinstance(content, str):
+                        try:
+                            content = json.loads(content)
+                        except json.JSONDecodeError:
+                            logger.warning("Failed to parse content JSON")
+                            content = {}
                     
                     # Extract strategy details from content if available
-                    strategy_data = content.get("strategy", {}) if isinstance(content, dict) else {}
+                    strategy_data = {}
+                    if isinstance(content, dict):
+                        if "strategy" in content:
+                            strategy_data = content.get("strategy", {})
+                        elif "parameters" in content:
+                            # Direct structure
+                            strategy_data = content
                     
                     # Use pre-calculated score if available, otherwise calculate it
-                    score = metadata.get("score")
-                    if score is None:
-                        total_return = metadata.get("total_return", 0)
-                        sortino_ratio = metadata.get("sortino_ratio", 0)
-                        win_rate = metadata.get("win_rate", 0)
-                        
-                        score = (
-                            (0.4 * (1 + total_return)) +
-                            (0.3 * (1 + sortino_ratio)) +
-                            (0.3 * win_rate)
-                        )
+                    score = metadata.get("score", 0)
                     
                     # Create strategy details from metadata and content
                     strategy_details = {
@@ -332,7 +372,7 @@ class TradingMemoryManager:
                         "timestamp": metadata.get("timestamp")
                     }
                     similar_strategies.append(strategy_details)
-                except (KeyError, AttributeError) as e:
+                except Exception as e:
                     logger.warning(f"Failed to parse memory: {e}")
                     continue
             
@@ -491,19 +531,14 @@ class TradingMemoryManager:
     def store_strategy(self, strategy: Union[StrategyContext, Dict[str, Any]], force_store: bool = False) -> bool:
         """Store a generated trading strategy in memory using mem0.ai.
         
-        Implements multiple approaches for strategy storage to handle different contexts:
-        1. Detects optimization context and skips unless force_store=True
-        2. Always creates a local backup file of strategy data
-        3. Uses simplified structures during optimization to improve success rate
-        4. Falls back to standard approach when needed
-        5. Provides detailed logging throughout the process
+        Takes a pure strategy object and wraps it in the proper structure for storage.
         
         Args:
-            strategy: StrategyContext object or dictionary containing the strategy details
+            strategy: Pure strategy object (either StrategyContext or dictionary)
             force_store: If True, store the strategy even during optimization
             
         Returns:
-            bool: True if storage was successful or intentionally skipped
+            bool: True if storage was successful
         """
         # Skip if memory system is disabled
         if not self.enabled:
@@ -514,6 +549,7 @@ class TradingMemoryManager:
         import datetime
         import json
         import os
+        import time
         
         # Generate tracking ID for this attempt
         tracking_id = str(uuid.uuid4())[:8]
@@ -522,20 +558,6 @@ class TradingMemoryManager:
         strategy_type = type(strategy).__name__
         logger.debug(f"[MEM0-{tracking_id}] Strategy object type: {strategy_type}")
         
-        if isinstance(strategy, dict):
-            top_level_keys = list(strategy.keys())
-            logger.debug(f"[MEM0-{tracking_id}] Top-level keys: {top_level_keys}")
-            
-            if "strategy" in strategy and isinstance(strategy["strategy"], dict):
-                inner_keys = list(strategy["strategy"].keys())
-                logger.debug(f"[MEM0-{tracking_id}] Inner strategy keys: {inner_keys}")
-        elif hasattr(strategy, "to_dict"):
-            try:
-                dict_repr = strategy.to_dict()
-                logger.debug(f"[MEM0-{tracking_id}] StrategyContext keys: {list(dict_repr.keys())}")
-            except Exception as e:
-                logger.error(f"[MEM0-{tracking_id}] Error in to_dict(): {e}")
-
         # First determine if we're in optimization context
         full_stack = inspect.stack()
         is_optimization = any('dspy/teleprompt/mipro' in frame.filename or 'bootstrap' in frame.function 
@@ -550,258 +572,144 @@ class TradingMemoryManager:
         # Skip storage during optimization unless forced
         if is_optimization and not force_store:
             logger.info(f"[MEM0-{tracking_id}] Skipping strategy storage during optimization (force_store=False)")
+            return True
             
-            # Record that we skipped
+        # Convert strategy to dictionary if it's a StrategyContext
+        if isinstance(strategy, StrategyContext):
             try:
-                skip_file = os.path.join(tracking_dir, f"skipped_{tracking_id}.json")
-                with open(skip_file, "w") as f:
-                    json.dump({
-                        "id": tracking_id,
-                        "timestamp": datetime.datetime.now().isoformat(),
-                        "action": "skipped",
-                        "reason": "optimization_detected"
-                    }, f, indent=2)
+                strategy = strategy.to_dict()
             except Exception as e:
-                logger.error(f"[MEM0-{tracking_id}] Failed to record skip: {e}")
-                
-            return True  # Return success since skipping is intentional
+                logger.error(f"[MEM0-{tracking_id}] Error converting StrategyContext to dict: {e}")
+                return False
+        
+        # Create a flattened strategy structure that the API expects
+        flattened_strategy = {
+            # Core strategy properties
+            "regime": str(strategy.get("regime", "unknown")),
+            "confidence": float(strategy.get("confidence", 0.0)),
+            "risk_level": str(strategy.get("risk_level", "unknown")),
+            "reasoning": strategy.get("reasoning", ""),
+            "trade_signal": strategy.get("trade_signal", "HOLD"),
+            "opportunity_score": float(strategy.get("opportunity_score", 0.0)),
+            "timestamp": strategy.get("timestamp", datetime.datetime.now().isoformat()),
             
-        # If we're in optimization but force_store=True, we'll attempt storage
-        if is_optimization and force_store:
-            logger.info(f"[MEM0-{tracking_id}] Attempting mem0 storage during optimization (force_store=True)")
+            # Parameters
+            "parameters": strategy.get("parameters", {}),
+            "entry_conditions": strategy.get("entry_conditions", []),
+            "exit_conditions": strategy.get("exit_conditions", []),
+            "indicators": strategy.get("indicators", []),
             
-        # Always save to backup file first in case mem0 fails
+            # Metadata
+            "source": "strategy_generator",
+            "storage_id": tracking_id,
+            "is_optimization": is_optimization
+        }
+        
+        # Always save to backup file first
         backup_file = os.path.join(tracking_dir, f"backup_{tracking_id}.json")
         try:
-            # Create a backup copy in case mem0 fails
             with open(backup_file, "w") as f:
-                backup_data = {
-                    "id": tracking_id,
-                    "timestamp": datetime.datetime.now().isoformat(),
-                    "is_optimization": is_optimization,
-                    "strategy": strategy if isinstance(strategy, dict) else (
-                        strategy.to_dict() if hasattr(strategy, 'to_dict') else str(strategy)
-                    )
-                }
-                json.dump(backup_data, f, indent=2)
+                json.dump(flattened_strategy, f, indent=2)
             logger.info(f"[MEM0-{tracking_id}] Created backup at {backup_file}")
         except Exception as e:
             logger.error(f"[MEM0-{tracking_id}] Failed to create backup: {e}")
-            
-        # If in optimization mode, skip directly to emergency fallback
-        if is_optimization:
-            logger.info(f"[MEM0-{tracking_id}] Skipping simplified and pre-structured storage attempts")
-            # Proceed directly to emergency fallback
         
-        # Otherwise, use standard approach for non-optimization mode
-        elif not is_optimization:
-            # Standard approach for pre-structured strategies
-            if (isinstance(strategy, dict) and "strategy" in strategy and 
-                isinstance(strategy["strategy"], dict)):
-                try:
-                    logger.info(f"[MEM0-{tracking_id}] Using pre-structured strategy")
-                    strategy_content = strategy["strategy"]
-                    
-                    # Create metadata - include only essential fields
-                    metadata = {
-                        "type": MEM0_CONFIG["metadata_types"]["strategy"],
-                        "timestamp": datetime.datetime.now().isoformat(),
-                        "regime": str(strategy_content.get('regime', 'UNKNOWN')),
-                        "confidence": float(strategy_content.get('confidence', 0.0)),
-                        "risk_level": str(strategy_content.get('risk_level', 'unknown'))
-                    }
-                    
-                    # Create simple conversation
-                    messages = [
-                        {"role": "user", "content": "Store trading strategy"},
-                        {"role": "assistant", "content": "Strategy stored successfully"}
-                    ]
-                    
-                    # Store the strategy
-                    response = self.client.add(
-                        messages=messages, 
-                        user_id=MEM0_CONFIG["user_id"],
-                        content=json.dumps(strategy, default=str),
-                        metadata=metadata,
-                        output_format="v1.1"  # Use latest format
-                    )
-                    
-                    storage_success = response is not None
-                    
-                    # Record result
-                    try:
-                        result_file = os.path.join(tracking_dir, f"result_{tracking_id}.json")
-                        with open(result_file, "w") as f:
-                            result_data = {
-                                "id": tracking_id,
-                                "timestamp": datetime.datetime.now().isoformat(),
-                                "success": storage_success,
-                                "method": "standard_prestructured",
-                                "is_optimization": is_optimization
-                            }
-                            json.dump(result_data, f, indent=2)
-                    except Exception as e:
-                        logger.error(f"[MEM0-{tracking_id}] Failed to record result: {e}")
-                    
-                    if storage_success:
-                        logger.info(f"[MEM0-{tracking_id}] Successfully stored pre-structured strategy")
-                        return True
-                    else:
-                        logger.warning(f"[MEM0-{tracking_id}] No response from memory system")
-                        # Fall through to emergency fallback
-                
-                except Exception as e:
-                    logger.error(f"[MEM0-{tracking_id}] Error storing pre-structured strategy: {e}")
-                    # Fall through to emergency fallback
-            
-            # Standard approach for unstructured strategies
-            else:
-                try:
-                    # Normalize to a consistent structure
-                    logger.info(f"[MEM0-{tracking_id}] Converting to standard strategy format")
-                    
-                    # Create a simple, consistent strategy dictionary
-                    simple_strategy = {
-                        "strategy": {
-                            "regime": "UNKNOWN",
-                            "confidence": 0.0,
-                            "risk_level": "moderate",
-                            "parameters": {},
-                            "timestamp": datetime.datetime.now().isoformat()
-                        }
-                    }
-                    
-                    # Handle dspy.Prediction objects
-                    if hasattr(strategy, '__dict__') and not isinstance(strategy, dict):
-                        # Extract basic fields
-                        for key in ['regime', 'confidence', 'risk_level', 'parameters']:
-                            if hasattr(strategy, key):
-                                value = getattr(strategy, key)
-                                simple_strategy["strategy"][key] = value
-                    
-                    # Handle dictionary input
-                    elif isinstance(strategy, dict) and "strategy" not in strategy:
-                        # Copy fields from the input dict
-                        for key in simple_strategy["strategy"].keys():
-                            if key in strategy:
-                                simple_strategy["strategy"][key] = strategy[key]
-                    
-                    # Create metadata
-                    metadata = {
-                        "type": MEM0_CONFIG["metadata_types"]["strategy"],
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                        "regime": str(simple_strategy["strategy"].get('regime', 'UNKNOWN')),
-                        "confidence": float(simple_strategy["strategy"].get('confidence', 0.0)),
-                        "risk_level": str(simple_strategy["strategy"].get('risk_level', 'unknown'))
-                    }
-                        
-                    # Create a properly structured message
-                    messages = [
-                        {"role": "user", "content": "Store trading strategy"},
-                        {"role": "assistant", "content": "Strategy stored successfully"}
-                    ]
-                        
-                    # Store with standard approach
-                    response = self.client.add(
-                        messages=messages,
-                        user_id=MEM0_CONFIG["user_id"],
-                        content=json.dumps(simple_strategy, default=str),
-                        metadata=metadata,
-                        output_format="v1.1"  # Use latest format
-                    )
-                    
-                    storage_success = response is not None
-                    
-                    if storage_success:
-                        logger.info(f"[MEM0-{tracking_id}] Successfully stored with standard approach")
-                        return True
-                    else:
-                        logger.warning(f"[MEM0-{tracking_id}] Standard approach failed")
-                        # Fall through to emergency fallback
-                
-                except Exception as e:
-                    logger.error(f"[MEM0-{tracking_id}] Error in standard approach: {e}")
-                    # Fall through to emergency fallback
+        # Retry logic for API calls
+        max_retries = 3
+        retry_delay = 2  # seconds
         
-        # Final emergency fallback for critical strategies
-        if force_store or is_optimization:
+        for attempt in range(max_retries):
             try:
-                logger.info(f"[MEM0-{tracking_id}] Trying emergency minimal fallback")
-                
-                # Create a more robust minimal fallback that still captures essential data
-                # Get as much useful data as possible from the original strategy
-                regime = "unknown"
-                confidence = 0.0
-                original_strategy = None
-                parameters = None
-
-                # Try to extract key information from different possible structure types
-                if isinstance(strategy, dict):
-                    if "strategy" in strategy and isinstance(strategy["strategy"], dict):
-                        original_strategy = strategy["strategy"]
-                        regime = original_strategy.get("regime", "unknown")
-                        confidence = original_strategy.get("confidence", 0.0)
-                        parameters = original_strategy.get("parameters", {})
-                    else:
-                        # Top level strategy dict without "strategy" key
-                        regime = strategy.get("market_regime", strategy.get("regime", "unknown"))
-                        confidence = strategy.get("confidence", 0.0)
-                        parameters = strategy.get("parameters", {})
-                elif hasattr(strategy, "regime"):
-                    regime = getattr(strategy, "regime", "unknown")
-                    confidence = getattr(strategy, "confidence", 0.0)
-                    if hasattr(strategy, "parameters"):
-                        parameters = getattr(strategy, "parameters", {})
-                
-                # Create a richer emergency fallback with any data we can extract
-                ultra_minimal = {
-                    "strategy": {
-                        "regime": regime,
-                        "confidence": float(confidence),
-                        "parameters": parameters or {},
-                        "timestamp": datetime.datetime.now().isoformat()
-                    }
-                }
-                
-                # Use the most minimal possible approach
-                final_response = self.client.add(
+                # Store in mem0
+                memory = self.client.add(
                     messages=[
-                        {"role": "user", "content": "save"},
-                        {"role": "assistant", "content": "saved"}
+                        {"role": "user", "content": "Store trading strategy"},
+                        {"role": "assistant", "content": json.dumps(flattened_strategy)}
                     ],
                     user_id=MEM0_CONFIG["user_id"],
-                    content=json.dumps(ultra_minimal),
-                    metadata={"type": "strategy", "regime": regime, "timestamp": datetime.datetime.now().isoformat()},
-                    output_format="v1.1"  # Use latest format
+                    content=json.dumps(flattened_strategy),
+                    metadata={
+                        "type": MEM0_CONFIG["metadata_types"].get("strategy", "strategy"),
+                        "regime": str(strategy.get("regime", "unknown")),
+                        "confidence": float(strategy.get("confidence", 0.0)),
+                        "risk_level": str(strategy.get("risk_level", "unknown")),
+                        "timestamp": strategy.get("timestamp", datetime.datetime.now().isoformat()),
+                        "source": "strategy_generator",
+                        "tracking_id": tracking_id,
+                        "is_optimization": is_optimization
+                    },
+                    output_format="v1.1"
                 )
                 
-                fallback_success = final_response is not None
-                logger.info(f"[MEM0-{tracking_id}] Emergency fallback {'succeeded' if fallback_success else 'failed'}")
+                # Handle string response
+                if isinstance(memory, str):
+                    try:
+                        memory = json.loads(memory)
+                    except json.JSONDecodeError as e:
+                        logger.error(f"[MEM0-{tracking_id}] Failed to parse memory response: {e}")
+                        if attempt < max_retries - 1:
+                            logger.info(f"[MEM0-{tracking_id}] Retrying ({attempt+1}/{max_retries})...")
+                            time.sleep(retry_delay)
+                            continue
+                        return False
                 
-                # Record result
-                try:
-                    fallback_file = os.path.join(tracking_dir, f"fallback_{tracking_id}.json")
-                    with open(fallback_file, "w") as f:
-                        fallback_data = {
-                            "id": tracking_id,
-                            "timestamp": datetime.datetime.now().isoformat(),
-                            "success": fallback_success,
-                            "method": "emergency_fallback"
-                        }
-                        json.dump(fallback_data, f, indent=2)
-                except Exception as e:
-                    logger.error(f"[MEM0-{tracking_id}] Failed to record fallback result: {e}")
+                # Validate memory response
+                if not isinstance(memory, dict):
+                    logger.error(f"[MEM0-{tracking_id}] Invalid memory response type: {type(memory)}")
+                    if attempt < max_retries - 1:
+                        logger.info(f"[MEM0-{tracking_id}] Retrying ({attempt+1}/{max_retries})...")
+                        time.sleep(retry_delay)
+                        continue
+                    return False
                 
-                if fallback_success:
-                    return True
+                logger.info(f"[MEM0-{tracking_id}] Successfully stored strategy in mem0")
+                
+                # Record successful storage
+                success_file = os.path.join(tracking_dir, f"success_{tracking_id}.json")
+                with open(success_file, "w") as f:
+                    json.dump({
+                        "id": tracking_id,
+                        "timestamp": datetime.datetime.now().isoformat(),
+                        "mem0_id": memory.get("id"),
+                        "action": "store",
+                        "success": True,
+                        "attempts": attempt + 1
+                    }, f, indent=2)
+                
+                return True
                 
             except Exception as e:
-                logger.error(f"[MEM0-{tracking_id}] Emergency fallback failed: {e}")
+                error_msg = str(e)
+                logger.error(f"[MEM0-{tracking_id}] Error storing strategy: {error_msg}")
+                
+                if "timed out" in error_msg.lower() and attempt < max_retries - 1:
+                    retry_delay_with_backoff = retry_delay * (attempt + 1)
+                    logger.info(f"[MEM0-{tracking_id}] Timeout detected, retrying in {retry_delay_with_backoff}s ({attempt+1}/{max_retries})...")
+                    time.sleep(retry_delay_with_backoff)
+                    continue
+                
+                # Record failure
+                failure_file = os.path.join(tracking_dir, f"failure_{tracking_id}.json")
+                try:
+                    with open(failure_file, "w") as f:
+                        json.dump({
+                            "id": tracking_id,
+                            "timestamp": datetime.datetime.now().isoformat(),
+                            "action": "store",
+                            "success": False,
+                            "error": error_msg,
+                            "attempts": attempt + 1
+                        }, f, indent=2)
+                except Exception as inner_e:
+                    logger.error(f"[MEM0-{tracking_id}] Failed to record failure: {inner_e}")
+                
+                # Only return False if all retries have been exhausted
+                if attempt >= max_retries - 1:
+                    return False
         
-        # All approaches failed
-        logger.error(f"[MEM0-{tracking_id}] All storage approaches failed")
+        # Should never reach here, but just in case
         return False
-            
+
     def get_recent_performance(self, lookback_days: int = 7) -> Dict[str, Any]:
         """Get recent trading performance statistics.
         

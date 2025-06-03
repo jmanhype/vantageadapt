@@ -1,0 +1,135 @@
+{
+  "validated": true,
+  "total_trades": 42589,
+  "total_return": 20.13765309847491,
+  "sample_trades": [
+    {
+      "token": "$MICHI",
+      "entry_time": "2024-08-01 00:05:58",
+      "exit_time": "2024-08-01 00:09:16",
+      "entry_price": 0.0010961784570240483,
+      "exit_price": 0.0011034637002072176,
+      "pnl": 166.15093866530458,
+      "return_pct": 0.006646037546612184,
+      "exit_reason": "time_exit",
+      "confidence": 0.2,
+      "win": "True"
+    },
+    {
+      "token": "$MICHI",
+      "entry_time": "2024-08-01 00:09:20",
+      "exit_time": "2024-08-01 00:11:27",
+      "entry_price": 0.0011093247533210122,
+      "exit_price": 0.0011072745838638283,
+      "pnl": -46.20309451867654,
+      "return_pct": -0.0018481237807470617,
+      "exit_reason": "time_exit",
+      "confidence": 0.3,
+      "win": "False"
+    },
+    {
+      "token": "$MICHI",
+      "entry_time": "2024-08-01 00:11:45",
+      "exit_time": "2024-08-01 00:12:53",
+      "entry_price": 0.0011082457881010051,
+      "exit_price": 0.001113923661675372,
+      "pnl": 128.08245326372906,
+      "return_pct": 0.005123298130549163,
+      "exit_reason": "time_exit",
+      "confidence": 0.25,
+      "win": "True"
+    },
+    {
+      "token": "$MICHI",
+      "entry_time": "2024-08-01 00:12:53",
+      "exit_time": "2024-08-01 00:14:45",
+      "entry_price": 0.0011138895205852679,
+      "exit_price": 0.0011178077696360111,
+      "pnl": 87.94070189035644,
+      "return_pct": 0.003517628075614257,
+      "exit_reason": "time_exit",
+      "confidence": 0.2,
+      "win": "True"
+    },
+    {
+      "token": "$MICHI",
+      "entry_time": "2024-08-01 00:15:07",
+      "exit_time": "2024-08-01 00:16:45",
+      "entry_price": 0.0011175978562604585,
+      "exit_price": 0.0011220761248733383,
+      "pnl": 100.1762080115366,
+      "return_pct": 0.004007048320461464,
+      "exit_reason": "time_exit",
+      "confidence": 0.2,
+      "win": "True"
+    },
+    {
+      "token": "$MICHI",
+      "entry_time": "2024-08-01 00:16:49",
+      "exit_time": "2024-08-01 00:19:21",
+      "entry_price": 0.0011220670573310592,
+      "exit_price": 0.001116456722044404,
+      "pnl": -124.9999999999998,
+      "return_pct": -0.004999999999999992,
+      "exit_reason": "stop_loss",
+      "confidence": 0.2,
+      "win": "False"
+    },
+    {
+      "token": "$MICHI",
+      "entry_time": "2024-08-01 00:19:23",
+      "exit_time": "2024-08-01 00:20:11",
+      "entry_price": 0.0011152256150942972,
+      "exit_price": 0.0011096494870188258,
+      "pnl": -124.99999999999869,
+      "return_pct": -0.004999999999999947,
+      "exit_reason": "stop_loss",
+      "confidence": 0.3,
+      "win": "False"
+    },
+    {
+      "token": "$MICHI",
+      "entry_time": "2024-08-01 00:20:11",
+      "exit_time": "2024-08-01 00:24:41",
+      "entry_price": 0.0011093015373501132,
+      "exit_price": 0.0011101218349056853,
+      "pnl": 18.486802910496586,
+      "return_pct": 0.0007394721164198634,
+      "exit_reason": "time_exit",
+      "confidence": 0.3,
+      "win": "True"
+    },
+    {
+      "token": "$MICHI",
+      "entry_time": "2024-08-01 00:24:41",
+      "exit_time": "2024-08-01 00:25:19",
+      "entry_price": 0.0011104237627785382,
+      "exit_price": 0.0011048716439646454,
+      "pnl": -125.00000000000207,
+      "return_pct": -0.005000000000000083,
+      "exit_reason": "stop_loss",
+      "confidence": 0.2,
+      "win": "False"
+    },
+    {
+      "token": "$MICHI",
+      "entry_time": "2024-08-01 00:25:19",
+      "exit_time": "2024-08-01 00:26:16",
+      "entry_price": 0.0010998934613230705,
+      "exit_price": 0.001097579675692106,
+      "pnl": -52.5911306941763,
+      "return_pct": -0.002103645227767052,
+      "exit_reason": "time_exit",
+      "confidence": 0.3,
+      "win": "False"
+    }
+  ],
+  "data_source": "/Users/speed/StratOptimv4/big_optimize_1016.pkl",
+  "checks": {
+    "Real blockchain data loaded": true,
+    "Trades use real prices": true,
+    "P&L calculations verified": "True",
+    "No mocks or simulations": true,
+    "Ready for paper trading": true
+  }
+}

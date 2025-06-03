@@ -1,0 +1,50 @@
+{
+  "regime": "unknown",
+  "confidence": 0.75,
+  "risk_level": "unknown",
+  "reasoning": "Given the market context of a ranging market with low volatility, the strategy should focus on capturing small price movements within the range. The analysis indicates that the price movements are contained within a narrow range, and the RSI values fluctuate around the mid-range, suggesting no strong momentum in either direction. This environment is conducive to a mean-reversion strategy, where trades are entered when the price deviates from its average, expecting it to revert back. The close alignment of SMA_20 and SMA_50 supports the use of these indicators for identifying entry and exit points. Since the market is not showing signs of strong momentum, a cautious approach with tight stop loss and take profit levels is advisable to manage risk effectively. The strategy will use SMA20 as a baseline for identifying overbought and oversold conditions, combined with RSI14 to confirm the lack of momentum before entering trades. The overall win rate from the recent performance suggests that a strategy focusing on short-term movements with moderate risk management can be successful in the current market conditions.",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-03-19T08:15:59.238747",
+  "parameters": {
+    "position_size": 0.05,
+    "stop_loss": 0.02,
+    "take_profit": 0.04,
+    "entry_conditions": [
+      "current_price < SMA20 * (1 - 0.005)",
+      "RSI14 < 30"
+    ],
+    "exit_conditions": [
+      "current_price > SMA20 * (1 + 0.005)",
+      "RSI14 > 70"
+    ],
+    "sl_window": 400,
+    "max_orders": 3,
+    "order_size": 0.00275,
+    "enable_sl_mod": false,
+    "enable_tp_mod": false,
+    "strategy_type": "mean_reversion",
+    "post_buy_delay": 1,
+    "post_sell_delay": 4,
+    "macd_signal_fast": 360,
+    "macd_signal_slow": 300.0,
+    "macd_signal_signal": 180.0,
+    "max_macd_signal_threshold": 0,
+    "min_macd_signal_threshold": 0
+  },
+  "entry_conditions": [
+    "current_price < SMA20 * (1 - 0.005)",
+    "RSI14 < 30"
+  ],
+  "exit_conditions": [
+    "current_price > SMA20 * (1 + 0.005)",
+    "RSI14 > 70"
+  ],
+  "indicators": [
+    "SMA20",
+    "RSI14"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "a6374377",
+  "is_optimization": false
+}

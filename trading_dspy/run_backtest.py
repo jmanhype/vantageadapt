@@ -1,7 +1,7 @@
 """Script to run backtesting optimization with real data."""
 
 import logging
-from src.modules.backtester import run_parameter_optimization, load_trade_data
+from src.modules.backtester import Backtester, load_trade_data
 from loguru import logger
 
 # Configure logging
@@ -36,8 +36,11 @@ def main():
         ]
     }
     
+    # Initialize backtester
+    backtester = Backtester()
+    
     # Run optimization
-    results = run_parameter_optimization(trade_data=trade_data, conditions=conditions)
+    results = backtester.run_parameter_optimization(trade_data=trade_data, conditions=conditions)
     
     if results:
         logger.info("Optimization completed successfully")

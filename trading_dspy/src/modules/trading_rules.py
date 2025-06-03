@@ -3,6 +3,7 @@
 from typing import Dict, Any, List, Optional
 from loguru import logger
 import dspy
+from dspy import Module
 import json
 import pandas as pd
 import numpy as np
@@ -11,7 +12,7 @@ import ta
 from ..utils.prompt_manager import PromptManager
 
 
-class TradingRulesGenerator:
+class TradingRulesGenerator(Module):
     """Trading rules generation module using DSPy predictor."""
 
     def __init__(self, prompt_manager: PromptManager):
@@ -25,16 +26,67 @@ class TradingRulesGenerator:
         
         # Define predictor with proper signature
         signature = dspy.Signature(
-            "strategy_insights: dict, market_context: dict, prompt: str -> entry_conditions: list[str], exit_conditions: list[str], parameters: dict, reasoning: str",
+            "strategy_insights: dict, market_context: dict, prompt: str -> entry_conditions: list[str], exit_conditions: list[str], parameters: dict, reasoning: str, indicators: list[str]",
             instructions=(
-                "Generate specific trading rules based on strategy insights and market context. "
-                "Entry conditions should be a list of clear, implementable rules using comparison operators. "
-                "Exit conditions should include take profit and stop loss rules. "
-                "Parameters must include stop_loss (0-1), take_profit (0-5), and position_size (0-1). "
-                "Response must be a JSON object with entry_conditions, exit_conditions, parameters, and reasoning fields."
+                "Generate detailed trading rules based on strategy insights and market context.\n\n"
+                "YOU MUST RETURN ALL 5 FIELDS. NO EXCEPTIONS. ALWAYS INCLUDE:\n"
+                "1. entry_conditions: A list of at least 2-3 specific entry rules\n"
+                "2. exit_conditions: A list of at least 2 exit rules including stop loss and take profit\n"
+                "3. parameters: A dict with stop_loss, take_profit, and position_size values\n"
+                "4. reasoning: A detailed explanation (100+ words) for the rules\n"
+                "5. indicators: A list of ALL indicators used (e.g., ['price', 'sma_20', 'rsi', 'macd.macd'])\n\n"
+                "CRITICAL: The 'indicators' field is MANDATORY. Even if no special indicators are used, "
+                "return at least ['price']. Common indicators include: 'price', 'sma_20', 'sma_50', 'rsi', "
+                "'macd.macd', 'macd.signal', 'bb.upper', 'bb.lower', 'volume', 'williams_r'.\n\n"
+                "FAILURE TO INCLUDE ALL 5 FIELDS WILL CAUSE A SYSTEM ERROR."
             )
         )
         self.predictor = dspy.Predict(signature)
+
+    def __deepcopy__(self, memo):
+        """Create a deep copy of this object.
+        
+        Args:
+            memo: Dictionary of already copied objects
+            
+        Returns:
+            A deep copy of this object
+        """
+        import copy
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        
+        # Copy attributes
+        for k, v in self.__dict__.items():
+            if k == 'prompt_manager':
+                # For prompt_manager just create a reference, don't deepcopy
+                setattr(result, k, v)
+            else:
+                setattr(result, k, copy.deepcopy(v, memo))
+                
+        return result
+    
+    def deepcopy(self, memo=None):
+        """Public interface for deep copying this object.
+        
+        Args:
+            memo: Optional dictionary of already copied objects
+            
+        Returns:
+            A deep copy of this object
+        """
+        if memo is None:
+            memo = {}
+        return self.__deepcopy__(memo)
+
+    def predictors(self) -> List[dspy.Predict]:
+        """Return the list of predictors used by this module.
+        
+        Returns:
+            List of predictors
+        """
+        return [self.predictor]
 
     def forward(
         self,
@@ -124,25 +176,30 @@ class TradingRulesGenerator:
                 prompt=formatted_prompt
             )
 
-            # Parse the result and ensure valid conditions
-            if hasattr(result, 'asdict'):
-                result_dict = result.asdict()
-            elif hasattr(result, 'text'):
-                text_output = result.text.strip()
-                if text_output.startswith("```") and text_output.endswith("```"):
-                    text_output = text_output.strip('`').strip()
-                try:
-                    result_dict = json.loads(text_output)
-                except json.JSONDecodeError as e:
-                    logger.error(f"Error decoding predictor result: {e}. Using default conditions.")
-                    result_dict = self._get_default_conditions()
+            # Parse the result - it MUST have the right structure
+            if hasattr(result, 'entry_conditions'):
+                # Direct access to result fields
+                result_dict = {
+                    'entry_conditions': result.entry_conditions,
+                    'exit_conditions': result.exit_conditions,
+                    'parameters': result.parameters,
+                    'reasoning': result.reasoning,
+                    'indicators': result.indicators
+                }
             else:
-                result_dict = self._get_default_conditions()
+                # This should NEVER happen with DSPy
+                raise ValueError(f"Predictor returned invalid result type: {type(result)}. Expected Prediction object with all required fields.")
 
-            # Get conditions from result
-            entry_conditions = result_dict.get('entry_conditions', [])
-            exit_conditions = result_dict.get('exit_conditions', [])
-            reasoning = result_dict.get('reasoning', '')
+            # Get conditions from result - ALL fields MUST be present
+            entry_conditions = result_dict['entry_conditions']
+            exit_conditions = result_dict['exit_conditions']
+            reasoning = result_dict['reasoning']
+            indicators = result_dict['indicators']
+            parameters = result_dict['parameters']
+            
+            # Validate indicators is not empty
+            if not indicators or not isinstance(indicators, list):
+                raise ValueError(f"LLM failed to return valid indicators list. Got: {indicators}")
 
             # If conditions are not lists, convert them into lists
             if not isinstance(entry_conditions, list):
@@ -162,34 +219,33 @@ class TradingRulesGenerator:
                 if c and str(c).strip() and self._is_valid_condition(str(c).strip())
             ]
 
-            # If after filtering either entry or exit conditions are empty, use default conditions
+            # Validate that we have conditions
             if not entry_conditions or not exit_conditions:
-                logger.warning("No valid trading conditions found after filtering, using default conditions")
-                default_conditions = self._get_default_conditions()
-                conditions = {
-                    'entry': default_conditions['entry_conditions'],
-                    'exit': default_conditions['exit_conditions']
-                }
-            else:
-                conditions = {
-                    'entry': entry_conditions,
-                    'exit': exit_conditions
-                }
+                raise ValueError(f"LLM returned empty conditions. Entry: {entry_conditions}, Exit: {exit_conditions}")
+            
+            conditions = {
+                'entry': entry_conditions,
+                'exit': exit_conditions
+            }
 
-            # Create response with validated data including status
+            # Create response with validated data
             response = {
-                'status': result_dict.get('status', ''),
+                'status': '',  # Not used by DSPy predictor
                 'conditions': conditions,
-                'parameters': strategy_insights['parameters'],
-                'reasoning': str(reasoning) if reasoning else ''
+                'parameters': parameters,  # Use the parameters from the LLM response
+                'reasoning': str(reasoning),
+                'indicators': indicators  # Already validated to be non-empty list
             }
 
             response = self._convert_sets(response)
             return response
 
         except Exception as e:
-            logger.error(f"Error in trading rules generation: {str(e)}")
-            return self._get_default_conditions()
+            logger.error(f"CRITICAL ERROR in trading rules generation: {str(e)}")
+            logger.error("This error should NEVER happen. The LLM failed to return all required fields.")
+            logger.error("Required fields: entry_conditions, exit_conditions, parameters, reasoning, indicators")
+            # Re-raise the error - DO NOT HIDE IT
+            raise e
 
     def _standardize_condition(self, condition: str) -> str:
         """Standardize a condition string.
@@ -271,7 +327,8 @@ class TradingRulesGenerator:
                 'take_profit': 0.04,
                 'position_size': 0.1
             },
-            'reasoning': "Default strategy using trend following with momentum confirmation"
+            'reasoning': "Default strategy using trend following with momentum confirmation",
+            'indicators': ["sma_20", "rsi", "macd"]
         }
 
 def apply_trading_rules(

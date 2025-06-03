@@ -1,0 +1,22 @@
+{
+  "optimization_interval_minutes": 60,
+  "max_iterations_per_session": 10,
+  "min_improvement_threshold": 0.01,
+  "target_benchmarks": {
+    "return_target": 0.1,
+    "trades_target": 100,
+    "assets_target": 10
+  },
+  "cloud_deployment": {
+    "enabled": false,
+    "provider": "aws",
+    "instance_type": "t3.medium"
+  },
+  "optimization_strategies": [
+    "prompt_evolution",
+    "parameter_tuning",
+    "feature_engineering",
+    "risk_adjustment"
+  ],
+  "notification_webhook": null
+}

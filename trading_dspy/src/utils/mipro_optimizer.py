@@ -16,9 +16,9 @@ class MiProWrapper:
     def __init__(self, 
                 prompt_manager=None,
                 use_v2: bool = True,
-                max_bootstrapped_demos: int = 3,
-                num_candidate_programs: int = 10,
-                temperature: float = 0.7):
+                max_bootstrapped_demos: int = 5,  # Increased from 3 to 5 for more diversity
+                num_candidate_programs: int = 15,  # Increased from 10 to 15 for more exploration
+                temperature: float = 0.8):
         """Initialize the MiPro wrapper.
         
         Args:
@@ -60,8 +60,8 @@ class MiProWrapper:
                     # First create example with inputs only
                     example = dspy.Example()
                     
-                    # First set the attributes directly with proper structure to avoid KeyError
-                    example.market_data = {
+                    # Use the actual market data from the example instead of placeholders
+                    example.market_data = ex.get('market_data', {
                         "prices": [100.0, 101.0, 102.0, 101.5, 102.5],
                         "volumes": [1000, 1200, 900, 1100, 1300],
                         "indicators": {
@@ -70,7 +70,7 @@ class MiProWrapper:
                             "rsi": [55, 60, 65, 58, 62],
                             "volatility": [0.02, 0.025, 0.022, 0.018, 0.02]
                         }
-                    }
+                    })
                     example.timeframe = ex.get('timeframe', '1h')
                     
                     # Then mark which ones are inputs - removed 'prompt' as it causes errors
@@ -120,10 +120,16 @@ class MiProWrapper:
                     # Mark inputs
                     example = example.with_inputs('strategy_insights', 'market_context', 'performance_analysis')
                     
-                    # Set output attributes directly
-                    example.conditions = str(outputs_dict.get('conditions', {'entry': [], 'exit': []}))  # Convert to string
-                    example.parameters = str(outputs_dict.get('parameters', {}))  # Convert to string
+                    # Preserve structure instead of converting to strings
+                    example.conditions = outputs_dict.get('conditions', {'entry': [], 'exit': []})
+                    example.parameters = outputs_dict.get('parameters', {})
                     example.reasoning = outputs_dict.get('reasoning', '')
+                    
+                    # Add additional outputs that might be present
+                    if 'entry_conditions' in outputs_dict:
+                        example.entry_conditions = outputs_dict.get('entry_conditions', [])
+                    if 'exit_conditions' in outputs_dict:
+                        example.exit_conditions = outputs_dict.get('exit_conditions', [])
                 
                 else:
                     # Generic fallback - not ideal but prevents crashes
@@ -219,29 +225,72 @@ class MiProWrapper:
             logger.info(f"Split examples into {len(trainset)} training and {len(valset)} validation examples")
             
             # Set up the optimizer - always use MIPROv2 since MIPRO is deprecated
-            optimizer = MIPROv2(
-                metric=metric_fn,
-                num_candidates=self.num_candidate_programs,
-                init_temperature=self.temperature,
-            )
+            # Check parameters to avoid incompatible arguments
+            try:
+                # First try with standard parameters
+                optimizer = MIPROv2(
+                    metric=metric_fn,
+                    num_candidates=self.num_candidate_programs,
+                    init_temperature=self.temperature
+                )
+                logger.info("Initialized MIPROv2 with standard parameters")
+            except Exception as e:
+                logger.error(f"Error initializing MIPROv2: {str(e)}")
+                logger.warning("Returning unoptimized module")
+                return module
             
             # Run optimization
             start_time = time.time()
             
-            # Calculate safe minibatch sizes
-            minibatch_size = max(1, min(2, len(valset)))
-            eval_steps = max(1, min(2, len(valset)))
+            # Handle minibatch size and configuration differently based on dataset size
+            minibatch = len(valset) >= 3  # Only enable minibatching for reasonably sized validation sets
             
-            logger.info(f"Running MiProv2 with minibatch_size={minibatch_size}, eval_steps={eval_steps}")
-            optimized_module = optimizer.compile(
-                student=module,
-                trainset=trainset,
-                valset=valset,
-                minibatch_size=minibatch_size,
-                requires_permission_to_run=False,
-                num_trials=5,  # Reduced from 10 to speed up
-                minibatch_full_eval_steps=eval_steps
-            )
+            # Configure compile params based on dataset size
+            compile_params = {
+                "student": module,
+                "trainset": trainset,
+                "valset": valset,
+                "requires_permission_to_run": False,
+                "max_bootstrapped_demos": self.max_bootstrapped_demos
+            }
+            
+            if minibatch:
+                # Set minibatch size safely - must be at least 1 less than valset size
+                minibatch_size = max(1, min(2, len(valset) - 1))
+                eval_steps = max(1, min(3, len(valset) // 2))
+                
+                logger.info(f"Running MiProv2 with minibatch_size={minibatch_size}, eval_steps={eval_steps}")
+                
+                # Add minibatch parameters
+                compile_params.update({
+                    "minibatch": True,
+                    "minibatch_size": minibatch_size,
+                    "num_trials": 10,
+                    "minibatch_full_eval_steps": eval_steps
+                })
+            else:
+                # For very small datasets, disable minibatching
+                logger.info("Validation set too small, disabling minibatching")
+                compile_params.update({
+                    "minibatch": False,
+                    "num_trials": 5  # Fewer trials for small datasets
+                })
+            
+            # Try to compile with our parameters, but be prepared to fall back if needed
+            try:
+                optimized_module = optimizer.compile(**compile_params)
+            except TypeError as e:
+                # If compile fails, log the error and try again with minimal parameters
+                logger.warning(f"MIPROv2 compile error with parameters: {e}")
+                logger.info("Falling back to minimal parameters")
+                
+                # Minimal parameter set that should work with any MIPROv2 version
+                basic_params = {
+                    "student": module,
+                    "trainset": trainset,
+                    "valset": valset
+                }
+                optimized_module = optimizer.compile(**basic_params)
         except Exception as e:
             logger.error(f"Error during optimization: {str(e)}")
             return module

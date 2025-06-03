@@ -1,0 +1,41 @@
+{
+  "regime": "unknown",
+  "confidence": 0.75,
+  "risk_level": "unknown",
+  "reasoning": "Given the current market context of a ranging market with low volatility, the strategy focuses on capitalizing on small price movements. The analysis indicates that the price is oscillating around the moving averages (SMA20 and SMA50) without strong directional trends. The RSI values are also in the mid-range, suggesting that there are no extreme conditions to trigger significant price movements. Therefore, the strategy will employ a mean-reversion approach, entering trades when the price deviates slightly from the SMA20 and exiting when it reverts back or when the RSI indicates overbought or oversold conditions.\n\nThe chosen parameters reflect a conservative approach, with a stop loss set at 0.063 and a take profit at 0.077, allowing for a favorable risk-reward ratio while managing the inherent risks of a ranging market. The position size is set at 0.03, which is appropriate given the low volatility environment. The entry and exit conditions are designed to capture small price movements while ensuring that trades are only taken when the market conditions are favorable.",
+  "trade_signal": "BUY",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T00:36:19.273946",
+  "parameters": {
+    "position_size": 0.03,
+    "stop_loss": 0.063,
+    "take_profit": 0.077,
+    "max_orders": 3,
+    "order_size": 0.00275,
+    "sl_window": 400,
+    "enable_sl_mod": false,
+    "enable_tp_mod": false,
+    "post_buy_delay": 1,
+    "post_sell_delay": 4,
+    "macd_signal_fast": 360,
+    "macd_signal_slow": 300.0,
+    "macd_signal_signal": 180.0,
+    "max_macd_signal_threshold": 0,
+    "min_macd_signal_threshold": 0
+  },
+  "entry_conditions": [
+    "current_price < SMA20 * (1 - 0.005)",
+    "RSI14 < 30"
+  ],
+  "exit_conditions": [
+    "current_price > SMA20 * (1 + 0.005)",
+    "RSI14 > 70"
+  ],
+  "indicators": [
+    "SMA20",
+    "RSI14"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "280bb41a",
+  "is_optimization": false
+}

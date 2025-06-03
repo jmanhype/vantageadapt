@@ -1,0 +1,35 @@
+{
+  "id": "7b28940d",
+  "timestamp": "2025-03-18T08:05:26.416510",
+  "mem0_id": null,
+  "action": "emergency_fallback",
+  "success": true,
+  "strategy": {
+    "strategy": {
+      "regime": "unknown",
+      "confidence": 0.5,
+      "parameters": {
+        "position_size": 0.2,
+        "stop_loss": 0.02,
+        "take_profit": 0.05,
+        "entry_conditions": [
+          "price_above_SMA(50) and volume_increase"
+        ],
+        "exit_conditions": [
+          "price_below_SMA(50) or stop_loss or take_profit"
+        ],
+        "additional_parameters": {
+          "SMA_period": 50,
+          "volume_increase_percentage": 10
+        }
+      },
+      "timestamp": "2025-03-18T08:05:24.738789"
+    },
+    "metadata": {
+      "source": "emergency_fallback",
+      "tracking_id": "7b28940d",
+      "optimization": true,
+      "timestamp": "2025-03-18T08:05:24.738791"
+    }
+  }
+}

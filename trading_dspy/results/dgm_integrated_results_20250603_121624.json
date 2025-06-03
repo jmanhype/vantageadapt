@@ -1,0 +1,166 @@
+{
+  "timestamp": "2025-06-03 12:16:24",
+  "model": "gpt-4o-mini + DGM",
+  "approach": "DGM-Integrated Trading DSPy",
+  "tokens_analyzed": 8,
+  "total_pnl": -11.682181177918228,
+  "total_trades": 83,
+  "overall_win_rate": 0.12048192771084337,
+  "avg_pnl_per_trade": -0.14074917081829189,
+  "token_results": [
+    {
+      "token": "$MICHI",
+      "best_performance": {
+        "total_pnl": 0.7398235494541225,
+        "total_return": 0.07398235494541225,
+        "win_rate": 1.0,
+        "total_trades": 2,
+        "sortino_ratio": 38.99433612563477,
+        "sharpe_ratio": 0.0
+      },
+      "dgm_parameters": {
+        "signal_method": "momentum",
+        "edge_threshold_bp": 0.05,
+        "position_size_pct": 0.187522739754171,
+        "use_ml_signals": false,
+        "use_trailing_stop": false
+      }
+    },
+    {
+      "token": "POPCAT",
+      "best_performance": {
+        "total_pnl": 3.4930830196388456,
+        "total_return": 0.34930830196388457,
+        "win_rate": 1.0,
+        "total_trades": 1,
+        "sortino_ratio": 134.59488168321158,
+        "sharpe_ratio": 0.0
+      },
+      "dgm_parameters": {
+        "signal_method": "momentum",
+        "edge_threshold_bp": 0.05,
+        "position_size_pct": 0.187522739754171,
+        "use_ml_signals": false,
+        "use_trailing_stop": false
+      }
+    },
+    {
+      "token": "BILLY",
+      "best_performance": {
+        "total_pnl": 0.7674495652695441,
+        "total_return": 0.07674495652695441,
+        "win_rate": 1.0,
+        "total_trades": 2,
+        "sortino_ratio": 63.60047944193861,
+        "sharpe_ratio": 0.0
+      },
+      "dgm_parameters": {
+        "signal_method": "momentum",
+        "edge_threshold_bp": 0.05,
+        "position_size_pct": 0.187522739754171,
+        "use_ml_signals": false,
+        "use_trailing_stop": false
+      }
+    },
+    {
+      "token": "MOTHER",
+      "best_performance": {
+        "total_pnl": 0.918774412841973,
+        "total_return": 0.09187744128419731,
+        "win_rate": 1.0,
+        "total_trades": 2,
+        "sortino_ratio": 75.64396082443704,
+        "sharpe_ratio": 0.0
+      },
+      "dgm_parameters": {
+        "signal_method": "momentum",
+        "edge_threshold_bp": 0.05,
+        "position_size_pct": 0.187522739754171,
+        "use_ml_signals": false,
+        "use_trailing_stop": false
+      }
+    },
+    {
+      "token": "RETARDIO",
+      "best_performance": {
+        "total_pnl": 1.051827429959296,
+        "total_return": 0.1051827429959296,
+        "win_rate": 1.0,
+        "total_trades": 2,
+        "sortino_ratio": 69.00954445481379,
+        "sharpe_ratio": 0.0
+      },
+      "dgm_parameters": {
+        "signal_method": "momentum",
+        "edge_threshold_bp": 0.05,
+        "position_size_pct": 0.187522739754171,
+        "use_ml_signals": false,
+        "use_trailing_stop": false
+      }
+    },
+    {
+      "token": "GOAT",
+      "best_performance": {
+        "total_pnl": 0.20209720859512004,
+        "total_return": 0.020209720859512004,
+        "win_rate": 1.0,
+        "total_trades": 1,
+        "sortino_ratio": 73.97503410268489,
+        "sharpe_ratio": 0.0
+      },
+      "dgm_parameters": {
+        "signal_method": "momentum",
+        "edge_threshold_bp": 0.05,
+        "position_size_pct": 0.187522739754171,
+        "use_ml_signals": false,
+        "use_trailing_stop": false
+      }
+    },
+    {
+      "token": "FWOG",
+      "best_performance": {
+        "total_pnl": -8.763305136530928,
+        "total_return": -0.8763305136530924,
+        "win_rate": 0.0,
+        "total_trades": 37,
+        "sortino_ratio": -70.0524714925726,
+        "sharpe_ratio": 0.0
+      },
+      "dgm_parameters": {
+        "signal_method": "momentum",
+        "edge_threshold_bp": 0.05,
+        "position_size_pct": 0.187522739754171,
+        "use_ml_signals": false,
+        "use_trailing_stop": false
+      }
+    },
+    {
+      "token": "MOODENG",
+      "best_performance": {
+        "total_pnl": -10.091931227146201,
+        "total_return": -1.00919312271462,
+        "win_rate": 0.0,
+        "total_trades": 36,
+        "sortino_ratio": -30.768235309951304,
+        "sharpe_ratio": 0.0
+      },
+      "dgm_parameters": {
+        "signal_method": "momentum",
+        "edge_threshold_bp": 0.05,
+        "position_size_pct": 0.187522739754171,
+        "use_ml_signals": false,
+        "use_trailing_stop": false
+      }
+    }
+  ],
+  "dgm_config": {
+    "fitness": 0.8561287552513714,
+    "signal_method": "momentum",
+    "edge_threshold_bp": 0.05,
+    "use_ml_signals": false,
+    "use_trailing_stop": false,
+    "use_order_imbalance": 1,
+    "use_price_impact": true
+  },
+  "execution_time": 5376.616644859314
+}

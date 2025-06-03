@@ -1,0 +1,46 @@
+graph LR
+    A[Raw Market Data] --> B[Feature Engineering]
+    B --> C[ML Model Training]
+    C --> D[Signal Generation]
+    D --> E[Position Sizing]
+    E --> F[Risk Management]
+    F --> G[Trade Execution]
+    G --> H[Performance Tracking]
+    H --> I[Strategy Memory Update]
+    I --> J[Optimization Trigger]
+    J --> K[Prompt Evolution]
+    K --> L[Pipeline Improvement]
+    L --> B
+    
+    M[Emotional Data] --> N[Sentiment Analysis]
+    N --> D
+    
+    O[Historical Performance] --> P[Pattern Recognition]
+    P --> D
+    
+    Q[Market Regime] --> R[Strategy Selection]
+    R --> E
+    
+    subgraph "Learning Loop"
+        H
+        I
+        J
+        K
+        L
+    end
+    
+    subgraph "Kate's Emotion Engine"
+        M
+        N
+    end
+    
+    subgraph "Memory Integration"
+        O
+        P
+    end
+    
+    style B fill:#e3f2fd
+    style C fill:#f3e5f5
+    style D fill:#fff3e0
+    style H fill:#e8f5e8
+    style N fill:#fce4ec

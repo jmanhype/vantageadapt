@@ -1,0 +1,30 @@
+{
+  "regime": "unknown",
+  "confidence": 0.7,
+  "risk_level": "unknown",
+  "reasoning": "Given the current market context of a RANGING_LOW_VOL regime, the strategy should focus on capturing small price movements within a defined range. The low volatility and neutral RSI suggest that the market is not trending strongly in either direction, making it suitable for a range-bound trading strategy. The recent performance indicates a negative average return, which highlights the need for careful risk management. The strategy will employ a conservative approach with a focus on small position sizes and tight stop losses to mitigate potential losses while allowing for small gains.",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T11:39:31.773644",
+  "parameters": {
+    "position_size": 0.2,
+    "stop_loss": 0.05,
+    "take_profit": 0.1
+  },
+  "entry_conditions": [
+    "current_price < moving_average_20 and rsi < 60",
+    "current_price > support_level"
+  ],
+  "exit_conditions": [
+    "current_price >= take_profit_price",
+    "current_price <= stop_loss_price"
+  ],
+  "indicators": [
+    "RSI",
+    "Moving Average (20-period)",
+    "Support and Resistance Levels"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "f148c9ee",
+  "is_optimization": false
+}

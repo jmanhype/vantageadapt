@@ -1,0 +1,45 @@
+{
+  "regime": "unknown",
+  "confidence": 0.7,
+  "risk_level": "unknown",
+  "reasoning": "Given the market context of a ranging market with low volatility, the strategy should focus on capturing small price movements within the range. The close proximity of SMA_20 and SMA_50 to the current price, along with balanced buy/sell ratios, suggests that the market lacks a clear direction. Therefore, a mean-reversion strategy might be more appropriate than a trend-following strategy in this scenario. The strategy will use tighter stop loss and take profit levels to manage risk effectively in a low volatility environment. The use of SMA and MACD indicators from the base parameters will be adjusted to better suit the ranging conditions by shortening the periods to react more quickly to price movements. The strategy will aim to enter trades when the price moves towards the outer edges of the current range and exit when the price moves back towards the mean, or the middle of the range.",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-03-18T12:56:14.969780",
+  "parameters": {
+    "position_size": 0.3,
+    "stop_loss": 0.02,
+    "take_profit": 0.05,
+    "entry_conditions": [
+      "cross_over('SMA', 'close', 20, 50)",
+      "rsi('close', 14) < 30"
+    ],
+    "exit_conditions": [
+      "cross_under('SMA', 'close', 20, 50)",
+      "rsi('close', 14) > 70"
+    ],
+    "sl_window": 200,
+    "indicators": [
+      "SMA",
+      "RSI"
+    ],
+    "max_orders": 2,
+    "order_size": 0.002,
+    "strategy_type": "mean_reversion"
+  },
+  "entry_conditions": [
+    "cross_over('SMA', 'close', 20, 50)",
+    "rsi('close', 14) < 30"
+  ],
+  "exit_conditions": [
+    "cross_under('SMA', 'close', 20, 50)",
+    "rsi('close', 14) > 70"
+  ],
+  "indicators": [
+    "SMA",
+    "RSI"
+  ],
+  "source": "strategy_generator",
+  "storage_id": "b4765db2",
+  "is_optimization": false
+}

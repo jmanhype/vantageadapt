@@ -6,6 +6,9 @@ from loguru import logger
 import dspy
 from dspy import Module
 import json
+import datetime
+import importlib.util
+import uuid
 
 from ..utils.prompt_manager import PromptManager
 from ..utils.memory_manager import TradingMemoryManager
@@ -29,7 +32,7 @@ class StrategyGenerator(Module):
         self.prompt_manager = prompt_manager
         self.memory_manager = memory_manager
         
-        # Enhanced signature for autonomous strategy generation
+        # Enhanced signature for autonomous strategy generation with explicit parameter_ranges requirement
         signature = dspy.Signature(
             """
             market_context: dict, theme: str, base_parameters: dict, prompt: str -> 
@@ -39,7 +42,8 @@ class StrategyGenerator(Module):
             instructions=(
                 "Generate a complete trading strategy based on market context and theme. "
                 "Return parameters must include stop_loss (0-1), take_profit (0-5), and position_size (0-1). "
-                "Parameter_ranges should specify min/max values for optimization. "
+                "Parameter_ranges MUST be included and specify min/max values for optimization like this: "
+                "{'stop_loss': [0.02, 0.15], 'take_profit': [0.04, 0.3], 'position_size': [0.1, 1.0]}. "
                 "Entry and exit conditions should be executable Python expressions. "
                 "Indicators should list all technical indicators needed."
             )
@@ -151,12 +155,25 @@ class StrategyGenerator(Module):
                     prompt=formatted_prompt
                 )
                 
+                # Check if parameter_ranges is missing in the result
+                parameter_ranges = getattr(result, 'parameter_ranges', None)
+                if parameter_ranges is None:
+                    logger.warning("parameter_ranges missing in predictor result, using default ranges")
+                    parameter_ranges = {
+                        'stop_loss': [0.02, 0.15],
+                        'take_profit': [0.04, 0.30],
+                        'position_size': [0.1, 1.0],
+                        'sl_window': [200, 600],
+                        'max_orders': [1, 5],
+                        'order_size': [0.001, 0.005]
+                    }
+                
                 # Extract result fields with parameter ranges
                 strategy = {
                     "reasoning": result.reasoning,
                     "trade_signal": result.trade_signal,
                     "parameters": result.parameters,
-                    "parameter_ranges": result.parameter_ranges,
+                    "parameter_ranges": parameter_ranges,
                     "confidence": result.confidence,
                     "entry_conditions": result.entry_conditions,
                     "exit_conditions": result.exit_conditions,
@@ -202,9 +219,17 @@ class StrategyGenerator(Module):
                 return False, "Empty strategy"
                 
             required_fields = [
-                'reasoning', 'trade_signal', 'parameters', 'parameter_ranges',
+                'reasoning', 'trade_signal', 'parameters',
                 'confidence', 'entry_conditions', 'exit_conditions', 'indicators'
             ]
+            
+            # Add parameter_ranges if it's expected by the schema but not present
+            if 'parameter_ranges' not in strategy:
+                strategy['parameter_ranges'] = {
+                    "stop_loss": [0.01, 0.1],
+                    "take_profit": [0.02, 0.3],
+                    "position_size": [0.1, 1.0]
+                }
             missing_fields = [f for f in required_fields if f not in strategy]
             if missing_fields:
                 return False, f"Missing required fields: {', '.join(missing_fields)}"
@@ -336,41 +361,82 @@ class StrategyGenerator(Module):
             logger.error(f"Error getting recent performance: {str(e)}")
             return {}
 
-    def _store_strategy(self, strategy: Dict[str, Any], force_store: bool = True) -> None:
-        """Store strategy in memory for future reference.
+    def _store_strategy(self, strategy: Dict[str, Any], force_store: bool = False) -> bool:
+        """Store a generated trading strategy.
         
         Args:
-            strategy: Strategy to store
+            strategy: Dictionary containing the strategy details
             force_store: If True, store the strategy even during optimization
+            
+        Returns:
+            bool: True if storage was successful
         """
         try:
-            # Create a properly structured strategy with the required 'strategy' key
-            structured_strategy = {
-                "strategy": {
-                    "regime": strategy.get("market_regime", "UNKNOWN"),
-                    "confidence": float(strategy.get("confidence", 0.0)),
-                    "risk_level": "moderate",
-                    "parameters": strategy.get("parameters", {}),
-                    "parameter_ranges": strategy.get("parameter_ranges", {}),
-                    "reasoning": strategy.get("reasoning", ""),
-                    "trade_signal": strategy.get("trade_signal", ""),
-                    "entry_conditions": strategy.get("entry_conditions", []),
-                    "exit_conditions": strategy.get("exit_conditions", []),
-                    "indicators": strategy.get("indicators", []),
-                }
+            # Get memory manager
+            if not hasattr(self, 'memory_manager'):
+                logger.warning("Memory manager not available, skipping strategy storage")
+                return False
+            
+            # Add a unique storage ID for easier tracking
+            storage_id = str(uuid.uuid4())[:8]
+            logger.debug(f"Strategy storage attempt ID: {storage_id}")
+            
+            # Ensure we have a valid regime value - default to unknown if missing/empty
+            regime = strategy.get("regime", "unknown")
+            if not regime or regime == "":
+                regime = "unknown"
+            
+            # Ensure we have valid confidence value
+            confidence = strategy.get("confidence", 0.0)
+            if isinstance(confidence, str) and confidence:
+                try:
+                    confidence = float(confidence)
+                except (ValueError, TypeError):
+                    confidence = 0.0
+            elif not isinstance(confidence, (int, float)):
+                confidence = 0.0
+            
+            # Ensure parameters is a dictionary
+            parameters = strategy.get("parameters", {})
+            if not isinstance(parameters, dict):
+                parameters = {}
+            
+            # Create pure strategy object without wrapping
+            pure_strategy = {
+                "regime": regime,
+                "confidence": confidence,
+                "parameters": parameters,
+                "parameter_ranges": strategy.get("parameter_ranges", {
+                    "stop_loss": [0.01, 0.1],
+                    "take_profit": [0.02, 0.3],
+                    "position_size": [0.1, 1.0]
+                }),
+                "reasoning": strategy.get("reasoning", ""),
+                "trade_signal": strategy.get("trade_signal", "HOLD"),
+                "entry_conditions": strategy.get("entry_conditions", []),
+                "exit_conditions": strategy.get("exit_conditions", []),
+                "indicators": strategy.get("indicators", []),
+                "opportunity_score": strategy.get("opportunity_score", 0.0),
+                "timestamp": datetime.datetime.now().isoformat()
             }
+            
+            logger.debug(f"Created pure strategy with regime={regime}, confidence={confidence} [{storage_id}]")
             
             # Store using the memory manager with force_store=True to ensure
             # strategies are stored during optimization
-            store_result = self.memory_manager.store_strategy(structured_strategy, force_store=force_store)
+            store_result = self.memory_manager.store_strategy(pure_strategy, force_store=force_store)
             
             if store_result:
-                logger.info(f"Successfully stored strategy with regime={structured_strategy['strategy']['regime']}")
+                logger.info(f"Successfully stored strategy with regime={regime} [{storage_id}]")
             else:
-                logger.warning(f"Failed to store strategy")
+                logger.warning(f"Failed to store strategy [{storage_id}]")
+                
+            return store_result
                 
         except Exception as e:
             logger.error(f"Error storing strategy: {str(e)}")
+            logger.debug(f"Strategy that failed: {strategy}")
+            return False
 
     def _get_default_strategy(self, theme: str, base_parameters: Optional[Dict[str, Any]], regime: str) -> Dict[str, Any]:
         """Get default strategy when generation fails.
@@ -381,28 +447,47 @@ class StrategyGenerator(Module):
             regime: Market regime
             
         Returns:
-            Default strategy dictionary
+            Default strategy dictionary with all required fields
         """
+        # Default parameter ranges based on validation requirements
+        default_ranges = {
+            'stop_loss': [0.02, 0.15],
+            'take_profit': [0.04, 0.30],
+            'position_size': [0.1, 1.0],
+            'sl_window': [200, 600],
+            'max_orders': [1, 5],
+            'order_size': [0.001, 0.005],
+            'macd_signal_fast': [50, 500],
+            'macd_signal_slow': [100, 1000],
+            'macd_signal_signal': [20, 200]
+        }
+        
+        # Default parameters if none provided
+        default_params = {
+            "stop_loss": 0.02,
+            "take_profit": 0.05,
+            "position_size": 0.2,
+            "entry_conditions": [
+                "RSI_14 < 30",
+                "current_price < SMA_20"
+            ],
+            "exit_conditions": [
+                "RSI_14 > 70",
+                "current_price > SMA_20"
+            ],
+            "indicators": ["RSI_14", "SMA_20"],
+            "strategy_type": theme or "default"
+        }
+        
         return {
-            "reasoning": "Error in strategy generation",
+            "reasoning": "Default conservative strategy due to generation error",
             "trade_signal": "HOLD",
-            "parameters": base_parameters or {
-                "stop_loss": 0.02,
-                "take_profit": 0.04,
-                "position_size": 0.1
-            },
-            "parameter_ranges": {
-                "stop_loss": [0.02, 0.15],
-                "take_profit": [0.04, 0.30],
-                "position_size": [0.1, 1.0],
-                "sl_window": [200, 600],
-                "max_orders": [1, 5],
-                "order_size": [0.001, 0.005]
-            },
-            "confidence": 0.0,
-            "entry_conditions": [],
-            "exit_conditions": [],
-            "indicators": [],
-            "strategy_type": theme,
-            "market_regime": regime
+            "parameters": base_parameters or default_params,
+            "parameter_ranges": default_ranges,  # Add parameter ranges
+            "confidence": 0.5,
+            "entry_conditions": default_params["entry_conditions"],
+            "exit_conditions": default_params["exit_conditions"],
+            "indicators": default_params["indicators"],
+            "regime": regime,
+            "opportunity_score": 0.0
         } 

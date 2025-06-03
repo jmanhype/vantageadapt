@@ -1,0 +1,33 @@
+{
+  "id": "ac5ad64c",
+  "timestamp": "2025-03-18T08:30:01.993067",
+  "mem0_id": null,
+  "action": "emergency_fallback",
+  "success": true,
+  "strategy": {
+    "strategy": {
+      "regime": "unknown",
+      "confidence": 0.5,
+      "parameters": {
+        "position_size": 0.1,
+        "stop_loss": 0.02,
+        "take_profit": 0.05,
+        "entry_conditions": [
+          "volatility_indicator < threshold",
+          "liquidity_indicator > threshold"
+        ],
+        "exit_conditions": [
+          "current_profit > take_profit",
+          "current_loss > stop_loss"
+        ]
+      },
+      "timestamp": "2025-03-18T08:30:00.813076"
+    },
+    "metadata": {
+      "source": "emergency_fallback",
+      "tracking_id": "ac5ad64c",
+      "optimization": true,
+      "timestamp": "2025-03-18T08:30:00.813079"
+    }
+  }
+}

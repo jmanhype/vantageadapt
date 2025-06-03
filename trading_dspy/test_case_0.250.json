@@ -1,0 +1,17 @@
+{
+  "entry_conditions": [
+    "price > sma_1 and price > 0",
+    "price > sma_2 and price > 0"
+  ],
+  "exit_conditions": [
+    "price < sma_1 or price < 0"
+  ],
+  "parameters": {
+    "stop_loss": 0.02
+  },
+  "indicators": [
+    "sma",
+    "rsi"
+  ],
+  "reasoning": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+}

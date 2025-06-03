@@ -1,0 +1,34 @@
+{
+  "regime": "RANGING_LOW_VOL",
+  "confidence": 0.7,
+  "risk_level": "unknown",
+  "reasoning": "",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T11:43:04.909884",
+  "parameters": {
+    "position_size": 0.2,
+    "stop_loss": 0.05,
+    "take_profit": 0.1,
+    "entry_conditions": [
+      "current_price < moving_average_20 and rsi < 60",
+      "current_price > support_level"
+    ],
+    "exit_conditions": [
+      "current_price >= take_profit_price",
+      "current_price <= stop_loss_price"
+    ],
+    "indicators": [
+      "RSI",
+      "Moving Average (20-period)",
+      "Support and Resistance Levels"
+    ],
+    "strategy_type": "default"
+  },
+  "entry_conditions": [],
+  "exit_conditions": [],
+  "indicators": [],
+  "source": "strategy_generator",
+  "storage_id": "35ceb735",
+  "is_optimization": false
+}

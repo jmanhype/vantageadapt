@@ -1,0 +1,27 @@
+{
+  "regime": "UNKNOWN",
+  "confidence": 0.4,
+  "risk_level": "unknown",
+  "reasoning": "",
+  "trade_signal": "HOLD",
+  "opportunity_score": 0.0,
+  "timestamp": "2025-06-03T13:53:18.410734",
+  "parameters": {
+    "position_size": 0.1,
+    "stop_loss": 0.05,
+    "take_profit": 0.2,
+    "entry_conditions": [],
+    "exit_conditions": [
+      "current_price >= entry_price * (1 + take_profit)",
+      "current_price <= entry_price * (1 - stop_loss)"
+    ],
+    "indicators": [],
+    "strategy_type": "default"
+  },
+  "entry_conditions": [],
+  "exit_conditions": [],
+  "indicators": [],
+  "source": "strategy_generator",
+  "storage_id": "d6be9e6a",
+  "is_optimization": false
+}

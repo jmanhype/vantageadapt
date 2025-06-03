@@ -1,0 +1,38 @@
+{
+  "id": "21a87e3d",
+  "timestamp": "2025-03-18T08:05:24.420892",
+  "mem0_id": null,
+  "action": "emergency_fallback",
+  "success": true,
+  "strategy": {
+    "strategy": {
+      "regime": "unknown",
+      "confidence": 0.5,
+      "parameters": {
+        "position_size": 0.2,
+        "stop_loss": 0.02,
+        "take_profit": 0.05,
+        "entry_conditions": [
+          "RSI < 30",
+          "SMA_50 > SMA_200"
+        ],
+        "exit_conditions": [
+          "RSI > 70",
+          "SMA_50 < SMA_200"
+        ],
+        "additional_parameters": {
+          "RSI_period": 14,
+          "SMA_fast_period": 50,
+          "SMA_slow_period": 200
+        }
+      },
+      "timestamp": "2025-03-18T08:05:22.667773"
+    },
+    "metadata": {
+      "source": "emergency_fallback",
+      "tracking_id": "21a87e3d",
+      "optimization": true,
+      "timestamp": "2025-03-18T08:05:22.667774"
+    }
+  }
+}

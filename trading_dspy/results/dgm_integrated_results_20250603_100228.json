@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-06-03 10:02:28",
+  "model": "gpt-4o-mini + DGM",
+  "approach": "DGM-Integrated Trading DSPy",
+  "tokens_analyzed": 0,
+  "total_pnl": 0,
+  "total_trades": 0,
+  "overall_win_rate": 0,
+  "avg_pnl_per_trade": 0,
+  "token_results": [],
+  "dgm_config": {
+    "fitness": 0.8678625232519768,
+    "signal_method": "momentum",
+    "edge_threshold_bp": 0.048534910928724036,
+    "use_ml_signals": false,
+    "use_trailing_stop": false,
+    "use_order_imbalance": true,
+    "use_price_impact": true
+  },
+  "execution_time": 605.7913820743561
+}
