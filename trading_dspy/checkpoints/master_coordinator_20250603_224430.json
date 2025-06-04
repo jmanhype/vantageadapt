@@ -1,0 +1,69 @@
+{
+  "evolution_cycles": 3,
+  "current_strategies": [
+    "dgm_selfmod_20250603_222328",
+    "random_20250603_222328",
+    "dgm_selfmod_20250603_222832",
+    "random_20250603_222832",
+    "dgm_selfmod_20250603_223415",
+    "random_20250603_223415"
+  ],
+  "performance_history": [
+    {
+      "cycle": 1,
+      "timestamp": "2025-06-03T22:24:21.295228",
+      "deployment_results": {
+        "deployed": [
+          "dgm_selfmod_20250603_222328",
+          "random_20250603_222328"
+        ],
+        "failed": [],
+        "total_attempted": 2
+      },
+      "current_performance": {
+        "total_return": -105.15733268600141,
+        "total_trades": 0,
+        "unique_assets": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "timestamp": "2025-06-03T22:33:46.937148",
+      "deployment_results": {
+        "deployed": [
+          "dgm_selfmod_20250603_222832",
+          "random_20250603_222832",
+          "random_20250603_222328"
+        ],
+        "failed": [],
+        "total_attempted": 3
+      },
+      "current_performance": {
+        "total_return": -205.3566726616871,
+        "total_trades": 0,
+        "unique_assets": 0
+      }
+    },
+    {
+      "cycle": 3,
+      "timestamp": "2025-06-03T22:44:30.554962",
+      "deployment_results": {
+        "deployed": [
+          "dgm_selfmod_20250603_223415",
+          "random_20250603_223415",
+          "random_20250603_222328",
+          "random_20250603_222832"
+        ],
+        "failed": [],
+        "total_attempted": 4
+      },
+      "current_performance": {
+        "total_return": -305.55601263737276,
+        "total_trades": 0,
+        "unique_assets": 0
+      }
+    }
+  ],
+  "benchmarks_achieved": false,
+  "timestamp": "2025-06-03T22:44:30.554980"
+}

@@ -1,0 +1,21 @@
+{
+    "template": "\n                Generate a trading strategy based on:\n                Market Context: {market_context}\n                Trading Theme: {trading_theme}\n                \n                Consider:\n                1. Market conditions\n                2. Risk factors\n                3. Trading objectives\n                4. Historical performance\n                \n                Provide:\n                1. Strategy reasoning\n                2. Trade signals\n                3. Parameters\n                4. Confidence level\n                ",
+    "examples": [
+        {
+            "input": {
+                "market_context": {
+                    "trend": "bullish"
+                },
+                "trading_theme": "momentum"
+            },
+            "output": {
+                "reasoning": "Strong uptrend detected",
+                "trade_signal": "long",
+                "parameters": {
+                    "entry_threshold": 0.02
+                },
+                "confidence": 0.85
+            }
+        }
+    ]
+}

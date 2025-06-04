@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "trading-dspy"
+version = "0.1.0"
+description = "A DSPy-powered trading strategy system"
+authors = ["Your Name <your.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+dspy = "^2.3.3"
+pandas = "^2.0.0"
+numpy = "^1.24.0"
+pytest = "^7.0.0"
+python-dotenv = "^1.0.0"
+pydantic = "^2.0.0"
+loguru = "^0.7.0"
+openai = "^1.0.0"
+mem0ai = "^0.1.67"
+ta = "^0.11.0"
+
+[tool.poetry.dev-dependencies]
+black = "^23.0.0"
+isort = "^5.12.0"
+mypy = "^1.5.0"
+pytest-cov = "^4.1.0"
+pytest-asyncio = "^0.21.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3 

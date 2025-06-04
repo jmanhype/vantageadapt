@@ -76,49 +76,14 @@ def calculate_entries_and_params(trade_data_df: pd.DataFrame, **p) -> pd.DataFra
         # 3. Volume supports price movement
         volume_condition = volume_increasing
         
-        # AGGRESSIVE TRADING: Restore the money-making execution loop
-        # Original complex conditions (backup)
-        complex_entries = (
+        # Combine all entry conditions
+        trade_data_df['entries'] = (
             price_above_sma &  # Price crosses above SMA_20
             rsi_condition &    # RSI conditions met
             volume_condition & # Volume supports movement
             (macd.macd > p['min_macd_signal_threshold']) & # MACD above threshold
             macd_signal       # MACD crossover for confirmation
         )
-        
-        # 🔥 NUCLEAR MONEY MAKER V3.0: SIMPLE BUT LEVERAGED! 🔥
-        # BACK TO BASICS - 8% probability worked, we just need LEVERAGE!
-        np.random.seed(None)  # Real randomness
-        
-        # Simple 8% probability - THE WINNING FORMULA
-        random_trade_signals = np.random.random(len(trade_data_df)) < 0.08
-        
-        # But add BASIC filtering to avoid complete disasters
-        # Only filter out the WORST conditions
-        price_not_crashing = trade_data_df['dex_price'].pct_change(10).fillna(0) > -0.05  # Not down 5% in 10 periods
-        not_extremely_overbought = rsi < 80  # Not insanely overbought
-        
-        # Apply basic safety filter
-        filtered_signals = random_trade_signals & price_not_crashing & not_extremely_overbought
-        
-        # DEBUG: Log signal counts
-        complex_count = complex_entries.sum() if hasattr(complex_entries, 'sum') else 0
-        random_count = random_trade_signals.sum()
-        filtered_count = filtered_signals.sum()
-        logger.info(f"💰 MONEY MAKER V3: Complex: {complex_count}, Random: {random_count}, Filtered: {filtered_count}")
-        logger.info(f"🚀 LEVERAGE: 20X active on all trades!")
-        
-        # HYBRID APPROACH: Use ML when available, otherwise filtered random
-        if complex_count > 0:
-            # ML signals + filtered random
-            trade_data_df['entries'] = complex_entries | filtered_signals
-        else:
-            # Pure filtered random trading
-            trade_data_df['entries'] = filtered_signals
-            
-        # DEBUG: Log final entry count
-        final_count = trade_data_df['entries'].sum()
-        logger.info(f"MONEY MAKER DEBUG: Final entries: {final_count} out of {len(trade_data_df)} total rows")
         
         # Store indicators for exit conditions
         trade_data_df['sma_20'] = sma_20
@@ -262,9 +227,6 @@ def signal_func_nb(c, trade_memory, params, data, fees, size, price, last_buy_qu
     if long_entry and (current_order_count < params['max_orders'][0]):
         size[c.i] = order_size if order_size > 0.01 else 0.0
         long_entry = order_size > 0.01
-        # DEBUG: Log successful entry
-        if long_entry and c.i % 10000 == 0:  # Log every 10,000th entry to avoid spam
-            print(f"VECTORBT ENTRY: Row {c.i}, Size: {size[c.i]}, Order size: {order_size}")
     else:
         long_entry = False
 
@@ -426,75 +388,18 @@ def calculate_stats(test_portfolio: Dict[str, Any], trade_data_dict: Dict[str, p
         for asset, pf in test_portfolio.items():
             if pf is not None:
                 try:
-                    # DEBUG: Inspect portfolio structure in detail
-                    logger.info(f"VECTORBT DEBUG for {asset}:")
-                    logger.info(f"  Portfolio type: {type(pf)}")
-                    
-                    # Check if portfolio has trades attribute
-                    if hasattr(pf, 'trades'):
-                        logger.info(f"  Portfolio has trades attribute")
-                        trade_count = pf.trades.count()
-                        logger.info(f"  Raw trade count: {trade_count} (type: {type(trade_count)})")
-                        
-                        # Check if trades records exist
-                        if hasattr(pf.trades, 'records'):
-                            records = pf.trades.records
-                            logger.info(f"  Trades records type: {type(records)}")
-                            if hasattr(records, 'shape'):
-                                logger.info(f"  Trades records shape: {records.shape}")
-                            if hasattr(records, '__len__'):
-                                logger.info(f"  Trades records length: {len(records)}")
-                                
-                            # Log first few records if they exist
-                            if len(records) > 0:
-                                logger.info(f"  First trade record: {records.iloc[0] if hasattr(records, 'iloc') else records[0]}")
-                            else:
-                                logger.info(f"  No trade records found - this is the problem!")
-                        else:
-                            logger.info(f"  No trades.records attribute")
-                    else:
-                        logger.info(f"  Portfolio has no trades attribute")
-                    
-                    # Check orders
-                    if hasattr(pf, 'orders'):
-                        logger.info(f"  Portfolio has orders attribute")
-                        order_count = pf.orders.count()
-                        logger.info(f"  Raw order count: {order_count} (type: {type(order_count)})")
-                        
-                        # Check orders records
-                        if hasattr(pf.orders, 'records'):
-                            order_records = pf.orders.records
-                            logger.info(f"  Orders records type: {type(order_records)}")
-                            if hasattr(order_records, 'shape'):
-                                logger.info(f"  Orders records shape: {order_records.shape}")
-                            if hasattr(order_records, '__len__'):
-                                logger.info(f"  Orders records length: {len(order_records)}")
-                    else:
-                        logger.info(f"  Portfolio has no orders attribute")
-                    
-                    # Check returns
-                    if hasattr(pf, 'total_return'):
-                        total_ret = pf.total_return
-                        logger.info(f"  Total return: {total_ret} (type: {type(total_ret)})")
-                    else:
-                        logger.info(f"  Portfolio has no total_return attribute")
-                    
-                    # Safe stats extraction with fallbacks
                     stats = {
                         'asset': asset,
-                        'total_return': float(pf.total_return.iloc[0] if isinstance(pf.total_return, pd.Series) else pf.total_return) if hasattr(pf, 'total_return') else 0.0,
-                        'total_pnl': float(pf.trades.records.pnl.sum()) if hasattr(pf, 'trades') and hasattr(pf.trades, 'records') and len(pf.trades.records) > 0 else 0.0,
-                        'avg_pnl_per_trade': float(pf.trades.records['return'].mean()) if hasattr(pf, 'trades') and hasattr(pf.trades, 'records') and len(pf.trades.records) > 0 else 0.0,
-                        'total_orders': int(pf.orders.count().iloc[0] if isinstance(pf.orders.count(), pd.Series) else pf.orders.count()) if hasattr(pf, 'orders') else 0,
-                        'total_trades': int(pf.trades.count().iloc[0] if isinstance(pf.trades.count(), pd.Series) else pf.trades.count()) if hasattr(pf, 'trades') else 0,
-                        'sortino_ratio': float(pf.sortino_ratio.iloc[0] if isinstance(pf.sortino_ratio, pd.Series) else pf.sortino_ratio) if hasattr(pf, 'sortino_ratio') else 0.0,
+                        'total_return': float(pf.total_return.iloc[0] if isinstance(pf.total_return, pd.Series) else pf.total_return),
+                        'total_pnl': float(pf.trades.records.pnl.sum()),
+                        'avg_pnl_per_trade': float(pf.trades.records['return'].mean()),
+                        'total_orders': int(pf.orders.count().iloc[0] if isinstance(pf.orders.count(), pd.Series) else pf.orders.count()),
+                        'total_trades': int(pf.trades.count().iloc[0] if isinstance(pf.trades.count(), pd.Series) else pf.trades.count()),
+                        'sortino_ratio': float(pf.sortino_ratio.iloc[0] if isinstance(pf.sortino_ratio, pd.Series) else pf.sortino_ratio),
                     }
-                    
-                    logger.info(f"  Final stats for {asset}: {stats}")
                     stats_list.append(stats)
                 except Exception as e:
                     logger.error(f"Error calculating stats for {asset}: {str(e)}")
-                    logger.exception("Full traceback:")
                     continue
 
         if not stats_list:
@@ -841,22 +746,4 @@ class Backtester:
             return {}
 
 if __name__ == "__main__":
-    # Create backtester instance and run parameter optimization
-    backtester = Backtester()
-    trade_data = load_trade_data("/Users/speed/StratOptimv4/big_optimize_1016.pkl")
-    if trade_data:
-        conditions = {
-            'entry': [
-                "price > sma_20",  # Price above 20-period SMA
-                "rsi < 70",        # RSI not overbought
-                "macd.macd > macd.signal"  # MACD crossover
-            ],
-            'exit': [
-                "price < sma_20",  # Price below 20-period SMA
-                "rsi > 30",        # RSI not oversold
-                "macd.macd < macd.signal"  # MACD crossunder
-            ]
-        }
-        backtester.run_parameter_optimization(trade_data=trade_data, conditions=conditions)
-    else:
-        logger.error("Failed to load trade data")
+    run_parameter_optimization()

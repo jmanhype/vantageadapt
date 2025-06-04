@@ -1,0 +1,28 @@
+{
+  "evolution_cycles": 1,
+  "current_strategies": [
+    "dgm_selfmod_20250603_200002"
+  ],
+  "performance_history": [
+    {
+      "cycle": 1,
+      "timestamp": "2025-06-03T20:01:20.333953",
+      "deployment_results": {
+        "deployed": [
+          "dgm_selfmod_20250603_200002"
+        ],
+        "failed": [
+          "random_20250603_200002"
+        ],
+        "total_attempted": 2
+      },
+      "current_performance": {
+        "total_return": 0,
+        "total_trades": 0,
+        "unique_assets": 0
+      }
+    }
+  ],
+  "benchmarks_achieved": false,
+  "timestamp": "2025-06-03T20:01:20.333982"
+}

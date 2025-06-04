@@ -1,0 +1,48 @@
+{
+  "evolution_cycles": 2,
+  "current_strategies": [
+    "dgm_selfmod_20250603_225727",
+    "random_20250603_225727",
+    "dgm_selfmod_20250603_230246",
+    "random_20250603_230246"
+  ],
+  "performance_history": [
+    {
+      "cycle": 1,
+      "timestamp": "2025-06-03T22:58:19.721744",
+      "deployment_results": {
+        "deployed": [
+          "dgm_selfmod_20250603_225727",
+          "random_20250603_225727"
+        ],
+        "failed": [],
+        "total_attempted": 2
+      },
+      "current_performance": {
+        "total_return": -1.051573326860014,
+        "total_trades": 0,
+        "unique_assets": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "timestamp": "2025-06-03T23:07:14.724297",
+      "deployment_results": {
+        "deployed": [
+          "dgm_selfmod_20250603_230246",
+          "random_20250603_230246",
+          "random_20250603_225727"
+        ],
+        "failed": [],
+        "total_attempted": 3
+      },
+      "current_performance": {
+        "total_return": -2.0535667266168707,
+        "total_trades": 0,
+        "unique_assets": 0
+      }
+    }
+  ],
+  "benchmarks_achieved": false,
+  "timestamp": "2025-06-03T23:07:14.724306"
+}

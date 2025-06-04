@@ -1,0 +1,30 @@
+{
+  "evolution_cycles": 5,
+  "total_trades": 6220,
+  "total_return": 1.4297870068723575,
+  "win_rate": 0.5418006430868167,
+  "parameters": {
+    "confidence_threshold": 0.15,
+    "position_size": 0.25,
+    "stop_loss": 0.005,
+    "take_profit": 0.01
+  },
+  "active_strategies": {
+    "focus_token": {
+      "type": "focus_token",
+      "token": "DWOG",
+      "weight": 1.5,
+      "reason": "Best performer with avg return"
+    },
+    "time_filter": {
+      "type": "time_filter",
+      "hours": [
+        23,
+        13,
+        12
+      ],
+      "reason": "Focus on most profitable hours"
+    }
+  },
+  "timestamp": "2025-06-04T12:23:46.457566"
+}
