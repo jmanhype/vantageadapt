@@ -17,8 +17,12 @@ if TYPE_CHECKING:
 @pytest.fixture(autouse=True)
 def setup_environment():
     """Set up environment variables for testing."""
-    os.environ["OPENAI_API_KEY"] = "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"
-    os.environ["MEM0_API_KEY"] = "m0-6cNnWWejrjhX1ndgOHiPZbJGUDGyZcLQrO5FE4Of"
+    # SECURITY: Use environment variables or mock API keys for testing
+    # Never hardcode real API keys in source code
+    if "OPENAI_API_KEY" not in os.environ:
+        os.environ["OPENAI_API_KEY"] = "sk-test-mock-key-for-testing"
+    if "MEM0_API_KEY" not in os.environ:
+        os.environ["MEM0_API_KEY"] = "m0-test-mock-key-for-testing"
     yield
     # Clean up after tests
     if "OPENAI_API_KEY" in os.environ:

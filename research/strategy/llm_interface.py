@@ -11,10 +11,14 @@ from langchain_openai import ChatOpenAI
 from langchain.schema.messages import SystemMessage, HumanMessage
 
 # Set up LangSmith environment variables
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
-os.environ["LANGCHAIN_API_KEY"] = "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"
-os.environ["LANGCHAIN_PROJECT"] = "kagnar"
+os.environ["LANGCHAIN_TRACING_V2"] = os.getenv("LANGCHAIN_TRACING_V2", "true")
+os.environ["LANGCHAIN_ENDPOINT"] = os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
+# SECURITY: API key should be loaded from environment variables, not hardcoded
+if "LANGCHAIN_API_KEY" not in os.environ:
+    langchain_key = os.getenv("LANGCHAIN_API_KEY")
+    if langchain_key:
+        os.environ["LANGCHAIN_API_KEY"] = langchain_key
+os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGCHAIN_PROJECT", "kagnar")
 
 from prompts.prompt_manager import PromptManager
 

@@ -25,6 +25,10 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env and add your API keys (see SECURITY.md for details)
 ```
 
 ## Project Structure
@@ -131,9 +135,11 @@ INFO: Best configuration found:
 
 ## Configuration
 
-- Environment variables can be set in `.env` file
-- Trading parameters can be adjusted in `config/trading_params.yaml`
-- Strategy generation prompts are in `prompts/trading/`
+- **Environment Variables**: Copy `.env.example` to `.env` and configure your API keys
+- **Trading Parameters**: Adjust settings in `config/trading_params.yaml`
+- **Strategy Prompts**: Customize prompts in `prompts/trading/`
+
+**Important**: Never commit API keys or secrets to version control. See [SECURITY.md](SECURITY.md) for security best practices.
 
 For detailed system architecture and components, see [System Design Documentation](docs/SYSTEM_DESIGN.md).
 
