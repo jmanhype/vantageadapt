@@ -1,158 +1,62 @@
 # VantageAdapt
 
-A Python-based trading strategy optimization and backtesting framework that uses adaptive algorithms and LLMs to generate and optimize trading strategies.
+LLM-driven trading strategy optimization and backtesting framework in Python.
 
-## Features
+## What It Does
 
-- Advanced backtesting engine with support for multiple assets
-- Strategy optimization using LLM-based approaches with structured generation
-- Real-time market analysis and regime detection
-- Self-improving code through Gödel machine principles
-- Performance analytics with vectorized operations
-- Database integration for storing results and performance metrics
-- Comprehensive trade tracking and analysis
+Takes historical trade data (pickled DataFrames keyed by asset symbol), detects market regimes, uses an LLM to generate trading strategies for a given theme, then optimizes parameters through backtesting.
 
-## Installation
+## Architecture
+
+| Directory | Purpose |
+|---|---|
+| `src/strat_optim/` | Core strategy generation, optimization, and database models |
+| `trading_dspy/` | DSPy-based pipeline: market analysis, regime detection, strategy generation, backtesting |
+| `config/prompts/` | YAML/Markdown prompts for LLM strategy generation |
+| `frontend/control-panel/` | React/TypeScript control panel (Vite + Tailwind) |
+| `config/grafana/` | Grafana dashboards and datasource provisioning |
+| `tests/` | Unit tests for backtesting gaps, LLM timeouts, regime transitions, memory corruption |
+
+## Supported Trading Themes
+
+Breakout, mean reversion, trend following, range, momentum, volatility breakout.
+
+## Requirements
+
+- Python 3.10+
+- Node.js (for the control panel frontend)
+- PostgreSQL (for result storage; Grafana connects to it)
+- Docker and Docker Compose (optional, for full stack)
+- API keys for your LLM provider (configured in `.env`)
+
+## Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/jmanhype/vantageadapt.git
 cd vantageadapt
-
-# Create and activate virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env and add your API keys (see SECURITY.md for details)
+cp .env.example .env  # add API keys
 ```
 
-## Project Structure
+Docker alternative:
 
-```
-vantageadapt/
-├── src/                    # Source code
-│   └── strat_optim/       # Main package
-│       ├── strategy/      # Strategy generation and optimization
-│       └── database/      # Database models and connections
-├── tests/                  # Test files
-├── docs/                   # Documentation
-│   └── SYSTEM_DESIGN.md   # Detailed system architecture
-├── research/              # Research and analysis
-│   └── strategy/         # Strategy research implementations
-└── prompts/              # LLM prompts for strategy generation
+```bash
+docker compose up -d
 ```
 
 ## Usage
 
-### Data Preparation
-
-The system expects trade data in a pickled dictionary format where each key is an asset symbol and each value is a pandas DataFrame containing:
-- `dex_price`: Price data
-- `timestamp`: Time information
-- Volume and other optional metrics
-
-Example data structure:
-```python
-{
-    "BTC-USD": pd.DataFrame(...),
-    "ETH-USD": pd.DataFrame(...),
-    ...
-}
-```
-
-### Running Strategy Optimization
-
 ```bash
-# Basic usage with breakout trading theme
-python main.py --theme "breakout trading" --data "path/to/data.pkl"
-
-# Mean reversion strategy
-python main.py --theme "mean reversion" --data "path/to/data.pkl"
-
-# Trend following with specific data
-python main.py --theme "trend following" --data "path/to/data.pkl"
+python main.py --theme "breakout trading" --data path/to/data.pkl
 ```
 
-### Trading Themes
+Input data format: a pickled dict where keys are asset symbols and values are DataFrames with `dex_price` and `timestamp` columns.
 
-The system supports various trading themes including:
-- Breakout trading
-- Mean reversion
-- Trend following
-- Range trading
-- Momentum trading
-- Volatility breakout
+## Status
 
-Each theme influences how the LLM generates strategies and trading rules.
-
-### Understanding Output
-
-The system will:
-1. Load and analyze market data
-2. Detect current market regime
-3. Generate trading strategy based on theme
-4. Optimize parameters through backtesting
-5. Output:
-   - Strategy performance metrics
-   - Optimized parameters
-   - Trading rules
-   - Market analysis
-
-Example output:
-```
-INFO: Loading trade data from path/to/data.pkl
-INFO: Successfully loaded 65 assets
-INFO: Market regime: RANGING_LOW_VOL (confidence: 0.85)
-INFO: Generating strategy for breakout trading...
-INFO: Optimizing parameters...
-INFO: Best configuration found:
-- Total Return: 2.45
-- Sharpe Ratio: 1.87
-- Win Rate: 0.62
-```
-
-### Key Components
-
-1. **Market Analysis**
-   - Real-time regime detection
-   - Volatility and trend analysis
-   - Risk level assessment
-
-2. **Strategy Generation**
-   - LLM-based strategy creation
-   - Structured parameter generation
-   - Dynamic rule adaptation
-
-3. **Performance Optimization**
-   - Parameter tuning through backtesting
-   - Self-improving code generation
-   - Performance metric tracking
-
-## Configuration
-
-- **Environment Variables**: Copy `.env.example` to `.env` and configure your API keys
-- **Trading Parameters**: Adjust settings in `config/trading_params.yaml`
-- **Strategy Prompts**: Customize prompts in `prompts/trading/`
-
-**Important**: Never commit API keys or secrets to version control. See [SECURITY.md](SECURITY.md) for security best practices.
-
-For detailed system architecture and components, see [System Design Documentation](docs/SYSTEM_DESIGN.md).
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes:
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Experimental. The system generates strategies and runs backtests, but there is no paper trading or live execution. The Godel machine self-improvement loop referenced in code is aspirational. The frontend control panel is partially built.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+MIT
