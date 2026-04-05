@@ -336,14 +336,39 @@ class StrategyGenerator(Module):
             logger.error(f"Error getting recent performance: {str(e)}")
             return {}
 
-    def _store_strategy(self, strategy: Dict[str, Any]) -> None:
+    def _store_strategy(self, strategy: Dict[str, Any], force_store: bool = True) -> None:
         """Store strategy in memory for future reference.
         
         Args:
             strategy: Strategy to store
+            force_store: If True, store the strategy even during optimization
         """
         try:
-            self.memory_manager.store_strategy(strategy)
+            # Create a properly structured strategy with the required 'strategy' key
+            structured_strategy = {
+                "strategy": {
+                    "regime": strategy.get("market_regime", "UNKNOWN"),
+                    "confidence": float(strategy.get("confidence", 0.0)),
+                    "risk_level": "moderate",
+                    "parameters": strategy.get("parameters", {}),
+                    "parameter_ranges": strategy.get("parameter_ranges", {}),
+                    "reasoning": strategy.get("reasoning", ""),
+                    "trade_signal": strategy.get("trade_signal", ""),
+                    "entry_conditions": strategy.get("entry_conditions", []),
+                    "exit_conditions": strategy.get("exit_conditions", []),
+                    "indicators": strategy.get("indicators", []),
+                }
+            }
+            
+            # Store using the memory manager with force_store=True to ensure
+            # strategies are stored during optimization
+            store_result = self.memory_manager.store_strategy(structured_strategy, force_store=force_store)
+            
+            if store_result:
+                logger.info(f"Successfully stored strategy with regime={structured_strategy['strategy']['regime']}")
+            else:
+                logger.warning(f"Failed to store strategy")
+                
         except Exception as e:
             logger.error(f"Error storing strategy: {str(e)}")
 
